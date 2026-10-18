@@ -126,7 +126,8 @@ export function ErExplorer({
           .length,
     )[0]?.table ||
     null;
-  const focusId = hoveredId ?? selected?.id ?? null;
+  // Only hovering narrows the view; otherwise every table and link stays visible.
+  const focusId = hoveredId;
   const touches = (edge: GraphEdge, id: string) =>
     edge.from === id || edge.to === id;
   const related = useMemo(() => {
