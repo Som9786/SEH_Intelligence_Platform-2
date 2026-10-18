@@ -10,7 +10,7 @@ export function DatabaseHeaderCard({ summary }: { summary: OverviewSummary }) {
       aria-labelledby="database-title"
     >
       <div className="td-header-main">
-        <p className="td-eyebrow">Database</p>
+        <p className="eyebrow">Database</p>
         <div className="td-title-row">
           <h2 id="database-title">{database.name}</h2>
         </div>

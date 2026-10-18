@@ -28,7 +28,7 @@ export function TableHeaderCard({
     <header className="td-card td-header" aria-labelledby="table-title">
       <div className="td-header-top">
         <div className="td-header-main">
-          <p className="td-eyebrow">Schema {detail.schemaName}</p>
+          <p className="eyebrow">Schema {detail.schemaName}</p>
           <div className="td-title-row">
             <h2 id="table-title">
               {detail.schemaName}.{detail.name}
