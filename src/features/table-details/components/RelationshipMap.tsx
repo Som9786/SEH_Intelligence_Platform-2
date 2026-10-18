@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRelationshipIndex } from '../hooks/useRelationshipIndex';
 import { neighbourhood } from '../utils/relationshipGraph';
 import { RelationshipDiagram } from './RelationshipDiagram';
@@ -12,6 +12,7 @@ export function RelationshipMap({
   onNavigate: (id: string) => void;
 }) {
   const index = useRelationshipIndex();
+  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
   const graph = useMemo(
     () => (index.data ? neighbourhood(index.data, tableId, 'all') : null),
     [index.data, tableId],
@@ -40,6 +41,7 @@ export function RelationshipMap({
           </div>
           <p>Tables that reference {tableId}, and the tables it references.</p>
         </div>
+        <div className="td-card-actions" ref={setActionsSlot} />
       </div>
       {index.isPending ? (
         <ResourceState kind="loading" title="Loading relationships…" />
@@ -57,7 +59,11 @@ export function RelationshipMap({
           title="This table has no relationships with other tables."
         />
       ) : (
-        <RelationshipDiagram graph={graph} onNavigate={onNavigate} />
+        <RelationshipDiagram
+          graph={graph}
+          onNavigate={onNavigate}
+          actionsSlot={actionsSlot}
+        />
       )}
     </section>
   );

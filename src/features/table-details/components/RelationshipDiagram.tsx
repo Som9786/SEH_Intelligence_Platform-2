@@ -1,4 +1,4 @@
-import { ImageDown, Scan, ZoomIn, ZoomOut } from 'lucide-react';
+import { Scan, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   useCallback,
   useEffect,
@@ -10,11 +10,15 @@ import {
   type KeyboardEvent,
   type MouseEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
+import { DownloadMenu } from '../../../shared/components/DownloadMenu';
 import { downloadBlob } from '../../../shared/utils/download';
 import { svgToBlob, svgToPngBlob } from '../../../shared/utils/exportSvg';
 import { renderMermaid } from '../../../shared/utils/renderMermaid';
+import { DiagramLegend } from './DiagramLegend';
 import { RelationshipColumns } from './RelationshipColumns';
 import { useTheme } from '../../../shared/hooks/useTheme';
+import { useErTables } from '../../relationships/hooks/useErTables';
 import { generateRelationshipMermaid } from '../utils/mermaidGenerator';
 import {
   cardinalityText,
@@ -95,14 +99,27 @@ function EdgeDetails({
 export function RelationshipDiagram({
   graph,
   onNavigate,
+  actionsSlot,
 }: {
   graph: Neighbourhood;
   onNavigate: (id: string) => void;
+  /** Where the Download menu goes: the card header. */
+  actionsSlot: HTMLElement | null;
 }) {
   const { theme } = useTheme();
+  // Columns, counts and row counts for the cards (shared with Table Details, so nothing is read twice).
+  const tableIds = useMemo(() => graph.tables.map((t) => t.id), [graph]);
+  const catalog = useErTables(tableIds);
+  const details = useMemo(
+    () =>
+      catalog.isPending
+        ? new Map()
+        : new Map(catalog.tables.map((t) => [t.id, t] as const)),
+    [catalog.isPending, catalog.tables],
+  );
   const diagram = useMemo(
-    () => generateRelationshipMermaid(graph, theme),
-    [graph, theme],
+    () => generateRelationshipMermaid(graph, theme, details),
+    [graph, theme, details],
   );
   const primaryKeys = useMemo(
     () => new Map(graph.tables.map((t) => [t.id, t.primaryKey] as const)),
@@ -120,7 +137,6 @@ export function RelationshipDiagram({
   } | null>(null);
   const [scale, setScale] = useState(1);
   const viewport = useRef<HTMLDivElement>(null);
-  const [exporting, setExporting] = useState(false);
   const natural = useRef({ width: 0, height: 0 });
 
   useEffect(() => {
@@ -199,24 +215,25 @@ export function RelationshipDiagram({
       );
   }, [selectedEdgeId, current]);
 
+  const fileName = graph.tableId
+    ? `${graph.tableId}-relationships`
+    : 'er-diagram';
   // PNG with the theme's background; if the browser refuses to rasterise it, the SVG is saved instead.
-  const download = async () => {
+  const downloadPng = async () => {
     const svg = viewport.current?.querySelector('svg');
-    if (!svg || exporting) return;
-    const name = graph.tableId
-      ? `${graph.tableId}-relationships`
-      : 'er-diagram';
-    setExporting(true);
+    if (!svg) return;
     try {
       downloadBlob(
         await svgToPngBlob(svg, theme === 'dark' ? '#0f1d19' : '#ffffff'),
-        `${name}.png`,
+        `${fileName}.png`,
       );
     } catch {
-      downloadBlob(svgToBlob(svg), `${name}.svg`);
-    } finally {
-      setExporting(false);
+      downloadBlob(svgToBlob(svg), `${fileName}.svg`);
     }
+  };
+  const downloadSvg = () => {
+    const svg = viewport.current?.querySelector('svg');
+    if (svg) downloadBlob(svgToBlob(svg), `${fileName}.svg`);
   };
 
   const activate = (target: EventTarget | null) => {
@@ -253,52 +270,61 @@ export function RelationshipDiagram({
 
   return (
     <div className="td-rel">
-      <div className="td-rel-toolbar" role="group" aria-label="Diagram zoom">
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Zoom out"
-          title="Zoom out"
-          disabled={scale <= MIN_SCALE}
-          onClick={() => setScale((s) => Math.max(MIN_SCALE, s / STEP))}
-        >
-          <ZoomOut size={16} aria-hidden="true" />
-        </button>
-        <span className="td-rel-scale" aria-live="polite">
-          {Math.round(scale * 100)}%
-        </span>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Zoom in"
-          title="Zoom in"
-          disabled={scale >= MAX_SCALE}
-          onClick={() => setScale((s) => Math.min(MAX_SCALE, s * STEP))}
-        >
-          <ZoomIn size={16} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          aria-label="Fit to view"
-          title="Fit to view"
-          onClick={fit}
-        >
-          <Scan size={16} aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          className="td-rel-download"
-          disabled={!current || exporting}
-          title="Download the diagram as an image"
-          onClick={() => {
-            void download();
-          }}
-        >
-          <ImageDown size={16} aria-hidden="true" />
-          Download
-        </button>
-      </div>
+      <DiagramLegend>
+        <div className="td-rel-toolbar" role="group" aria-label="Diagram zoom">
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Zoom out"
+            title="Zoom out"
+            disabled={scale <= MIN_SCALE}
+            onClick={() => setScale((s) => Math.max(MIN_SCALE, s / STEP))}
+          >
+            <ZoomOut size={16} aria-hidden="true" />
+          </button>
+          <span className="td-rel-scale" aria-live="polite">
+            {Math.round(scale * 100)}%
+          </span>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Zoom in"
+            title="Zoom in"
+            disabled={scale >= MAX_SCALE}
+            onClick={() => setScale((s) => Math.min(MAX_SCALE, s * STEP))}
+          >
+            <ZoomIn size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Fit to view"
+            title="Fit to view"
+            onClick={fit}
+          >
+            <Scan size={16} aria-hidden="true" />
+          </button>
+        </div>
+      </DiagramLegend>
+      {actionsSlot &&
+        createPortal(
+          <DownloadMenu
+            disabled={!current}
+            options={[
+              {
+                label: 'PNG image',
+                hint: 'Best for slides and documents',
+                onSelect: downloadPng,
+              },
+              {
+                label: 'SVG vector',
+                hint: 'Sharp at any size, editable',
+                onSelect: downloadSvg,
+              },
+            ]}
+          />,
+          actionsSlot,
+        )}
       {/* Clicks and keys are delegated: the SVG content is generated by Mermaid. */}
       <div
         ref={viewport}
@@ -331,8 +357,9 @@ export function RelationshipDiagram({
           onNavigate={onNavigate}
         />
       ) : (
-        <p className="td-rel-hint">
-          Select a line to see the relationship details, or a table to open it.
+        <p className="diagram-tip">
+          <strong>Tip:</strong> Select a line to see the relationship details,
+          or a table to open it.
         </p>
       )}
     </div>

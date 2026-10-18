@@ -42,6 +42,17 @@ export async function svgToPngBlob(
   scale = 2,
 ): Promise<Blob> {
   const { xml, width, height } = standaloneSvg(svg);
+  return svgMarkupToPngBlob(xml, width, height, background, scale);
+}
+
+/** The same, for SVG text that is already standalone (the ER explorer builds its own). */
+export async function svgMarkupToPngBlob(
+  xml: string,
+  width: number,
+  height: number,
+  background: string,
+  scale = 2,
+): Promise<Blob> {
   const image = new Image();
   const loaded = new Promise<void>((resolve, reject) => {
     image.onload = () => resolve();

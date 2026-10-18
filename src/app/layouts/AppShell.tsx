@@ -121,7 +121,7 @@ export function AppShell() {
             <span aria-hidden="true">/</span>
             <strong>{current}</strong>
           </div>
-          <TopbarTableSearch />
+          {location.pathname === '/table-details' && <TopbarTableSearch />}
           <button
             className="theme-toggle"
             type="button"

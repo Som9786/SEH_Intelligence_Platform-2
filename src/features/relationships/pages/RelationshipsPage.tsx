@@ -1,20 +1,17 @@
-import { List, Network, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { ChevronDown, List, Network, Search } from 'lucide-react';
+import { Fragment, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import { RelationshipColumns } from '../../table-details/components/RelationshipColumns';
-import { RelationshipDiagram } from '../../table-details/components/RelationshipDiagram';
+import { ErExplorer } from '../components/ErExplorer';
 import { ResourceState } from '../../table-details/components/ResourceState';
 import { useRelationshipIndex } from '../../table-details/hooks/useRelationshipIndex';
 import {
+  cardinalityShort,
   cardinalityText,
   type GraphEdge,
   databaseGraph,
-  neighbourhood,
-  unlinkedTables,
 } from '../../table-details/utils/relationshipGraph';
-
-const ALL = '';
 
 /** Constraint name, or a plain label when the catalog records none. */
 const relationshipName = (edge: GraphEdge) =>
@@ -25,9 +22,15 @@ const tableLink = (id: string) =>
 export function RelationshipsPage() {
   const index = useRelationshipIndex();
   const navigate = useNavigate();
-  const [focus, setFocus] = useState(ALL);
   const [query, setQuery] = useState('');
   const [descending, setDescending] = useState(false);
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (id: string) =>
+    setExpanded((previous) => {
+      const next = new Set(previous);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   const [params, setParams] = useSearchParams();
   // Two views of the same data, kept in the URL so each one can be linked to.
   const mode = params.get('view') === 'list' ? 'list' : 'diagram';
@@ -37,20 +40,13 @@ export function RelationshipsPage() {
   const view = useMemo(() => {
     if (!index.data) return null;
     const whole = databaseGraph(index.data);
-    const focused =
-      focus && whole.tables.some((t) => t.id === focus)
-        ? neighbourhood(index.data, focus, 'all')
-        : whole;
     return {
       whole,
-      graph: focused,
-      unlinked: unlinkedTables(index.data),
       primaryKeys: new Map(
         whole.tables.map((t) => [t.id, t.primaryKey] as const),
       ),
-      options: whole.tables.map((t) => t.id).sort(),
     };
-  }, [index.data, focus]);
+  }, [index.data]);
 
   const rows = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase();
@@ -114,62 +110,7 @@ export function RelationshipsPage() {
       ) : (
         <>
           {mode === 'diagram' && (
-            <section
-              className="td-card td-relationships"
-              aria-labelledby="rel-diagram-heading"
-            >
-              <div className="td-card-head">
-                <div className="td-card-title td-card-title-stack">
-                  <div className="td-card-title-row">
-                    <h2 id="rel-diagram-heading">
-                      Entity relationship diagram
-                    </h2>
-                    <span className="td-count">
-                      {view.whole.tables.length} tables ·{' '}
-                      {view.whole.edges.length} relationships
-                    </span>
-                  </div>
-                  <p>
-                    Arrows point from the referencing table to the table it
-                    references.
-                  </p>
-                </div>
-                {view.options.length > 0 && (
-                  <label className="rel-focus">
-                    <span>Show</span>
-                    <select
-                      value={focus}
-                      onChange={(event) => setFocus(event.target.value)}
-                    >
-                      <option value={ALL}>All relationships</option>
-                      {view.options.map((id) => (
-                        <option key={id} value={id}>
-                          {id} and its neighbours
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-              </div>
-              {view.graph.edges.length === 0 ? (
-                <ResourceState
-                  kind="empty"
-                  title="No relationships are recorded in this snapshot."
-                />
-              ) : (
-                <RelationshipDiagram graph={view.graph} onNavigate={open} />
-              )}
-              {view.unlinked.length > 0 && (
-                <p className="rel-unlinked">
-                  {view.unlinked.length === 1
-                    ? '1 table has'
-                    : `${view.unlinked.length} tables have`}{' '}
-                  no relationships and{' '}
-                  {view.unlinked.length === 1 ? 'is' : 'are'} not shown:{' '}
-                  {view.unlinked.join(', ')}
-                </p>
-              )}
-            </section>
+            <ErExplorer index={index.data} onOpenTable={open} />
           )}
 
           {mode === 'list' &&
@@ -218,53 +159,96 @@ export function RelationshipsPage() {
                           <th scope="col">Columns</th>
                           <th scope="col">Cardinality</th>
                           <th scope="col">Evidence</th>
+                          <th scope="col">
+                            <span className="td-sr-only">Details</span>
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {rows.map((edge) => (
-                          <tr key={edge.id}>
-                            <th scope="row">
-                              <span className="td-dir-name">
-                                {relationshipName(edge)}
-                              </span>
-                            </th>
-                            <td>
-                              <Link
-                                className="td-link-button"
-                                to={tableLink(edge.from)}
-                              >
-                                {edge.from}
-                              </Link>
-                            </td>
-                            <td>
-                              <Link
-                                className="td-link-button"
-                                to={tableLink(edge.to)}
-                              >
-                                {edge.to}
-                              </Link>
-                            </td>
-                            <td>
-                              <RelationshipColumns
-                                edge={edge}
-                                primaryKeys={view.primaryKeys}
-                              />
-                            </td>
-                            <td>{cardinalityText(edge)}</td>
-                            <td>
-                              <span
-                                className={
-                                  'td-chip ' +
-                                  (edge.confirmed
-                                    ? 'td-chip-confirmed'
-                                    : 'td-badge-inferred')
-                                }
-                              >
-                                {edge.confirmed ? 'Confirmed' : 'Inferred'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                        {rows.map((edge) => {
+                          const open = expanded.has(edge.id);
+                          const panelId = `rel-${edge.id.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+                          return (
+                            <Fragment key={edge.id}>
+                              <tr className={open ? 'td-dir-open' : undefined}>
+                                <th scope="row">
+                                  <span className="td-dir-name">
+                                    {relationshipName(edge)}
+                                  </span>
+                                </th>
+                                <td>
+                                  <Link
+                                    className="td-link-button"
+                                    to={tableLink(edge.from)}
+                                  >
+                                    {edge.from}
+                                  </Link>
+                                </td>
+                                <td>
+                                  <Link
+                                    className="td-link-button"
+                                    to={tableLink(edge.to)}
+                                  >
+                                    {edge.to}
+                                  </Link>
+                                </td>
+                                <td>
+                                  <RelationshipColumns
+                                    edge={edge}
+                                    primaryKeys={view.primaryKeys}
+                                  />
+                                </td>
+                                <td>
+                                  {cardinalityShort(edge.cardinality) || '—'}
+                                </td>
+                                <td>
+                                  <span
+                                    className={
+                                      'td-chip ' +
+                                      (edge.confirmed
+                                        ? 'td-chip-confirmed'
+                                        : 'td-badge-inferred')
+                                    }
+                                  >
+                                    {edge.confirmed ? 'Confirmed' : 'Inferred'}
+                                  </span>
+                                </td>
+                                <td className="td-dir-expand">
+                                  <button
+                                    type="button"
+                                    className="td-dir-toggle"
+                                    aria-expanded={open}
+                                    aria-controls={panelId}
+                                    aria-label={`${open ? 'Hide' : 'Show'} details for ${relationshipName(edge)}`}
+                                    onClick={() => toggle(edge.id)}
+                                  >
+                                    <ChevronDown size={16} aria-hidden="true" />
+                                  </button>
+                                </td>
+                              </tr>
+                              {open && (
+                                <tr className="td-dir-details-row">
+                                  <td colSpan={7} id={panelId}>
+                                    <dl className="td-dir-details">
+                                      <dt>Cardinality</dt>
+                                      <dd>{cardinalityText(edge)}</dd>
+                                      <dt>Meaning</dt>
+                                      <dd
+                                        className={
+                                          edge.confirmed
+                                            ? undefined
+                                            : 'inferred'
+                                        }
+                                      >
+                                        {edge.meaning ?? 'No meaning recorded.'}
+                                      </dd>
+                                    </dl>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

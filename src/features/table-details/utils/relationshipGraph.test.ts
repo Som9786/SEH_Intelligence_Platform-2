@@ -183,7 +183,9 @@ describe('key badges in diagram node labels', () => {
     const orders = lines.find((l) => l.includes('dbo.Orders'))!;
     expect(orders).toContain('mm-key mm-key-pk');
     expect(orders).toContain('mm-key mm-key-fk');
-    expect(orders.match(/<svg/g)).toHaveLength(2);
+    expect(orders.match(/<svg/g)).toHaveLength(
+      (orders.match(/mm-key mm-key-/g) ?? []).length + 1, // every badge has its icon, plus the table icon
+    );
     expect(orders).toContain(
       "title='Primary key - Uniquely identifies each row in this table'",
     );
