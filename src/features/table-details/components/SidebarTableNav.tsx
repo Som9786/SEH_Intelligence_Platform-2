@@ -48,7 +48,7 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
   else if (list.isError)
     body = (
       <div className="side-table-note" role="alert">
-        Tables are unavailable.{' '}
+        Tables could not be loaded.{' '}
         <button type="button" onClick={() => void list.refetch()}>
           Retry
         </button>
@@ -57,7 +57,7 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
   else if (list.tables.length === 0)
     body = (
       <p className="side-table-note">
-        {searching ? 'No matching tables' : 'No tables in the catalog'}
+        {searching ? 'No matching tables' : 'No tables in this catalog'}
       </p>
     );
   else

@@ -14,12 +14,12 @@ export function OverviewPage() {
     <div className="page-content">
       <PageHeading
         title="Overview"
-        description="Explore your saved database snapshot and its documentation."
+        description="Explore your database catalog and its documentation."
         badge={
           <div className="td-actions">
             <Link to="/documentation" className="td-action td-action-primary">
               <BookOpen size={16} aria-hidden="true" />
-              View Details
+              Read documentation
             </Link>
           </div>
         }
@@ -55,7 +55,7 @@ export function OverviewPage() {
               <div className="insight">
                 <BookOpen aria-hidden="true" />
                 <div>
-                  <h3>DB Catalog: Knowledge, organized</h3>
+                  <h3>What's in the catalog</h3>
                   <p>
                     Explore tables and business areas in one place, with
                     documentation that makes database metadata easier to
@@ -66,7 +66,7 @@ export function OverviewPage() {
               <div className="insight">
                 <Network aria-hidden="true" />
                 <div>
-                  <h3>DB Relationships: Evidence and confidence</h3>
+                  <h3>Confirmed vs inferred</h3>
                   <ul className="insight-legend-list">
                     <li>
                       <div className="legend-head">
@@ -97,10 +97,10 @@ export function OverviewPage() {
               <div className="insight">
                 <Eye aria-hidden="true" />
                 <div>
-                  <h3>DB access: File-based, read-only</h3>
+                  <h3>Read-only, file-based</h3>
                   <p>
                     Uses exported JSON and Markdown files only. No live database
-                    connection, database changes, or AI requests.
+                    connection, database changes or AI requests.
                   </p>
                 </div>
               </div>

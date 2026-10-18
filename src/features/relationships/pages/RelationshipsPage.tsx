@@ -78,9 +78,9 @@ export function RelationshipsPage() {
     <div className="page-content rel-page">
       <PageHeading
         title="Relationships"
-        description="How the tables in this database are connected, drawn from the saved relationship metadata."
+        description="How the tables in this catalog are connected."
         badge={
-          // One button: it offers the view you are not on, like AI Explanation / Schema Details.
+          // One button: it offers the view you are not on, like Documentation / Schema on Table Details.
           <div className="td-actions">
             <button
               type="button"
@@ -92,7 +92,7 @@ export function RelationshipsPage() {
               ) : (
                 <Network size={16} aria-hidden="true" />
               )}
-              {mode === 'diagram' ? 'All Relationships' : 'ER Diagram'}
+              {mode === 'diagram' ? 'All relationships' : 'ER diagram'}
             </button>
           </div>
         }
@@ -102,7 +102,7 @@ export function RelationshipsPage() {
       ) : index.isError || !view ? (
         <ResourceState
           kind="error"
-          title="Relationships could not be read."
+          title="Relationships could not be loaded."
           onRetry={() => {
             void index.refetch();
           }}
@@ -257,7 +257,7 @@ export function RelationshipsPage() {
             ) : (
               <ResourceState
                 kind="empty"
-                title="No relationships are recorded in this snapshot."
+                title="No relationships in this catalog."
               />
             ))}
         </>

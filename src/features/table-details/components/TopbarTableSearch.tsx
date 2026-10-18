@@ -77,13 +77,13 @@ export function TopbarTableSearch() {
   };
 
   const message = list.isError
-    ? 'Tables are unavailable.'
+    ? 'Tables could not be loaded.'
     : list.isPending
       ? 'Loading tables…'
       : results.length === 0
         ? query.trim()
           ? 'No matching tables'
-          : 'No tables in the catalog'
+          : 'No tables in this catalog'
         : null;
 
   return (

@@ -7,13 +7,13 @@ export function SummaryCards({ summary }: { summary: OverviewSummary }) {
     {
       title: 'Business areas',
       value: summary.counts.businessAreas,
-      note: 'Organized modules',
+      note: 'Groups of related tables',
       icon: Boxes,
     },
     {
       title: 'Tables',
       value: summary.counts.tables,
-      note: 'Unique catalog tables',
+      note: 'In this catalog',
       icon: Table2,
     },
     {

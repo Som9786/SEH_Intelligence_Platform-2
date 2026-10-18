@@ -49,7 +49,7 @@ export function LoginPage() {
           <BrandLogo size={58} />
           <div>
             <h1 id="auth-title">SEH Intelligence Platform</h1>
-            <p>Data Intelligence</p>
+            <p>Explore your database catalog</p>
           </div>
         </header>
 

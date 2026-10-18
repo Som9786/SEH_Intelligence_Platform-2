@@ -41,7 +41,7 @@ export function TableActions({
         onClick={() => exportSchemaToExcel(table)}
       >
         <FileSpreadsheet size={16} aria-hidden="true" />
-        Export Excel
+        Export to Excel
       </button>
       <button
         type="button"
@@ -50,7 +50,7 @@ export function TableActions({
         onClick={onToggleAi}
       >
         <Icon size={16} aria-hidden="true" />
-        {showingAi ? 'Schema Details' : 'AI Explanation'}
+        {showingAi ? 'Schema' : 'Documentation'}
       </button>
     </div>
   );

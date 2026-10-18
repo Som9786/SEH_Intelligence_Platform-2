@@ -21,7 +21,7 @@ export function DocumentationPage() {
     <div className="page-content">
       <PageHeading
         title="Documentation"
-        description="Read the existing AI-generated documentation alongside its source metadata."
+        description="Read the AI-generated documentation for this catalog."
         badge={
           <div className="td-actions">
             <Link to="/" className="td-action td-action-primary">
@@ -50,7 +50,7 @@ export function DocumentationPage() {
       ) : query.isError ? (
         <ResourceState
           kind="error"
-          title="This documentation file is missing or could not be read."
+          title="Documentation could not be loaded."
           onRetry={() => {
             void query.refetch();
           }}

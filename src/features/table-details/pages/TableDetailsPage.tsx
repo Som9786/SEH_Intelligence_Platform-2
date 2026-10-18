@@ -20,8 +20,8 @@ type Tab = (typeof tabs)[number];
 
 /** Visible tab names; the ids above stay stable because documents link to `?tab=Documentation`. */
 const tabLabels: Record<Tab, string> = {
-  Overview: 'Schema Details',
-  Documentation: 'AI Explanation',
+  Overview: 'Schema',
+  Documentation: 'Documentation',
 };
 
 export function TableDetailsPage() {
@@ -99,7 +99,7 @@ export function TableDetailsPage() {
     <div className="page-content">
       <PageHeading
         title="Table Details"
-        description="Explore saved metadata, keys, relationships, and documentation."
+        description="Explore each table's columns, keys, relationships and documentation."
         badge={
           table.data && (
             <TableActions
@@ -121,7 +121,7 @@ export function TableDetailsPage() {
         <section className="panel table-detail-panel">
           <ResourceState
             kind="empty"
-            title="Select a table from the sidebar to view its details."
+            title="Select a table from the sidebar, or search for one above."
           />
         </section>
       ) : table.isPending ? (
@@ -135,7 +135,7 @@ export function TableDetailsPage() {
             title={
               notFound
                 ? 'Table not found.'
-                : 'Table details are unavailable. Please try again.'
+                : 'Table details could not be loaded.'
             }
             onRetry={() => {
               void table.refetch();
@@ -198,7 +198,7 @@ export function TableDetailsPage() {
           saving={saveReview.isPending}
           error={
             saveReview.isError
-              ? 'The review could not be saved. Please try again.'
+              ? 'The review could not be saved.'
               : null
           }
           onSave={(draft) =>

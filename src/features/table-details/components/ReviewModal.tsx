@@ -10,7 +10,6 @@ import {
 import type { ReviewDraft, ReviewStatus, TableReview } from '../types/review';
 import { REVIEW_STATUS_OPTIONS, formatReviewDate } from '../utils/reviewStatus';
 
-const DEFAULT_REVIEWER = 'Demo Reviewer';
 const MAX_COMMENT = 1000;
 const FOCUSABLE =
   'button:not(:disabled), input:not(:disabled), textarea:not(:disabled), [href], [tabindex]:not([tabindex="-1"])';
@@ -37,7 +36,7 @@ export function ReviewModal({
   const titleId = useId();
   const dialog = useRef<HTMLDivElement>(null);
   const [reviewer, setReviewer] = useState(
-    review?.reviewedBy ?? DEFAULT_REVIEWER,
+    review?.reviewedBy ?? '',
   );
   const [status, setStatus] = useState<ReviewStatus | null>(
     review?.status ?? null,
@@ -138,7 +137,8 @@ export function ReviewModal({
                 type="text"
                 value={reviewer}
                 maxLength={80}
-                autoComplete="off"
+                placeholder="Your name"
+                autoComplete="name"
                 onChange={(event) => setReviewer(event.target.value)}
               />
             </label>

@@ -24,7 +24,7 @@ export function DiagramLegend({ children }: { children?: ReactNode }) {
     <div className="diagram-legend">
       <ul aria-label="Diagram legend">
         <li>
-          <span className="legend-line" aria-hidden="true" /> Confirmed FK
+          <span className="legend-line" aria-hidden="true" /> Confirmed
         </li>
         <li>
           <span

@@ -36,7 +36,7 @@ export function AiAssistantPage() {
     <div className="page-content">
       <PageHeading
         title="AI Assistant"
-        description="Ask questions in plain English about tables, keys, and relationships."
+        description="Ask questions in plain English about tables, keys and relationships."
         badge={
           <div className="td-actions">
             <button
@@ -122,13 +122,13 @@ function Demo() {
 
   return (
     <div className="ai-layout">
-      <section className="ai-chat" aria-label="SEH Atlas">
+      <section className="ai-chat" aria-label="AI Assistant chat">
         <header className="ai-chat-head">
           <span className="ai-avatar ai-avatar-lg" aria-hidden="true">
             <Sparkles size={18} />
           </span>
           <div>
-            <h2>SEH Atlas</h2>
+            <h2>AI Assistant</h2>
             <p>
               Context: {plural(catalog.tables.size, 'table', 'tables')} ·{' '}
               {plural(catalog.edges.length, 'relationship', 'relationships')} ·

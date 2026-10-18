@@ -189,7 +189,7 @@ export function ErExplorer({
     return (
       <ResourceState
         kind="empty"
-        title="No tables are recorded in this snapshot."
+        title="No tables in this catalog."
       />
     );
 
@@ -207,7 +207,7 @@ export function ErExplorer({
             </div>
             <p>
               Arrows point from the referencing table to the table it
-              references. Double-click a table to open it.
+              references.
             </p>
           </div>
           <DownloadMenu
