@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SEH Intelligence Platform">
+  <title>SEH Intelligence Platform</title>
+  <rect width="512" height="512" rx="116" fill="#10302a"/>
+  <!-- Three slanted bars that read as an "S". Corners are rounded by stroking each shape with its own colour. -->
+  <g stroke-linejoin="round" stroke-width="18">
+    <polygon points="167,114 388,114 344,181 123,181" fill="#16a86c" stroke="#16a86c"/>
+    <polygon points="123,222 344,222 388,289 167,289" fill="#fa9a2b" stroke="#fa9a2b"/>
+    <polygon points="167,330 388,330 344,397 123,397" fill="#ef4a45" stroke="#ef4a45"/>
+  </g>
+</svg>

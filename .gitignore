@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.log
+.env*
+*.tsbuildinfo
+.DS_Store
+Thumbs.db
+.claude/
+
+# .NET build output (contains machine-specific paths)
+backend/**/obj/
+backend/**/bin/
+
+# Old MetaXtract snapshot, replaced by public/catalog (it names an internal server)
+public/data/database.json
+public/data/dbo.*.json
+public/data/manifest.json
+public/data/generated/

@@ -1,0 +1,282 @@
+import { List, Network, Search } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router';
+import { PageHeading } from '../../../shared/components/PageHeading';
+import { RelationshipDiagram } from '../../table-details/components/RelationshipDiagram';
+import { ResourceState } from '../../table-details/components/ResourceState';
+import { useRelationshipIndex } from '../../table-details/hooks/useRelationshipIndex';
+import {
+  cardinalityText,
+  type GraphEdge,
+  databaseGraph,
+  neighbourhood,
+  unlinkedTables,
+} from '../../table-details/utils/relationshipGraph';
+
+const ALL = '';
+
+/** Constraint name, or a plain label when the catalog records none. */
+const relationshipName = (edge: GraphEdge) =>
+  edge.name ?? (edge.confirmed ? 'Foreign key' : 'Inferred join');
+const tableLink = (id: string) =>
+  `/table-details?table=${encodeURIComponent(id)}`;
+
+export function RelationshipsPage() {
+  const index = useRelationshipIndex();
+  const navigate = useNavigate();
+  const [focus, setFocus] = useState(ALL);
+  const [query, setQuery] = useState('');
+  const [descending, setDescending] = useState(false);
+  const [params, setParams] = useSearchParams();
+  // Two views of the same data, kept in the URL so each one can be linked to.
+  const mode = params.get('view') === 'list' ? 'list' : 'diagram';
+  const show = (next: 'diagram' | 'list') =>
+    setParams(next === 'list' ? { view: 'list' } : {}, { replace: true });
+
+  const view = useMemo(() => {
+    if (!index.data) return null;
+    const whole = databaseGraph(index.data);
+    const focused =
+      focus && whole.tables.some((t) => t.id === focus)
+        ? neighbourhood(index.data, focus, 'all')
+        : whole;
+    return {
+      whole,
+      graph: focused,
+      unlinked: unlinkedTables(index.data),
+      options: whole.tables.map((t) => t.id).sort(),
+    };
+  }, [index.data, focus]);
+
+  const rows = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase();
+    return (view?.whole.edges ?? [])
+      .filter(
+        (edge) =>
+          !needle ||
+          [
+            relationshipName(edge),
+            edge.from,
+            edge.to,
+            edge.confirmed ? 'confirmed' : 'inferred',
+            ...edge.fromColumns,
+            ...edge.toColumns,
+          ].some((value) => value.toLocaleLowerCase().includes(needle)),
+      )
+      .sort(
+        (a, b) =>
+          (descending ? -1 : 1) *
+          relationshipName(a).localeCompare(relationshipName(b)),
+      );
+  }, [view, query, descending]);
+
+  const open = (id: string) => {
+    void navigate(tableLink(id));
+  };
+
+  return (
+    <div className="page-content rel-page">
+      <PageHeading
+        title="Relationships"
+        description="How the tables in this database are connected, drawn from the saved relationship metadata."
+        badge={
+          // One button: it offers the view you are not on, like AI Explanation / Schema Details.
+          <div className="td-actions">
+            <button
+              type="button"
+              className="td-action td-action-primary"
+              onClick={() => show(mode === 'diagram' ? 'list' : 'diagram')}
+            >
+              {mode === 'diagram' ? (
+                <List size={16} aria-hidden="true" />
+              ) : (
+                <Network size={16} aria-hidden="true" />
+              )}
+              {mode === 'diagram' ? 'All Relationships' : 'ER Diagram'}
+            </button>
+          </div>
+        }
+      />
+      {index.isPending ? (
+        <ResourceState kind="loading" title="Loading relationships…" />
+      ) : index.isError || !view ? (
+        <ResourceState
+          kind="error"
+          title="Relationships could not be read."
+          onRetry={() => {
+            void index.refetch();
+          }}
+        />
+      ) : (
+        <>
+          {mode === 'diagram' && (
+            <section
+              className="td-card td-relationships"
+              aria-labelledby="rel-diagram-heading"
+            >
+              <div className="td-card-head">
+                <div className="td-card-title td-card-title-stack">
+                  <div className="td-card-title-row">
+                    <h2 id="rel-diagram-heading">
+                      Entity relationship diagram
+                    </h2>
+                    <span className="td-count">
+                      {view.whole.tables.length} tables ·{' '}
+                      {view.whole.edges.length} relationships
+                    </span>
+                  </div>
+                  <p>
+                    Arrows point from the referencing table to the table it
+                    references.
+                  </p>
+                </div>
+                {view.options.length > 0 && (
+                  <label className="rel-focus">
+                    <span>Show</span>
+                    <select
+                      value={focus}
+                      onChange={(event) => setFocus(event.target.value)}
+                    >
+                      <option value={ALL}>All relationships</option>
+                      {view.options.map((id) => (
+                        <option key={id} value={id}>
+                          {id} and its neighbours
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
+              {view.graph.edges.length === 0 ? (
+                <ResourceState
+                  kind="empty"
+                  title="No relationships are recorded in this snapshot."
+                />
+              ) : (
+                <RelationshipDiagram graph={view.graph} onNavigate={open} />
+              )}
+              {view.unlinked.length > 0 && (
+                <p className="rel-unlinked">
+                  {view.unlinked.length === 1
+                    ? '1 table has'
+                    : `${view.unlinked.length} tables have`}{' '}
+                  no relationships and{' '}
+                  {view.unlinked.length === 1 ? 'is' : 'are'} not shown:{' '}
+                  {view.unlinked.join(', ')}
+                </p>
+              )}
+            </section>
+          )}
+
+          {mode === 'list' &&
+            (view.whole.edges.length > 0 ? (
+              <section className="td-card" aria-labelledby="rel-list-heading">
+                <div className="td-card-head">
+                  <div className="td-card-title td-card-title-stack">
+                    <div className="td-card-title-row">
+                      <h2 id="rel-list-heading">All relationships</h2>
+                      <span className="td-count">
+                        {rows.length} of {view.whole.edges.length}
+                      </span>
+                    </div>
+                    <p>Every link in the diagram, one row each.</p>
+                  </div>
+                  <div className="td-tools">
+                    <label className="td-search">
+                      <Search size={14} aria-hidden="true" />
+                      <span className="td-sr-only">Search relationships</span>
+                      <input
+                        type="search"
+                        placeholder="Search relationships"
+                        value={query}
+                        onChange={(event) => setQuery(event.target.value)}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className="td-tool-button"
+                      onClick={() => setDescending(!descending)}
+                    >
+                      {descending ? 'Name Z–A' : 'Name A–Z'}
+                    </button>
+                  </div>
+                </div>
+                {rows.length === 0 ? (
+                  <p className="td-note">No relationships match your search.</p>
+                ) : (
+                  <div className="td-table-scroll">
+                    <table className="td-table td-dir-table">
+                      <thead>
+                        <tr>
+                          <th scope="col">Relationship</th>
+                          <th scope="col">Referencing table</th>
+                          <th scope="col">Referenced table</th>
+                          <th scope="col">Columns</th>
+                          <th scope="col">Cardinality</th>
+                          <th scope="col">Evidence</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((edge) => (
+                          <tr key={edge.id}>
+                            <th scope="row">
+                              <span className="td-dir-name">
+                                {relationshipName(edge)}
+                              </span>
+                            </th>
+                            <td>
+                              <Link
+                                className="td-link-button"
+                                to={tableLink(edge.from)}
+                              >
+                                {edge.from}
+                              </Link>
+                            </td>
+                            <td>
+                              <Link
+                                className="td-link-button"
+                                to={tableLink(edge.to)}
+                              >
+                                {edge.to}
+                              </Link>
+                            </td>
+                            <td>
+                              <span className="td-dir-chips">
+                                {edge.fromColumns.map((column, i) => (
+                                  <code className="td-col-code" key={column}>
+                                    {column} → {edge.toColumns[i] ?? '?'}
+                                  </code>
+                                ))}
+                              </span>
+                            </td>
+                            <td>{cardinalityText(edge)}</td>
+                            <td>
+                              <span
+                                className={
+                                  'td-chip ' +
+                                  (edge.confirmed
+                                    ? 'td-chip-fk'
+                                    : 'td-badge-inferred')
+                                }
+                              >
+                                {edge.confirmed ? 'Confirmed' : 'Inferred'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            ) : (
+              <ResourceState
+                kind="empty"
+                title="No relationships are recorded in this snapshot."
+              />
+            ))}
+        </>
+      )}
+    </div>
+  );
+}

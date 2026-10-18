@@ -1,0 +1,133 @@
+{
+  "id": "dbo.Orders",
+  "schema": "dbo",
+  "name": "Orders",
+  "businessArea": "Order Management",
+  "purpose": {
+    "text": "Orders placed by customers, each with an order date, a total amount and a current status.",
+    "evidence": "inferred"
+  },
+  "recordMeaning": {
+    "text": "One order placed by one customer, with a single total amount and current status; order lines are not stored here.",
+    "evidence": "inferred"
+  },
+  "rowCount": 4,
+  "rowCountExact": false,
+  "primaryKey": ["OrderId"],
+  "columns": [
+    {
+      "ordinal": 1,
+      "name": "OrderId",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": true,
+      "foreignKey": null,
+      "unique": true,
+      "identity": true,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": {
+        "text": "Internal order number assigned automatically by the database.",
+        "evidence": "inferred"
+      }
+    },
+    {
+      "ordinal": 2,
+      "name": "CustomerId",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": { "table": "dbo.Customers", "column": "CustomerId" },
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": {
+        "text": "The customer who placed the order; required and checked against the Customers table.",
+        "evidence": "inferred"
+      }
+    },
+    {
+      "ordinal": 3,
+      "name": "OrderDate",
+      "dataType": "datetime2(7)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": "(sysutcdatetime())",
+      "sensitivity": null,
+      "meaning": {
+        "text": "When the order was placed; defaults to the current UTC time if not supplied.",
+        "evidence": "inferred"
+      }
+    },
+    {
+      "ordinal": 4,
+      "name": "TotalAmount",
+      "dataType": "decimal(12,2)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": {
+        "text": "Total value of the order, never negative; the currency and what the total includes are unknown.",
+        "evidence": "inferred"
+      }
+    },
+    {
+      "ordinal": 5,
+      "name": "OrderStatus",
+      "dataType": "nvarchar(30)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": {
+        "text": "Current stage of the order as free text; allowed values and their order are not defined in the database.",
+        "evidence": "inferred"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "direction": "outgoing",
+      "relatedTable": "dbo.Customers",
+      "columns": ["CustomerId"],
+      "relatedColumns": ["CustomerId"],
+      "cardinality": "many-to-one",
+      "evidence": "confirmed",
+      "meaning": "Each order belongs to exactly one existing customer."
+    }
+  ],
+  "indexes": [
+    { "name": "PK_Orders", "columns": ["OrderId"], "includedColumns": [], "unique": true, "clustered": true, "filter": null }
+  ],
+  "constraints": [
+    { "name": "PK_Orders", "type": "primaryKey", "columns": ["OrderId"], "definition": null, "enforced": true },
+    { "name": "FK_Orders_Customers", "type": "foreignKey", "columns": ["CustomerId"], "definition": null, "enforced": true },
+    { "name": "CK_Orders_TotalAmount", "type": "check", "columns": ["TotalAmount"], "definition": "([TotalAmount]>=(0))", "enforced": true },
+    { "name": "DF_Orders_OrderDate", "type": "default", "columns": ["OrderDate"], "definition": "(sysutcdatetime())", "enforced": true }
+  ],
+  "triggers": [],
+  "businessRules": [
+    { "text": "Every order has a unique, automatically assigned number.", "evidence": "confirmed" },
+    { "text": "Every order belongs to exactly one existing customer.", "evidence": "confirmed" },
+    { "text": "Order date, total amount and status are required.", "evidence": "confirmed" },
+    { "text": "The total amount cannot be negative; zero is allowed.", "evidence": "confirmed" },
+    { "text": "The order date defaults to the current UTC time.", "evidence": "confirmed" },
+    { "text": "Orders appear to move through statuses such as Pending, Shipped and Completed, but no sequence is enforced.", "evidence": "inferred" }
+  ]
+}

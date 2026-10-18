@@ -1,0 +1,16 @@
+{
+  "businessAreas": [
+    {
+      "name": "Customer Management",
+      "purpose": "Keeps one record per customer with name, optional contact email, optional city and creation time.",
+      "evidence": "inferred",
+      "tables": ["dbo.Customers"]
+    },
+    {
+      "name": "Order Management",
+      "purpose": "Records orders placed by customers with order date, non-negative total amount and current status.",
+      "evidence": "inferred",
+      "tables": ["dbo.Orders"]
+    }
+  ]
+}
