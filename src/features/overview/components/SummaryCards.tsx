@@ -5,10 +5,12 @@ import type { OverviewSummary } from '../types/overview';
 export function SummaryCards({ summary }: { summary: OverviewSummary }) {
   const stats = [
     {
-      title: 'Business areas',
-      value: summary.counts.businessAreas,
-      note: 'Groups of related tables',
-      icon: Boxes,
+      title: 'Database engine',
+      value: summary.database.provider ?? 'Unknown',
+      note: summary.database.version
+        ? `Version ${summary.database.version}`
+        : 'Version not recorded',
+      icon: Database,
     },
     {
       title: 'Tables',
@@ -17,18 +19,16 @@ export function SummaryCards({ summary }: { summary: OverviewSummary }) {
       icon: Table2,
     },
     {
+      title: 'Business areas',
+      value: summary.counts.businessAreas,
+      note: 'Groups of related tables',
+      icon: Boxes,
+    },
+    {
       title: 'Relationships',
       value: summary.counts.relationships,
       note: 'Links between tables',
       icon: GitFork,
-    },
-    {
-      title: 'Database engine',
-      value: summary.database.provider ?? 'Unknown',
-      note: summary.database.version
-        ? `Version ${summary.database.version}`
-        : 'Version not recorded',
-      icon: Database,
     },
   ];
   return (

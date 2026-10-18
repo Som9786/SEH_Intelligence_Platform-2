@@ -71,7 +71,6 @@
   --l-a9c9bb: #a9c9bb;
   --l-c06a1a: #c06a1a;
   --l-c9e6d4: #c9e6d4;
-  --l-f5b463: #f5b463;
   --toolbar-bg: rgba(255, 255, 255, 0.92);
   /* Shared lines: --line for card and box borders, --line-soft for dividers inside them, --line-strong for inputs. */
   --line: #e3eae5;
@@ -89,6 +88,8 @@
   --shadow-card: 0 4px 20px rgba(18, 61, 40, 0.055);
   --shadow-popover: 0 10px 28px rgba(16, 46, 40, 0.16);
   --shadow-modal: 0 24px 60px rgba(8, 20, 16, 0.35);
+  --focus-field-border: #08784e;
+  --focus-field-glow: 0 0 0 3px rgba(8, 120, 78, 0.18);
 }
 :root[data-theme='dark'] {
   --t-065c3b: #abe7d0;
@@ -160,7 +161,6 @@
   --l-a9c9bb: #4f5961;
   --l-c06a1a: #c06a1a;
   --l-c9e6d4: #375642;
-  --l-f5b463: #f5b463;
   --toolbar-bg: rgba(24, 27, 31, 0.92);
   --line: #2e343a;
   --line-soft: #2a2f35;
@@ -176,6 +176,8 @@
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.25);
   --shadow-popover: 0 10px 28px rgba(0, 0, 0, 0.45);
   --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --focus-field-border: #6fcfa6;
+  --focus-field-glow: 0 0 0 3px rgba(111, 207, 166, 0.22);
   --b-f5f7f4: #0f1114;
   color-scheme: dark;
 }
@@ -244,8 +246,9 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
-  /* Keyboard focus: one ring everywhere. Wrappers around a bare input show it with :focus-within. */
-  --focus-ring: 3px solid var(--l-f5b463);
+  /* Focus: one green style everywhere. Buttons, links and other controls get a ring; text fields and
+     field-like boxes get a green border and soft glow. Colours come from --focus-field-* per theme. */
+  --focus-ring: 2px solid var(--focus-field-border);
 }
 
 :root {
@@ -272,12 +275,25 @@ a {
 }
 :focus-visible {
   outline: var(--focus-ring);
-  outline-offset: 3px;
+  outline-offset: 2px;
+}
+/* Text fields take focus on every click, so they show it as a border and glow rather than a ring.
+   :where() keeps this easy to override for fields inside a wrapper. */
+:where(input:not([type='checkbox']):not([type='radio']), textarea, select):focus-visible {
+  outline: none;
+  border-color: var(--focus-field-border);
+  box-shadow: var(--focus-field-glow);
 }
 
 .app-shell {
   display: flex;
   min-height: 100vh;
+}
+/* The sidebar and login screen are dark in both themes, so focus always uses the light-on-dark colours. */
+.sidebar,
+.auth-page {
+  --focus-field-border: #6fcfa6;
+  --focus-field-glow: 0 0 0 3px rgba(111, 207, 166, 0.22);
 }
 .sidebar {
   width: 270px;
@@ -1342,7 +1358,7 @@ a {
 }
 .td-card-title h2:focus-visible {
   outline: var(--focus-ring);
-  outline-offset: 3px;
+  outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 .td-card-title p {
@@ -1375,14 +1391,15 @@ a {
 .td-search input {
   border: 0;
   outline: none;
+  box-shadow: none;
   background: transparent;
   width: 150px;
   font-size: var(--fs-sm);
   color: var(--t-172a24);
 }
 .td-search:focus-within {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
+  border-color: var(--focus-field-border);
+  box-shadow: var(--focus-field-glow);
 }
 .td-tool-button {
   min-height: 38px;
@@ -1828,8 +1845,8 @@ a {
   border-color: var(--l-a9c9bb) !important;
 }
 .td-rel-svg g.node.td-rel-picked .mm-card {
-  border-color: var(--l-08784e) !important;
-  box-shadow: 0 0 0 3px rgba(8, 120, 78, 0.2) !important;
+  border-color: var(--focus-field-border) !important;
+  box-shadow: var(--focus-field-glow) !important;
 }
 .td-rel-svg [tabindex]:focus:not(:focus-visible) {
   outline: none;
@@ -1987,8 +2004,8 @@ a {
   color: var(--t-5f7268);
 }
 .top-search:focus-within {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
+  border-color: var(--focus-field-border);
+  box-shadow: var(--focus-field-glow);
   background: var(--b-ffffff);
 }
 .top-search-icon {
@@ -1999,6 +2016,7 @@ a {
   min-width: 0;
   border: 0;
   outline: none;
+  box-shadow: none;
   background: transparent;
   font-size: var(--fs-md);
   color: var(--t-172a24);
@@ -2400,10 +2418,6 @@ a {
   min-height: 110px;
   line-height: var(--lh-base);
 }
-.rv-field input[type='text']:focus-visible,
-.rv-field textarea:focus-visible {
-  outline-offset: 2px;
-}
 .rv-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2442,9 +2456,12 @@ a {
 .rv-option:hover {
   background: var(--b-f7faf8);
 }
-.rv-option:focus-within {
-  outline: var(--focus-ring);
-  outline-offset: 2px;
+.rv-option:has(input:focus-visible) {
+  border-color: var(--focus-field-border);
+  box-shadow: var(--focus-field-glow);
+}
+.rv-option input:focus-visible {
+  outline: none;
 }
 .rv-option-verified.is-selected {
   border-color: var(--success-fg);
