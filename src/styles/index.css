@@ -10,23 +10,23 @@
   --t-1c7650: #1c7650;
   --t-245943: #245943;
   --t-25744c: #25744c;
-  --t-258554: #258554;
-  --t-288653: #288653;
+  --t-258554: #1b6f45;
+  --t-288653: #1b6f45;
   --t-355544: #355544;
   --t-365a73: #365a73;
   --t-3f5449: #3f5449;
   --t-40564b: #40564b;
   --t-45594e: #45594e;
-  --t-5f7268: #5f7268;
-  --t-74847a: #74847a;
+  --t-5f7268: #475a50;
+  --t-74847a: #566a5f;
   --t-85a79b: #85a79b;
   --t-8a3f06: #8a3f06;
-  --t-a95c18: #a95c18;
+  --t-a95c18: #8f4f10;
   --t-acd1ba: #acd1ba;
-  --t-ad611d: #ad611d;
-  --t-b76719: #b76719;
-  --t-bd4c42: #bd4c42;
-  --t-c0661a: #c0661a;
+  --t-ad611d: #94540f;
+  --t-b76719: #9a5410;
+  --t-bd4c42: #a83d34;
+  --t-c0661a: #9a500c;
   --t-d8e8df: #d8e8df;
   --t-f6a54b: #f6a54b;
   --b-08784e: #08784e;
@@ -1717,7 +1717,7 @@ a {
 }
 .td-dir-count {
   margin-left: 4px;
-  color: var(--t-85a79b);
+  color: var(--t-5f7268);
   font-weight: var(--fw-bold);
 }
 .td-segment[aria-pressed='true'] .td-dir-count {
@@ -2128,7 +2128,7 @@ a {
 /* The one class for inferred content: text the catalog suggests but the database does not confirm. */
 /* ":root" raises specificity so this wins over component rules such as ".area-card p". */
 :root .inferred {
-  color: #b45f12;
+  color: #9a500c;
 }
 :root[data-theme='dark'] .inferred {
   color: #f0a04b;
@@ -2860,7 +2860,7 @@ small {
 /* Inferred keys are orange, like all inferred content. */
 .key-badge.key-badge-inferred {
   background: #fff1e2;
-  color: #b45f12;
+  color: #9a500c;
 }
 :root[data-theme='dark'] .key-badge.key-badge-inferred {
   background: #3e2510;
