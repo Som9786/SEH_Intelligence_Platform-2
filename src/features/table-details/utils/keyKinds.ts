@@ -26,14 +26,14 @@ export const KEY_KINDS: Record<KeyKind, KeyKindInfo> = {
   },
 };
 
-// The Lucide KeyRound and ArrowUpRight shapes (lucide-react 0.468) as SVG markup. Mermaid diagram labels
+// The Lucide KeyRound and Link shapes (lucide-react 0.468) as SVG markup. Mermaid diagram labels
 // cannot hold React components, so the diagram uses these copies of the same icons. Attributes use
 // single quotes because Mermaid label text is parsed and double quotes or semicolons would break it.
 const SHAPES: Record<'pk' | 'fk', string> = {
   pk:
     "<path d='M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z'/>" +
     "<circle cx='16.5' cy='7.5' r='.5' fill='currentColor'/>",
-  fk: "<path d='M7 7h10v10'/><path d='M7 17 17 7'/>",
+  fk: "<path d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/><path d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/>",
 };
 
 export function keyIconSvg(kind: 'pk' | 'fk', size = 12): string {

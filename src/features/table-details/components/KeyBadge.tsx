@@ -1,14 +1,14 @@
-import { ArrowUp01, ArrowUpRight, KeyRound } from 'lucide-react';
+import { ArrowUp01, KeyRound, Link } from 'lucide-react';
 import { useId, useState, type ReactNode } from 'react';
 import type { ColumnRow } from '../utils/columnBadges';
 import { KEY_KINDS, type KeyKind } from '../utils/keyKinds';
 
-const ICONS = { pk: KeyRound, fk: ArrowUpRight, identity: ArrowUp01 } as const;
+const ICONS = { pk: KeyRound, fk: Link, identity: ArrowUp01 } as const;
 const TIP_GAP = 8;
 const TIP_HEIGHT = 96; // enough for a title and three lines
 
 /**
- * One key indicator: PK (green key), FK (blue arrow) or Identity (grey). A tooltip explains what it
+ * One key indicator: PK (green key), FK (blue link) or Identity (grey). A tooltip explains what it
  * means, and screen readers get the same text. `label` replaces the default "PK"/"FK" text,
  * `extra` adds a sentence to the tooltip, `iconOnly` shrinks it to just the icon.
  */
@@ -17,12 +17,15 @@ export function KeyBadge({
   label,
   extra,
   iconOnly = false,
+  inferred = false,
   children,
 }: {
   kind: KeyKind;
   label?: string;
   extra?: string;
   iconOnly?: boolean;
+  /** Orange instead of green or blue: the key is suggested, not enforced by the database. */
+  inferred?: boolean;
   children?: ReactNode;
 }) {
   const info = KEY_KINDS[kind];
@@ -44,7 +47,7 @@ export function KeyBadge({
 
   return (
     <span
-      className={`key-badge key-badge-${kind}${iconOnly ? ' key-badge-icon' : ''}`}
+      className={`key-badge key-badge-${kind}${iconOnly ? ' key-badge-icon' : ''}${inferred ? ' key-badge-inferred' : ''}`}
       tabIndex={0}
       role={iconOnly ? 'img' : undefined}
       aria-label={iconOnly ? info.title : undefined}

@@ -70,6 +70,8 @@ export function OverviewPage() {
                         <span className="td-chip td-chip-confirmed">
                           Confirmed
                         </span>
+                        <KeyBadge kind="pk" />
+                        <KeyBadge kind="fk" />
                         <span
                           className="td-legend-line td-legend-solid"
                           aria-hidden="true"
@@ -85,6 +87,8 @@ export function OverviewPage() {
                         <span className="td-chip td-chip-inferred inferred">
                           Inferred
                         </span>
+                        <KeyBadge kind="pk" inferred />
+                        <KeyBadge kind="fk" inferred />
                         <span
                           className="td-legend-line td-legend-dashed"
                           aria-hidden="true"
@@ -92,16 +96,9 @@ export function OverviewPage() {
                       </div>
                       <p>
                         Suggested from names or data patterns, not enforced by
-                        the database. Dashed lines and orange text mark these
-                        suggestions.
+                        the database. Dashed lines, orange text and orange keys
+                        mark these suggestions.
                       </p>
-                    </li>
-                    <li>
-                      <div className="legend-head">
-                        <KeyBadge kind="pk" />
-                        <KeyBadge kind="fk" />
-                      </div>
-                      <p>PK identifies a row, FK links to another table.</p>
                     </li>
                   </ul>
                 </div>

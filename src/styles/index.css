@@ -680,8 +680,12 @@ a {
   align-items: center;
   gap: 10px;
 }
+.legend-head {
+  flex-wrap: wrap;
+}
 .legend-head .td-legend-line {
   flex: 1;
+  min-width: 24px;
   max-width: 120px;
 }
 .td-chip-inferred {
@@ -2801,7 +2805,7 @@ small {
   }
 }
 
-/* Key indicators: PK = green key, FK = blue arrow, Identity = grey. One badge style everywhere. */
+/* Key indicators: PK = green key, FK = blue link, Identity = grey. One badge style everywhere. */
 .key-badges {
   display: inline-flex;
   align-items: center;
@@ -2852,6 +2856,15 @@ small {
 :root[data-theme='dark'] .key-badge-identity {
   background: #2a2f34;
   color: #b3b9bf;
+}
+/* Inferred keys are orange, like all inferred content. */
+.key-badge.key-badge-inferred {
+  background: #fff1e2;
+  color: #b45f12;
+}
+:root[data-theme='dark'] .key-badge.key-badge-inferred {
+  background: #3e2510;
+  color: #f0a04b;
 }
 /* Tooltip for the badges: fixed-positioned so a table's scroll area cannot clip it. */
 .key-tip {
