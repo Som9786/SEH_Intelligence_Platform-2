@@ -1,4 +1,4 @@
-import { ChevronDown, ImageDown } from 'lucide-react';
+import { ChevronDown, ImageDown, type LucideIcon } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 
 export interface DownloadOption {
@@ -14,9 +14,13 @@ export interface DownloadOption {
 export function DownloadMenu({
   options,
   disabled = false,
+  label = 'Download',
+  icon: Icon = ImageDown,
 }: {
   options: DownloadOption[];
   disabled?: boolean;
+  label?: string;
+  icon?: LucideIcon;
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -61,8 +65,8 @@ export function DownloadMenu({
         disabled={disabled || busy}
         onClick={() => setOpen(!open)}
       >
-        <ImageDown size={16} aria-hidden="true" />
-        Download
+        <Icon size={16} aria-hidden="true" />
+        {label}
         <ChevronDown size={14} aria-hidden="true" />
       </button>
       {open && (

@@ -33,7 +33,7 @@ export function TableActions({
     <div className="td-actions">
       <button type="button" className="td-action" onClick={onReview}>
         <ReviewIcon size={16} aria-hidden="true" />
-        {hasReview ? 'Edit Review' : 'Review'}
+        {hasReview ? 'Edit review' : 'Review'}
       </button>
       <button
         type="button"

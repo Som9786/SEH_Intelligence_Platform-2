@@ -27,16 +27,19 @@ const tabLabels: Record<Tab, string> = {
 export function TableDetailsPage() {
   const [params, setParams] = useSearchParams();
   const id = params.get('table') ?? '';
-  const [tab, setTab] = useState<Tab>(
-    (params.get('tab') as Tab) === 'Documentation'
-      ? 'Documentation'
-      : 'Overview',
-  );
-  useEffect(() => {
-    setTab(
-      params.get('tab') === 'Documentation' ? 'Documentation' : 'Overview',
+  // The tab lives in the URL, so a copied link opens the same view.
+  const tab: Tab =
+    params.get('tab') === 'Documentation' ? 'Documentation' : 'Overview';
+  const setTab = (next: Tab) =>
+    setParams(
+      (current) => {
+        const updated = new URLSearchParams(current);
+        if (next === 'Documentation') updated.set('tab', next);
+        else updated.delete('tab');
+        return updated;
+      },
+      { replace: true },
     );
-  }, [id, params]);
   const table = useTable(id);
   const review = useReview(id);
   const saveReview = useSaveReview();
@@ -50,7 +53,6 @@ export function TableDetailsPage() {
   }, [id, sequence.firstId, setParams]);
   const select = (nextId: string) => {
     setParams(nextId ? { table: nextId } : {});
-    setTab('Overview');
   };
   const notFound = table.isError && isFileNotFound(table.error);
 

@@ -2025,6 +2025,53 @@ a {
 .td-doc {
   padding: 8px clamp(8px, 2vw, 24px);
 }
+/* Copy link / Share bar above a table's documentation */
+.doc-share {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--l-e8efea);
+}
+.doc-share-status {
+  margin-right: auto;
+  color: var(--t-08784e);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+
+/* Print / Save as PDF from the Documentation tab: only the document, dark text on white. */
+@media print {
+  .sidebar,
+  .topbar,
+  .page-heading,
+  .td-header,
+  .doc-share {
+    display: none !important;
+  }
+  body,
+  .app-shell,
+  .main-column,
+  .page-content,
+  .td-card {
+    background: #fff !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .table-markdown,
+  .table-markdown * {
+    color: #000 !important;
+    background: transparent !important;
+  }
+  .table-markdown table,
+  .table-markdown th,
+  .table-markdown td {
+    border-color: #999 !important;
+  }
+}
 
 @media (max-width: 700px) {
   .td-header {
