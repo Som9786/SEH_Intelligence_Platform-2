@@ -37,7 +37,10 @@ export interface CardColumns {
 }
 
 /** Which columns a card shows: keys first; with "keys only" nothing else. */
-export function cardColumns(table: ErTable, keysOnly: boolean): CardColumns {
+export function cardColumns(
+  table: Pick<ErTable, 'columns'>,
+  keysOnly: boolean,
+): CardColumns {
   const keys = table.columns.filter((c) => c.pk || c.fk);
   if (keysOnly) return { shown: keys, hidden: 0 };
   const rest = table.columns.filter((c) => !c.pk && !c.fk);

@@ -4,6 +4,7 @@ import {
   type Neighbourhood,
 } from './relationshipGraph';
 import { KEY_KINDS, keyIconSvg } from './keyKinds';
+import { cardColumns } from '../../relationships/utils/erLayout';
 
 export type DiagramTheme = 'light' | 'dark';
 
@@ -116,9 +117,11 @@ function cardLabel(
   primaryKey: string[],
   foreignKeys: string[],
   detail: NodeDetail | undefined,
+  keysOnly: boolean,
 ): string {
-  const rows: CardRow[] = detail
-    ? detail.columns.filter((c) => c.pk || c.fk)
+  const picked = detail ? cardColumns(detail, keysOnly) : null;
+  const rows: CardRow[] = picked
+    ? picked.shown
     : [
         ...primaryKey.map((name) => ({
           name,
@@ -140,10 +143,13 @@ function cardLabel(
             `<div class='mm-row'><span class='mm-rowkey'>${r.pk ? badge('pk') : ''}${r.fk ? badge('fk') : ''}</span><span class='mm-name'>${escapeLabel(r.name)}</span><span class='mm-type'>${escapeLabel(r.dataType)}</span></div>`,
         )
         .join('')
-    : "<div class='mm-row mm-empty'>No key columns</div>";
+    : `<div class='mm-row mm-empty'>${keysOnly ? 'No key columns' : 'No columns recorded'}</div>`;
+  const more = picked?.hidden
+    ? `<div class='mm-row mm-empty'>+${picked.hidden} ${picked.hidden === 1 ? 'more column' : 'more columns'}</div>`
+    : '';
   return (
     `<div class='mm-card'><div class='mm-head'>${TABLE_ICON}<span class='mm-title'>${escapeLabel(id)}</span><span class='mm-cols'>${cols}</span></div>` +
-    `${body}</div>`
+    `${body}${more}</div>`
   );
 }
 
@@ -193,6 +199,7 @@ export function generateRelationshipMermaid(
   graph: Neighbourhood,
   theme: DiagramTheme,
   details: ReadonlyMap<string, NodeDetail> = new Map(),
+  keysOnly = true,
 ): RelationshipDiagramSource {
   const colors = PALETTE[theme];
   const keys = new Map<string, string>();
@@ -242,6 +249,7 @@ export function generateRelationshipMermaid(
       table.primaryKey,
       fks,
       details.get(table.id),
+      keysOnly,
     );
     lines.push(`    ${keys.get(table.id)}["${label}"]`);
   }

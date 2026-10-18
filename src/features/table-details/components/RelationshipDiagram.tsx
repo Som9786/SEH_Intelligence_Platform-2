@@ -117,9 +117,10 @@ export function RelationshipDiagram({
         : new Map(catalog.tables.map((t) => [t.id, t] as const)),
     [catalog.isPending, catalog.tables],
   );
+  const [keysOnly, setKeysOnly] = useState(true);
   const diagram = useMemo(
-    () => generateRelationshipMermaid(graph, theme, details),
-    [graph, theme, details],
+    () => generateRelationshipMermaid(graph, theme, details, keysOnly),
+    [graph, theme, details, keysOnly],
   );
   const primaryKeys = useMemo(
     () => new Map(graph.tables.map((t) => [t.id, t.primaryKey] as const)),
@@ -311,39 +312,63 @@ export function RelationshipDiagram({
   return (
     <div className="td-rel">
       <DiagramLegend>
-        <div className="td-rel-toolbar" role="group" aria-label="Diagram zoom">
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Zoom out"
-            title="Zoom out"
-            disabled={scale <= MIN_SCALE}
-            onClick={() => setScale((s) => Math.max(MIN_SCALE, s / STEP))}
+        <div className="td-rel-controls">
+          <div className="td-segments" role="group" aria-label="Columns shown">
+            <button
+              type="button"
+              className="td-segment"
+              aria-pressed={keysOnly}
+              onClick={() => setKeysOnly(true)}
+            >
+              Keys only
+            </button>
+            <button
+              type="button"
+              className="td-segment"
+              aria-pressed={!keysOnly}
+              onClick={() => setKeysOnly(false)}
+            >
+              All columns
+            </button>
+          </div>
+          <div
+            className="td-rel-toolbar"
+            role="group"
+            aria-label="Diagram zoom"
           >
-            <ZoomOut size={16} aria-hidden="true" />
-          </button>
-          <span className="td-rel-scale" aria-live="polite">
-            {Math.round(scale * 100)}%
-          </span>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Zoom in"
-            title="Zoom in"
-            disabled={scale >= MAX_SCALE}
-            onClick={() => setScale((s) => Math.min(MAX_SCALE, s * STEP))}
-          >
-            <ZoomIn size={16} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Fit to view"
-            title="Fit to view"
-            onClick={fit}
-          >
-            <Scan size={16} aria-hidden="true" />
-          </button>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Zoom out"
+              title="Zoom out"
+              disabled={scale <= MIN_SCALE}
+              onClick={() => setScale((s) => Math.max(MIN_SCALE, s / STEP))}
+            >
+              <ZoomOut size={16} aria-hidden="true" />
+            </button>
+            <span className="td-rel-scale" aria-live="polite">
+              {Math.round(scale * 100)}%
+            </span>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Zoom in"
+              title="Zoom in"
+              disabled={scale >= MAX_SCALE}
+              onClick={() => setScale((s) => Math.min(MAX_SCALE, s * STEP))}
+            >
+              <ZoomIn size={16} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Fit to view"
+              title="Fit to view"
+              onClick={fit}
+            >
+              <Scan size={16} aria-hidden="true" />
+            </button>
+          </div>
         </div>
       </DiagramLegend>
       {actionsSlot &&
