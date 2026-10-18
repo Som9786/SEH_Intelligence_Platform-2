@@ -2,6 +2,7 @@ import { List, Network, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { PageHeading } from '../../../shared/components/PageHeading';
+import { RelationshipColumns } from '../../table-details/components/RelationshipColumns';
 import { RelationshipDiagram } from '../../table-details/components/RelationshipDiagram';
 import { ResourceState } from '../../table-details/components/ResourceState';
 import { useRelationshipIndex } from '../../table-details/hooks/useRelationshipIndex';
@@ -44,6 +45,9 @@ export function RelationshipsPage() {
       whole,
       graph: focused,
       unlinked: unlinkedTables(index.data),
+      primaryKeys: new Map(
+        whole.tables.map((t) => [t.id, t.primaryKey] as const),
+      ),
       options: whole.tables.map((t) => t.id).sort(),
     };
   }, [index.data, focus]);
@@ -241,13 +245,10 @@ export function RelationshipsPage() {
                               </Link>
                             </td>
                             <td>
-                              <span className="td-dir-chips">
-                                {edge.fromColumns.map((column, i) => (
-                                  <code className="td-col-code" key={column}>
-                                    {column} → {edge.toColumns[i] ?? '?'}
-                                  </code>
-                                ))}
-                              </span>
+                              <RelationshipColumns
+                                edge={edge}
+                                primaryKeys={view.primaryKeys}
+                              />
                             </td>
                             <td>{cardinalityText(edge)}</td>
                             <td>
@@ -255,7 +256,7 @@ export function RelationshipsPage() {
                                 className={
                                   'td-chip ' +
                                   (edge.confirmed
-                                    ? 'td-chip-fk'
+                                    ? 'td-chip-confirmed'
                                     : 'td-badge-inferred')
                                 }
                               >

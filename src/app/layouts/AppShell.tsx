@@ -63,7 +63,6 @@ export function AppShell() {
           <span />
           <span />
         </div>
-        <p className="sidebar-label">Workspace</p>
         <nav className="nav-list" aria-label="Main">
           {routes
             .filter((route) => route.inSidebar)
@@ -160,32 +159,6 @@ export function AppShell() {
         <main id="main-content">
           <Outlet />
         </main>
-        <footer className="app-footer">
-          <div className="app-footer-body">
-            <ul className="app-legend" aria-label="Relationship line legend">
-              <li>
-                <span
-                  className="td-legend-line td-legend-solid"
-                  aria-hidden="true"
-                />
-                Confirmed: enforced by a database foreign key
-              </li>
-              <li>
-                <span
-                  className="td-legend-line td-legend-dashed"
-                  aria-hidden="true"
-                />
-                <span>
-                  <span className="inferred">
-                    Inferred (dashed line / orange text):
-                  </span>{' '}
-                  Suggested by AI based on names or data, not
-                  database-confirmed.
-                </span>
-              </li>
-            </ul>
-          </div>
-        </footer>
       </div>
     </div>
   );

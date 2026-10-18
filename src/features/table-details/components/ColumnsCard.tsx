@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search } from 'lucide-react';
 import type { Column, KeysResponse } from '../types/tableDetails';
 import { buildColumnRows } from '../utils/columnBadges';
-import { ColumnKeyIcon } from './ColumnKeyIcon';
+import { ColumnKeys } from './KeyBadge';
 
 export function ColumnsCard({
   columns,
@@ -29,9 +29,9 @@ export function ColumnsCard({
         <table className="td-table td-col-table">
           <thead>
             <tr>
-              <th scope="col">Key</th>
               <th scope="col">Column name</th>
               <th scope="col">Data type</th>
+              <th scope="col">Key</th>
               <th scope="col">Nullable</th>
               <th scope="col">Default value</th>
               <th scope="col">Description</th>
@@ -40,9 +40,6 @@ export function ColumnsCard({
           <tbody>
             {visible.map((row) => (
               <tr key={row.id}>
-                <td>
-                  <ColumnKeyIcon row={row} />
-                </td>
                 <th scope="row">
                   <span className="td-col-name" title={row.name}>
                     {row.name}
@@ -50,6 +47,9 @@ export function ColumnsCard({
                 </th>
                 <td>
                   <code className="td-col-code">{row.typeLabel}</code>
+                </td>
+                <td>
+                  <ColumnKeys row={row} />
                 </td>
                 <td>
                   <span

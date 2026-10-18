@@ -92,20 +92,20 @@
   --t-08784e: #97e1c5;
   --t-09633f: #a4e5cb;
   --t-15703f: #94e0b7;
-  --t-172a24: #e6f1ec;
+  --t-172a24: #e8eaed;
   --t-1c7650: #8bddbb;
   --t-245943: #a1d9c2;
   --t-25744c: #89d9b1;
   --t-258554: #7bd9a9;
   --t-288653: #79d7a4;
-  --t-355544: #a7c8b7;
+  --t-355544: #b8bec4;
   --t-365a73: #8cb0c9;
-  --t-3f5449: #a9bfb3;
-  --t-40564b: #a7beb3;
-  --t-45594e: #a5b9ae;
-  --t-5f7268: #90a399;
-  --t-74847a: #8d9b92;
-  --t-85a79b: #85a79b;
+  --t-3f5449: #b3b9bf;
+  --t-40564b: #b1b7bd;
+  --t-45594e: #aeb4ba;
+  --t-5f7268: #9aa1a8;
+  --t-74847a: #959ca3;
+  --t-85a79b: #8f969d;
   --t-8a3f06: #deb08c;
   --t-a95c18: #d49d6c;
   --t-acd1ba: #acd1ba;
@@ -113,7 +113,7 @@
   --t-b76719: #d19962;
   --t-bd4c42: #c86960;
   --t-c0661a: #d0915c;
-  --t-d8e8df: #d8e8df;
+  --t-d8e8df: #dde0e3;
   --t-f6a54b: #f6a54b;
   --b-08784e: #08784e;
   --b-09613f: #09613f;
@@ -123,56 +123,56 @@
   --b-22473b: #22473b;
   --b-265644: #265644;
   --b-e0811f: #e0811f;
-  --b-e3ebe5: #273d2c;
-  --b-e3ebe6: #273d2f;
+  --b-e3ebe5: #2a3036;
+  --b-e3ebe6: #292f35;
   --b-e3f3e9: #23392b;
   --b-e6f4ec: #22372b;
   --b-e74646: #e74646;
-  --b-e8ece9: #25392a;
-  --b-e8efea: #243829;
+  --b-e8ece9: #262b30;
+  --b-e8efea: #252a2f;
   --b-e9f6eb: #1f3523;
   --b-eaf5ee: #213327;
-  --b-eef2ef: #203325;
-  --b-eef3ef: #203224;
+  --b-eef2ef: #23282d;
+  --b-eef3ef: #22272c;
   --b-f18825: #f18825;
-  --b-f1f6f3: #1e2f25;
-  --b-f3f7f4: #1d2d21;
-  --b-f5f7f4: #222d1d;
+  --b-f1f6f3: #20252a;
+  --b-f3f7f4: #1f2327;
+  --b-f5f7f4: #222629;
   --b-f6a54b: #f6a54b;
-  --b-f6faf8: #1b2a22;
-  --b-f7faf8: #1a291f;
-  --b-fafbf9: #212819;
-  --b-fafcf9: #1e2719;
-  --b-fbfcfb: #182618;
-  --b-fbfdfc: #18261f;
+  --b-f6faf8: #1c2024;
+  --b-f7faf8: #1e2227;
+  --b-fafbf9: #1d2125;
+  --b-fafcf9: #1b1f23;
+  --b-fbfcfb: #191c20;
+  --b-fbfdfc: #1a1d21;
   --b-fdebd8: #482f15;
   --b-fff1e2: #422a10;
   --b-fff1e3: #412910;
   --b-fff1e4: #402710;
   --b-fff1ef: #38130e;
   --b-fff2e7: #3e2510;
-  --b-ffffff: #16221e;
+  --b-ffffff: #181b1f;
   --l-08784e: #08784e;
-  --l-2c493f: #2c493f;
-  --l-a9c9bb: #4e7b67;
+  --l-2c493f: #30363c;
+  --l-a9c9bb: #4f5961;
   --l-c06a1a: #c06a1a;
   --l-c9e6d4: #375642;
-  --l-cbdad0: #3b5c46;
+  --l-cbdad0: #3d454c;
   --l-cdd8e2: #374756;
-  --l-d3dfd6: #36543d;
-  --l-d8e2dc: #324f3e;
+  --l-d3dfd6: #383f46;
+  --l-d8e2dc: #343b42;
   --l-dbe3eb: #2e3b47;
-  --l-dce8df: #2e4935;
-  --l-dfe8e1: #2d4733;
-  --l-dfe8e2: #2d4736;
-  --l-e3eae5: #2b4332;
-  --l-e8efea: #273d2d;
-  --l-edf1ed: #243924;
-  --l-edf2ee: #243828;
+  --l-dce8df: #31373d;
+  --l-dfe8e1: #30363c;
+  --l-dfe8e2: #30363c;
+  --l-e3eae5: #2e343a;
+  --l-e8efea: #2a2f35;
+  --l-edf1ed: #272c31;
+  --l-edf2ee: #272c32;
   --l-f18825: #f18825;
   --l-f5b463: #f5b463;
-  --toolbar-bg: rgba(16, 34, 29, 0.92);
-  --b-f5f7f4: #0b1612;
+  --toolbar-bg: rgba(24, 27, 31, 0.92);
+  --b-f5f7f4: #0f1114;
   color-scheme: dark;
 }
 
@@ -305,14 +305,6 @@ a {
   flex: 1;
   background: var(--b-e74646);
 }
-.sidebar-label {
-  margin: 10px 23px 8px;
-  color: var(--t-85a79b);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-caps);
-  text-transform: uppercase;
-}
 .nav-list {
   display: grid;
   gap: 3px;
@@ -372,7 +364,6 @@ a {
   width: 76px;
 }
 .is-collapsed .brand-copy,
-.is-collapsed .sidebar-label,
 .is-collapsed .nav-text,
 .is-collapsed .nav-spark {
   display: none;
@@ -460,37 +451,6 @@ a {
 }
 #main-content {
   flex: 1 0 auto;
-}
-.app-footer {
-  width: 100%;
-  max-width: 1500px;
-  margin: 0 auto;
-  padding: 0 28px 20px;
-}
-.app-footer-body {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding-top: 14px;
-  border-top: 1px solid var(--l-e8efea);
-  font-size: var(--fs-sm);
-  color: var(--t-5f7268);
-}
-.app-footer-body p {
-  margin: 0;
-}
-.app-legend {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 22px;
-}
-.app-legend li {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 .page-content {
   max-width: 1500px;
@@ -704,6 +664,29 @@ a {
   margin: 0 0 5px;
   font-size: var(--fs-sm); font-weight: var(--fw-semibold);
 }
+.insight-legend-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.insight-legend-list li {
+  display: grid;
+  gap: 5px;
+}
+.legend-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.legend-head .td-legend-line {
+  flex: 1;
+  max-width: 120px;
+}
+.td-chip-inferred {
+  background: var(--b-fff1e2);
+}
 .insight p {
   margin: 0;
   color: var(--t-5f7268);
@@ -901,7 +884,6 @@ a {
     width: 270px;
   }
   .is-collapsed .brand-copy,
-  .is-collapsed .sidebar-label,
   .is-collapsed .nav-text,
   .is-collapsed .nav-spark {
     display: block;
@@ -930,9 +912,6 @@ a {
   .topbar {
     height: 62px;
     padding: 0 17px;
-  }
-  .app-footer {
-    padding: 0 16px 16px;
   }
   .page-content {
     padding: 18px 16px;
@@ -1198,12 +1177,13 @@ a {
   border-radius: 16px;
   min-width: 0;
 }
+/* Same label style as .eyebrow (brand green, caps), without the bottom margin. */
 .td-eyebrow {
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
   letter-spacing: var(--ls-caps);
   text-transform: uppercase;
-  color: var(--t-5f7268);
+  color: var(--t-08784e);
   margin: 0;
 }
 .td-mono {
@@ -1264,7 +1244,8 @@ a {
   overflow-wrap: anywhere;
 }
 .td-chip {
-  padding: 4px 10px;
+  padding: 3px 10px;
+  line-height: var(--lh-base);
   border-radius: 999px;
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
@@ -1289,49 +1270,20 @@ a {
   background: #e9eeec;
   color: #3f5449;
 }
-.td-chip-pk {
-  background: #dbe7f7;
-  color: #17406e;
-}
-.td-chip-fk {
-  background: #e3f3e9;
-  color: #15703f;
-}
-.td-chip-index {
-  background: #efe7fa;
-  color: #5b3a99;
-}
-.td-chip-trigger {
-  background: #fde4e4;
-  color: #a02f2f;
-}
+/* Counts that are not keys (columns, indexes, triggers, relationships) share one neutral grey, so the
+   green PK and blue FK badges are the only coloured key indicators. */
+.td-chip-index,
+.td-chip-trigger,
 .td-chip-rels {
-  background: #dcf1f2;
-  color: #116470;
+  background: #e9eeec;
+  color: #3f5449;
 }
-:root[data-theme='dark'] .td-chip-columns {
-  background: #25332d;
-  color: #a9bfb3;
-}
-:root[data-theme='dark'] .td-chip-pk {
-  background: #182a45;
-  color: #9cc2f2;
-}
-:root[data-theme='dark'] .td-chip-fk {
-  background: #1c3a2a;
-  color: #7fd8a6;
-}
-:root[data-theme='dark'] .td-chip-index {
-  background: #2d2444;
-  color: #c4a9f0;
-}
-:root[data-theme='dark'] .td-chip-trigger {
-  background: #44232a;
-  color: #f0a0a6;
-}
+:root[data-theme='dark'] .td-chip-columns,
+:root[data-theme='dark'] .td-chip-index,
+:root[data-theme='dark'] .td-chip-trigger,
 :root[data-theme='dark'] .td-chip-rels {
-  background: #173a3e;
-  color: #7ed3da;
+  background: #2a2f34;
+  color: #b3b9bf;
 }
 .td-chip-outline {
   border: 1px solid var(--l-d3dfd6);
@@ -1660,78 +1612,6 @@ a {
   font-weight: var(--fw-semibold);
   overflow-wrap: anywhere;
 }
-.td-col-icons {
-  display: inline-flex;
-  gap: 4px;
-  min-height: 22px;
-}
-.td-col-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  flex: none;
-  border-radius: 6px;
-}
-.td-col-icon-pk {
-  background: #dbe7f7;
-  color: #1f4f8f;
-}
-.td-col-icon-fk {
-  background: #e3f3e9;
-  color: #15703f;
-}
-.td-col-icon-pk-identity {
-  background: #1f4f8f;
-  color: #ffffff;
-}
-.td-col-key {
-  position: relative;
-  cursor: help;
-}
-.td-col-tip {
-  position: fixed;
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 190px;
-  padding: 9px 12px;
-  border: 1px solid #2c493f;
-  border-radius: 9px;
-  background: #102e28;
-  color: #d8e8df;
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-regular);
-  line-height: var(--lh-base);
-  text-align: left;
-  white-space: nowrap;
-  pointer-events: none;
-}
-.td-col-tip strong {
-  color: #ffffff;
-  font-size: var(--fs-sm);
-}
-.td-col-icon-identity {
-  background: #eef2ef;
-  color: #3f5449;
-}
-:root[data-theme='dark'] .td-col-icon-pk {
-  background: #182a45;
-  color: #9cc2f2;
-}
-:root[data-theme='dark'] .td-col-icon-fk {
-  background: #1c3a2a;
-  color: #7fd8a6;
-}
-:root[data-theme='dark'] .td-col-icon-pk-identity {
-  background: #6aa6e8;
-  color: #08121f;
-}
-:root[data-theme='dark'] .td-col-icon-identity {
-  background: #25332d;
-  color: #a9bfb3;
-}
 .td-col-code {
   display: inline-block;
   padding: 3px 7px;
@@ -1759,22 +1639,9 @@ a {
   background: var(--b-e3f3e9);
   color: var(--t-15703f);
 }
-.td-col-pk {
-  background: #dbe7f7;
-  color: #1f4f8f;
-}
-.td-col-fk {
-  background: var(--b-e3f3e9);
-  color: var(--t-15703f);
-}
 .td-col-identity {
   background: var(--b-eef2ef);
   color: var(--t-3f5449);
-}
-.td-col-keys {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
 }
 .td-col-empty {
   color: var(--t-5f7268);
@@ -2471,8 +2338,8 @@ a {
   color: #f0a0a6;
 }
 :root[data-theme='dark'] .rv-badge-none {
-  background: #25332d;
-  color: #a9bfb3;
+  background: #2a2f34;
+  color: #b3b9bf;
 }
 
 .rv-summary {
@@ -2932,4 +2799,99 @@ small {
   .kpi-value {
     font-size: var(--fs-xl);
   }
+}
+
+/* Key indicators: PK = green key, FK = blue arrow, Identity = grey. One badge style everywhere. */
+.key-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.key-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-base);
+  white-space: nowrap;
+  cursor: help;
+}
+.key-badge svg {
+  flex: none;
+}
+.key-badge-pk {
+  background: #dcf3e5;
+  color: #0f6a3c;
+}
+.key-badge-fk {
+  background: #dbe9fb;
+  color: #1d4f91;
+}
+.key-badge-identity {
+  background: #eef2ef;
+  color: #3f5449;
+}
+.key-badge-icon {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  justify-content: center;
+}
+:root[data-theme='dark'] .key-badge-pk {
+  background: #1c3a2a;
+  color: #7fd8a6;
+}
+:root[data-theme='dark'] .key-badge-fk {
+  background: #1b2c47;
+  color: #9cc2f2;
+}
+:root[data-theme='dark'] .key-badge-identity {
+  background: #2a2f34;
+  color: #b3b9bf;
+}
+/* Tooltip for the badges: fixed-positioned so a table's scroll area cannot clip it. */
+.key-tip {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 190px;
+  padding: 9px 12px;
+  border: 1px solid #2c493f;
+  border-radius: 9px;
+  background: #102e28;
+  color: #d8e8df;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-base);
+  text-align: left;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.key-tip strong {
+  color: #ffffff;
+  font-size: var(--fs-sm);
+}
+/* Column pairs in relationship views: FK icon on the referencing side, PK icon on the referenced side. */
+.rel-columns {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.rel-columns .key-badge {
+  padding: 1px 7px 1px 5px;
+}
+/* "Confirmed" evidence pill: green, independent of the FK colour. */
+.td-chip-confirmed {
+  background: #e3f3e9;
+  color: #15703f;
+}
+:root[data-theme='dark'] .td-chip-confirmed {
+  background: #1c3a2a;
+  color: #7fd8a6;
 }

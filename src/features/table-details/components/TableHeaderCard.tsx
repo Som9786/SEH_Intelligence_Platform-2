@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { TableRecord } from '../types/tableDetails';
 import type { TableReview } from '../types/review';
+import { KeyBadge } from './KeyBadge';
 import { ReviewStatusBadge } from './ReviewStatusBadge';
 import { ReviewSummary } from './ReviewSummary';
 
@@ -56,18 +57,26 @@ export function TableHeaderCard({
               {plural(detail.columnCount, 'column', 'columns')}
             </li>
             {detail.primaryKey && (
-              <li
-                className="td-chip td-chip-pk"
-                title={detail.primaryKey.constraintName}
-              >
-                PK{' '}
-                <span className="td-mono">
-                  {detail.primaryKey.columnNames.join(', ')}
-                </span>
+              <li>
+                <KeyBadge
+                  kind="pk"
+                  extra={`Constraint: ${detail.primaryKey.constraintName}.`}
+                >
+                  <span className="td-mono">
+                    {detail.primaryKey.columnNames.join(', ')}
+                  </span>
+                </KeyBadge>
               </li>
             )}
-            <li className="td-chip td-chip-fk">
-              {plural(detail.foreignKeyCount, 'foreign key', 'foreign keys')}
+            <li>
+              <KeyBadge
+                kind="fk"
+                label={plural(
+                  detail.foreignKeyCount,
+                  'foreign key',
+                  'foreign keys',
+                )}
+              />
             </li>
             <li className="td-chip td-chip-index">
               {plural(detail.indexCount, 'index', 'indexes')}

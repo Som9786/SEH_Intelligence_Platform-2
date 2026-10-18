@@ -6,6 +6,7 @@ import { ErrorState } from '../../../shared/components/ErrorState';
 import { DatabaseHeaderCard } from '../components/DatabaseHeaderCard';
 import { SummaryCards } from '../components/SummaryCards';
 import { BusinessAreaCards } from '../components/BusinessAreaCards';
+import { KeyBadge } from '../../table-details/components/KeyBadge';
 import { useOverviewSummary } from '../hooks/useOverviewSummary';
 
 export function OverviewPage() {
@@ -51,30 +52,67 @@ export function OverviewPage() {
               <div className="insight">
                 <BookOpen aria-hidden="true" />
                 <div>
-                  <h3>Knowledge, organized</h3>
+                  <h3>DB Catalog: Knowledge, organized</h3>
                   <p>
-                    The catalog groups tables under the database name. Read the
-                    business-area document for the existing AI interpretation.
+                    Explore tables and business areas in one place, with
+                    documentation that makes database metadata easier to
+                    understand.
                   </p>
                 </div>
               </div>
               <div className="insight">
                 <Network aria-hidden="true" />
                 <div>
-                  <h3>Declared relationships</h3>
-                  <p>
-                    Relationships come from the exported foreign-key metadata.
-                    The relationship analysis explains evidence and uncertainty.
-                  </p>
+                  <h3>DB Relationships: Evidence and confidence</h3>
+                  <ul className="insight-legend-list">
+                    <li>
+                      <div className="legend-head">
+                        <span className="td-chip td-chip-confirmed">
+                          Confirmed
+                        </span>
+                        <span
+                          className="td-legend-line td-legend-solid"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <p>
+                        From database metadata. Solid lines are defined foreign
+                        keys.
+                      </p>
+                    </li>
+                    <li>
+                      <div className="legend-head">
+                        <span className="td-chip td-chip-inferred inferred">
+                          Inferred
+                        </span>
+                        <span
+                          className="td-legend-line td-legend-dashed"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <p>
+                        Suggested from names or data patterns, not enforced by
+                        the database. Dashed lines and orange text mark these
+                        suggestions.
+                      </p>
+                    </li>
+                    <li>
+                      <div className="legend-head">
+                        <KeyBadge kind="pk" />
+                        <KeyBadge kind="fk" />
+                      </div>
+                      <p>PK identifies a row, FK links to another table.</p>
+                    </li>
+                  </ul>
                 </div>
               </div>
               <div className="insight">
                 <Eye aria-hidden="true" />
                 <div>
-                  <h3>Read-only access</h3>
+                  <h3>DB access: File-based, read-only</h3>
                   <p>
-                    This workspace reads existing JSON and Markdown files. It
-                    has no database connection and makes no AI calls.
+                    Uses exported JSON and Markdown files only. No live database
+                    connection, database changes, or AI requests.
                   </p>
                 </div>
               </div>

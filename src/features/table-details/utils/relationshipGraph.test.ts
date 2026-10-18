@@ -168,3 +168,53 @@ describe('mermaid generator', () => {
     expect(source).toContain('sales.Order #quot;Lines#quot;');
   });
 });
+
+describe('key badges in diagram node labels', () => {
+  const nodeLines = (theme: 'light' | 'dark') =>
+    generateRelationshipMermaid(
+      neighbourhood(index, 'dbo.Orders', 'all'),
+      theme,
+    )
+      .source.split('\n')
+      .filter((line) => /^\s+n\d+\["/.test(line));
+
+  it('shows a PK badge and an FK badge, each with the Lucide icon and hover text', () => {
+    const lines = nodeLines('light');
+    const orders = lines.find((l) => l.includes('dbo.Orders'))!;
+    expect(orders).toContain('mm-key mm-key-pk');
+    expect(orders).toContain('mm-key mm-key-fk');
+    expect(orders.match(/<svg/g)).toHaveLength(2);
+    expect(orders).toContain(
+      "title='Primary key - Uniquely identifies each row in this table'",
+    );
+    expect(orders).toContain(
+      "title='Foreign key - Links this column to a key in another table'",
+    );
+    // Customers is only referenced, so it has a PK line but no FK line
+    const customers = lines.find((l) => l.includes('dbo.Customers'))!;
+    expect(customers).toContain('mm-key-pk');
+    expect(customers).not.toContain('mm-key-fk');
+  });
+
+  it('keeps labels free of characters that break Mermaid (a semicolon ends a statement)', () => {
+    for (const line of nodeLines('light')) {
+      const withoutEntityCodes = line.replace(/#(?:\d+|[a-z]+);/g, '');
+      expect(withoutEntityCodes).not.toContain(';');
+      expect(withoutEntityCodes).not.toMatch(/="[^"]*"[^"]*"/); // no stray double quotes inside the label
+    }
+  });
+
+  it('colours the badges per theme in the diagram stylesheet', () => {
+    const css = (theme: 'light' | 'dark') =>
+      generateRelationshipMermaid(
+        neighbourhood(index, 'dbo.Orders', 'all'),
+        theme,
+      ).source;
+    expect(css('light')).toContain('#dcf3e5');
+    expect(css('light')).toContain('#dbe9fb');
+    expect(css('dark')).toContain('#1c3a2a');
+    expect(css('dark')).toContain('#1b2c47');
+    // icons must take the badge colour, not the node fill/stroke Mermaid applies to every shape
+    expect(css('light')).toContain('span.mm-key svg path');
+  });
+});

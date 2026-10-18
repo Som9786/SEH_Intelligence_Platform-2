@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 import type { KeysResponse } from '../types/tableDetails';
+import { KeyBadge } from './KeyBadge';
 
 type Kind = 'pk' | 'fk' | 'index';
 
@@ -22,11 +23,6 @@ const TYPE_LABEL: Record<Kind, string> = {
   pk: 'Primary key',
   fk: 'Foreign key',
   index: 'Index',
-};
-const TYPE_CLASS: Record<Kind, string> = {
-  pk: 'td-chip-pk',
-  fk: 'td-chip-fk',
-  index: 'td-chip-index',
 };
 function buildEntries(data: KeysResponse): Entry[] {
   const column = (id: string) => id.substring(data.tableId.length + 1);
@@ -205,11 +201,21 @@ export function KeysCard({
                 <Fragment key={entry.id}>
                   <tr className={expanded ? 'td-dir-open' : undefined}>
                     <td>
-                      <span
-                        className={`td-chip td-dir-type ${TYPE_CLASS[entry.kind]}`}
-                      >
-                        {TYPE_LABEL[entry.kind]}
-                      </span>
+                      {entry.kind === 'index' ? (
+                        <span className="td-chip td-dir-type td-chip-index">
+                          {TYPE_LABEL.index}
+                        </span>
+                      ) : (
+                        <KeyBadge
+                          kind={entry.kind}
+                          label={TYPE_LABEL[entry.kind]}
+                          extra={
+                            entry.kind === 'fk'
+                              ? `${entry.summary}.`
+                              : undefined
+                          }
+                        />
+                      )}
                     </td>
                     <th scope="row">
                       <span className="td-dir-name" title={entry.name}>

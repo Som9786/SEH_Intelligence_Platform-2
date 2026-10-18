@@ -13,6 +13,7 @@ import {
 import { downloadBlob } from '../../../shared/utils/download';
 import { svgToBlob, svgToPngBlob } from '../../../shared/utils/exportSvg';
 import { renderMermaid } from '../../../shared/utils/renderMermaid';
+import { RelationshipColumns } from './RelationshipColumns';
 import { useTheme } from '../../../shared/hooks/useTheme';
 import { generateRelationshipMermaid } from '../utils/mermaidGenerator';
 import {
@@ -31,10 +32,12 @@ let renderCount = 0;
 function EdgeDetails({
   edge,
   tableId,
+  primaryKeys,
   onNavigate,
 }: {
   edge: GraphEdge;
   tableId: string | null;
+  primaryKeys: ReadonlyMap<string, readonly string[]>;
   onNavigate: (id: string) => void;
 }) {
   const others = [...new Set([edge.from, edge.to])].filter(
@@ -56,10 +59,8 @@ function EdgeDetails({
       </div>
       <dl>
         <dt>Columns</dt>
-        <dd className="td-mono">
-          {edge.fromColumns
-            .map((c, i) => `${c} → ${edge.toColumns[i] ?? '?'}`)
-            .join(', ')}
+        <dd>
+          <RelationshipColumns edge={edge} primaryKeys={primaryKeys} />
         </dd>
         <dt>Constraint</dt>
         <dd className="td-mono">
@@ -102,6 +103,10 @@ export function RelationshipDiagram({
   const diagram = useMemo(
     () => generateRelationshipMermaid(graph, theme),
     [graph, theme],
+  );
+  const primaryKeys = useMemo(
+    () => new Map(graph.tables.map((t) => [t.id, t.primaryKey] as const)),
+    [graph],
   );
   const baseId = 'rel' + useId().replace(/[^a-zA-Z0-9]/g, '');
   const [rendered, setRendered] = useState<{
@@ -322,6 +327,7 @@ export function RelationshipDiagram({
         <EdgeDetails
           edge={selectedEdge}
           tableId={graph.tableId}
+          primaryKeys={primaryKeys}
           onNavigate={onNavigate}
         />
       ) : (
