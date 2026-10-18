@@ -336,6 +336,18 @@ a {
 .nav-text {
   white-space: nowrap;
 }
+.nav-soon {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--b-265644);
+  color: var(--t-acd1ba);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+}
+.is-collapsed .nav-soon {
+  display: none;
+}
 .nav-spark {
   margin-left: auto;
   color: var(--t-f6a54b);
@@ -2907,4 +2919,205 @@ small {
 :root[data-theme='dark'] .td-chip-confirmed {
   background: #1c3a2a;
   color: #7fd8a6;
+}
+
+/* AI assistant demo */
+.ai-demo-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+.ai-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 20px;
+  align-items: start;
+}
+.ai-chat,
+.ai-suggested {
+  border: 1px solid var(--l-e3eae5);
+  border-radius: 14px;
+  background: var(--b-ffffff);
+}
+.ai-chat {
+  display: flex;
+  flex-direction: column;
+  min-height: 560px;
+}
+.ai-chat-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--l-e3eae5);
+}
+.ai-chat-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.ai-chat-head h2,
+.ai-suggested h2,
+.ai-boundary h2 {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+}
+.ai-chat-head p,
+.ai-suggested > p {
+  margin: 2px 0 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.ai-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--b-eaf5ee);
+  color: var(--t-258554);
+}
+.ai-avatar-lg {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+.ai-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  overflow-y: auto;
+  max-height: 520px;
+}
+.ai-message {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.ai-user {
+  justify-content: flex-end;
+}
+.ai-bubble {
+  max-width: 82%;
+  padding: 12px 16px;
+  border: 1px solid var(--l-e3eae5);
+  border-radius: 12px;
+  background: var(--b-f7faf8);
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+  overflow-wrap: anywhere;
+}
+.ai-user .ai-bubble {
+  background: var(--b-eaf5ee);
+  border-color: var(--l-c9e6d4);
+}
+.ai-bubble p {
+  margin: 0;
+}
+.ai-bubble p + p {
+  margin-top: 10px;
+}
+.ai-bubble pre {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  border-radius: 8px;
+  background: var(--b-eef2ef);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+}
+.ai-thinking {
+  color: var(--t-5f7268);
+}
+.ai-input-row {
+  display: flex;
+  gap: 10px;
+  padding: 16px 20px 0;
+  border-top: 1px solid var(--l-e3eae5);
+}
+.ai-input-row input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid var(--l-d3dfd6);
+  border-radius: 10px;
+  background: var(--b-ffffff);
+  color: inherit;
+  font: inherit;
+}
+.ai-send {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 42px;
+  padding: 0;
+}
+.ai-footnote {
+  margin: 0;
+  padding: 10px 20px 14px;
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+}
+.ai-side {
+  display: grid;
+  gap: 16px;
+}
+.ai-suggested {
+  padding: 18px;
+}
+.ai-suggested ul {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ai-suggested button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--l-e3eae5);
+  border-radius: 10px;
+  background: var(--b-fafbf9);
+  color: inherit;
+  font: inherit;
+  font-size: var(--fs-sm);
+  text-align: left;
+}
+.ai-suggested button:hover {
+  border-color: var(--l-a9c9bb);
+  background: var(--b-eaf5ee);
+}
+.ai-boundary {
+  padding: 16px 18px;
+  border: 1px solid var(--l-e3eae5);
+  border-radius: 14px;
+  background: var(--b-f7faf8);
+}
+.ai-boundary svg {
+  color: var(--t-258554);
+}
+.ai-boundary h2 {
+  margin-top: 6px;
+}
+.ai-boundary p {
+  margin: 6px 0 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+}
+@media (max-width: 900px) {
+  .ai-layout {
+    grid-template-columns: 1fr;
+  }
 }

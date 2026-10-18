@@ -66,20 +66,26 @@ export function AppShell() {
         <nav className="nav-list" aria-label="Main">
           {routes
             .filter((route) => route.inSidebar)
-            .map(({ path, label, icon: Icon }) => (
-              <NavLink
-                key={path}
-                to={path}
-                end={path === '/'}
-                title={collapsed ? label : undefined}
-                className={({ isActive }) =>
-                  'nav-link' + (isActive ? ' active' : '')
-                }
-              >
-                <Icon size={18} aria-hidden="true" />
-                <span className="nav-text">{label}</span>
-              </NavLink>
-            ))}
+            .map((route) => {
+              const { path, label, icon: Icon } = route;
+              return (
+                <NavLink
+                  key={path}
+                  to={path}
+                  end={path === '/'}
+                  title={collapsed ? label : undefined}
+                  className={({ isActive }) =>
+                    'nav-link' + (isActive ? ' active' : '')
+                  }
+                >
+                  <Icon size={18} aria-hidden="true" />
+                  <span className="nav-text">{label}</span>
+                  {'badge' in route && (
+                    <span className="nav-soon">{route.badge}</span>
+                  )}
+                </NavLink>
+              );
+            })}
         </nav>
         <SidebarTableNav onSelect={() => setMobileOpen(false)} />
         <div className="sidebar-bottom">

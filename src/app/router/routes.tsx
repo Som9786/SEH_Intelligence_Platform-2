@@ -43,7 +43,8 @@ export const routes = [
   {
     path: '/ai-assistant',
     label: 'AI Assistant',
-    inSidebar: false,
+    inSidebar: true,
+    badge: 'Soon',
     icon: Sparkles,
     element: AiAssistantPage,
   },
