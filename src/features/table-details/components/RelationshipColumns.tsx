@@ -19,18 +19,19 @@ export function RelationshipColumns({
       {edge.fromColumns.map((column, i) => {
         const target = edge.toColumns[i] ?? '?';
         return (
-          <span className="td-col-code rel-columns" key={column}>
+          <span className="rel-columns" key={column}>
             {edge.confirmed && (
               <KeyBadge
                 kind="fk"
                 extra={`${column} in ${edge.from} references ${edge.to}.`}
               />
             )}
-            {column} →{' '}
+            <code className="td-col-code">{column}</code>
+            <span aria-hidden="true">→</span>
             {parentKey.includes(target) && (
               <KeyBadge kind="pk" extra={`${target} in ${edge.to}.`} />
             )}
-            {target}
+            <code className="td-col-code">{target}</code>
           </span>
         );
       })}

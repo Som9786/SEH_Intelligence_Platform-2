@@ -4,7 +4,6 @@ import { PageHeading } from '../../../shared/components/PageHeading';
 import { LoadingState } from '../../../shared/components/LoadingState';
 import { ErrorState } from '../../../shared/components/ErrorState';
 import { DatabaseHeaderCard } from '../components/DatabaseHeaderCard';
-import { SummaryCards } from '../components/SummaryCards';
 import { BusinessAreaCards } from '../components/BusinessAreaCards';
 import { KeyBadge } from '../../table-details/components/KeyBadge';
 import { useOverviewSummary } from '../hooks/useOverviewSummary';
@@ -14,7 +13,7 @@ export function OverviewPage() {
   return (
     <div className="page-content">
       <PageHeading
-        title="Explore your database"
+        title="Overview"
         description="Explore your saved database snapshot and its documentation."
         badge={
           <div className="td-actions">
@@ -36,17 +35,21 @@ export function OverviewPage() {
       ) : (
         <>
           <DatabaseHeaderCard summary={query.data} />
-          <SummaryCards summary={query.data} />
           <div className="overview-grid">
             <BusinessAreaCards areas={query.data.businessAreas} />
             <aside
               className="panel glance-panel"
               aria-labelledby="glance-heading"
             >
-              <div className="panel-header">
-                <div>
-                  <p className="eyebrow">About this view</p>
-                  <h2 id="glance-heading">Database at a glance</h2>
+              <div className="td-card-head">
+                <div className="td-card-title td-card-title-stack">
+                  <div className="td-card-title-row">
+                    <h2 id="glance-heading">Database at a glance</h2>
+                  </div>
+                  <p>
+                    How to read this catalog and where its information comes
+                    from.
+                  </p>
                 </div>
               </div>
               <div className="insight">
@@ -72,15 +75,8 @@ export function OverviewPage() {
                         </span>
                         <KeyBadge kind="pk" />
                         <KeyBadge kind="fk" />
-                        <span
-                          className="td-legend-line td-legend-solid"
-                          aria-hidden="true"
-                        />
                       </div>
-                      <p>
-                        From database metadata. Solid lines are defined foreign
-                        keys.
-                      </p>
+                      <p>Defined in the database metadata.</p>
                     </li>
                     <li>
                       <div className="legend-head">
@@ -89,15 +85,10 @@ export function OverviewPage() {
                         </span>
                         <KeyBadge kind="pk" inferred />
                         <KeyBadge kind="fk" inferred />
-                        <span
-                          className="td-legend-line td-legend-dashed"
-                          aria-hidden="true"
-                        />
                       </div>
                       <p>
                         Suggested from names or data patterns, not enforced by
-                        the database. Dashed lines, orange text and orange keys
-                        mark these suggestions.
+                        the database. Shown in orange.
                       </p>
                     </li>
                   </ul>

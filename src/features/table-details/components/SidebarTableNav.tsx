@@ -37,9 +37,7 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
     >
       <Table2 size={14} aria-hidden="true" />
       <span className="side-table-name">
-        {groupMode === 'area'
-          ? `${table.schemaName}.${table.name}`
-          : table.name}
+        {`${table.schemaName}.${table.name}`}
       </span>
       <ReviewDot tableId={table.id} />
     </button>

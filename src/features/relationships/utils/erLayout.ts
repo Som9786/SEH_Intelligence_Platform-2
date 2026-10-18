@@ -81,9 +81,9 @@ export interface ErLayout {
 }
 
 /**
- * Referenced tables sit to the left of the tables that reference them. A table's column is one past
- * its deepest parent, so a chain of foreign keys reads left to right. Cycles stop growing after as
- * many passes as there are tables.
+ * Referencing tables sit to the left of the tables they reference, so every arrow points right (the
+ * same direction as the Table Details diagram). A table's column is one past the deepest table that
+ * references it. Cycles stop growing after as many passes as there are tables.
  */
 function assignLayers(ids: string[], edges: GraphEdge[]): Map<string, number> {
   const layer = new Map<string, number>(ids.map((id) => [id, 0]));
@@ -91,9 +91,9 @@ function assignLayers(ids: string[], edges: GraphEdge[]): Map<string, number> {
     let changed = false;
     for (const e of edges) {
       if (e.from === e.to) continue;
-      const wanted = (layer.get(e.to) ?? 0) + 1;
-      if ((layer.get(e.from) ?? 0) < wanted && wanted < ids.length) {
-        layer.set(e.from, wanted);
+      const wanted = (layer.get(e.from) ?? 0) + 1;
+      if ((layer.get(e.to) ?? 0) < wanted && wanted < ids.length) {
+        layer.set(e.to, wanted);
         changed = true;
       }
     }

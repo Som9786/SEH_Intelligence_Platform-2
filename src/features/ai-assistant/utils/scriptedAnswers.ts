@@ -134,7 +134,7 @@ export function scriptedReply(
   if (tables.length) return tableReply(index, tables[0]);
   return {
     paragraphs: [
-      'This demo only knows scripted answers about table keys and relationships. Pick one of the suggested questions, or mention a table name.',
+      'This preview only knows scripted answers about table keys and relationships. Pick one of the suggested questions, or mention a table name.',
     ],
   };
 }

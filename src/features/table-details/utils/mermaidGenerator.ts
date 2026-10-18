@@ -176,7 +176,7 @@ function cardCss(c: {
     `.mm-row { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 14px; border-bottom: 1px solid ${c.rule}; box-sizing: border-box; }`,
     `.mm-rowkey { flex: none; display: inline-flex; gap: 3px; min-width: 28px; }`,
     `.mm-name { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 700; }`,
-    `.mm-type { flex: none; color: ${c.muted}; font-size: 11px; }`,
+    `.mm-type { flex: none; color: ${c.muted}; font-size: 11px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }`,
     `.mm-empty { color: ${c.muted}; font-size: 11px; }`,
     `.mm-card .mm-row:last-child { border-bottom: 0; }`,
     // Mermaid colours the text of a selected node and gives every svg shape the node fill and stroke,

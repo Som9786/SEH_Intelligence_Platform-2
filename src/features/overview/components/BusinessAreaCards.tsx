@@ -5,12 +5,14 @@ import { EmptyState } from '../../../shared/components/EmptyState';
 export function BusinessAreaCards({ areas }: { areas: BusinessAreaSummary[] }) {
   return (
     <section className="panel areas-panel" aria-labelledby="areas-heading">
-      <div className="panel-header">
-        <div>
-          <p className="eyebrow">Explore the catalog</p>
-          <h2 id="areas-heading">Modules / Business Areas</h2>
+      <div className="td-card-head">
+        <div className="td-card-title td-card-title-stack">
+          <div className="td-card-title-row">
+            <h2 id="areas-heading">Business areas</h2>
+            <span className="td-count">{areas.length}</span>
+          </div>
+          <p>Modules that group the tables by what they are used for.</p>
         </div>
-        <span className="tag">{areas.length} areas</span>
       </div>
       {areas.length === 0 ? (
         <EmptyState />

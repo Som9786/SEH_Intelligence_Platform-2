@@ -1,6 +1,7 @@
 import type { OverviewSummary } from '../types/overview';
+import { SummaryCards } from './SummaryCards';
 
-/** The database's name, description and headline numbers, laid out like a table's header card. */
+/** The database's name and description on the left, its headline numbers on the right. */
 export function DatabaseHeaderCard({ summary }: { summary: OverviewSummary }) {
   const { database } = summary;
   return (
@@ -21,6 +22,7 @@ export function DatabaseHeaderCard({ summary }: { summary: OverviewSummary }) {
           {database.summary ?? 'No database description available.'}
         </p>
       </div>
+      <SummaryCards summary={summary} />
     </header>
   );
 }

@@ -132,7 +132,7 @@ export function RelationshipsPage() {
                       <span className="td-sr-only">Search relationships</span>
                       <input
                         type="search"
-                        placeholder="Search relationships"
+                        placeholder="Search relationships…"
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
                       />

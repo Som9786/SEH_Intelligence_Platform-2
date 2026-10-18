@@ -2,7 +2,6 @@ import {
   Scan,
   Search,
   Table2,
-  TableProperties,
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
@@ -261,10 +260,10 @@ export function ErExplorer({
             </label>
             <label className="td-search">
               <Search size={14} aria-hidden="true" />
-              <span className="td-sr-only">Find a table</span>
+              <span className="td-sr-only">Search tables</span>
               <input
                 type="search"
-                placeholder="Find a table"
+                placeholder="Search tables…"
                 value={query}
                 onChange={(event) => search(event.target.value)}
               />
@@ -309,20 +308,6 @@ export function ErExplorer({
           <div className="er-stage">
             <DiagramLegend>
               <div className="er-tools">
-                <button
-                  type="button"
-                  className="er-open-details"
-                  disabled={!selected}
-                  title={
-                    selected
-                      ? `Open ${selected.id} in Table Details`
-                      : 'Select a table first'
-                  }
-                  onClick={() => selected && onOpenTable(selected.id)}
-                >
-                  <TableProperties size={16} aria-hidden="true" />
-                  Table details
-                </button>
                 <div className="er-zoom" role="group" aria-label="Diagram zoom">
                   <button
                     type="button"
@@ -553,8 +538,9 @@ export function ErExplorer({
                 )}
               </div>
               <p className="diagram-tip">
-                <strong>Tip:</strong> Select a table to inspect its connections.
-                Use search or zoom for larger schemas.
+                <strong>Tip:</strong> Select a table to highlight its
+                connections, or double-click it to open it. Use search or zoom
+                for larger schemas.
               </p>
             </div>
             {failed > 0 && (

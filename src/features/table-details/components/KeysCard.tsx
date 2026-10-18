@@ -208,7 +208,6 @@ export function KeysCard({
                       ) : (
                         <KeyBadge
                           kind={entry.kind}
-                          label={TYPE_LABEL[entry.kind]}
                           extra={
                             entry.kind === 'fk'
                               ? `${entry.summary}.`
@@ -331,7 +330,7 @@ export function KeysCard({
               <span className="td-sr-only">Search keys and indexes</span>
               <input
                 type="search"
-                placeholder="Search keys, columns"
+                placeholder="Search keys…"
                 value={query}
                 onChange={(event) => {
                   setQuery(event.target.value);

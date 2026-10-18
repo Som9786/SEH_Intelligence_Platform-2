@@ -111,7 +111,7 @@ export function ColumnsCard({
               <span className="td-sr-only">Search columns</span>
               <input
                 type="search"
-                placeholder="Search columns"
+                placeholder="Search columns…"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />

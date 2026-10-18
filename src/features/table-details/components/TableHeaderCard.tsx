@@ -42,17 +42,7 @@ export function TableHeaderCard({
           >
             {detail.description ?? 'No table description available.'}
           </p>
-          {review && <ReviewSummary review={review} />}
           <ul className="td-badge-row" aria-label="Table summary">
-            {detail.areas.map((area) => (
-              <li
-                key={area.id}
-                className="td-chip td-chip-area"
-                title="Business area (inferred)"
-              >
-                {area.name}
-              </li>
-            ))}
             <li className="td-chip td-chip-columns">
               {plural(detail.columnCount, 'column', 'columns')}
             </li>
@@ -81,9 +71,6 @@ export function TableHeaderCard({
             <li className="td-chip td-chip-index">
               {plural(detail.indexCount, 'index', 'indexes')}
             </li>
-            <li className="td-chip td-chip-trigger">
-              {plural(detail.triggerCount, 'trigger', 'triggers')}
-            </li>
             <li
               className="td-chip td-chip-rels"
               title={`${incoming} incoming · ${outgoing} outgoing`}
@@ -94,9 +81,21 @@ export function TableHeaderCard({
                 'relationships',
               )}
             </li>
+            {detail.areas.map((area) => (
+              <li
+                key={area.id}
+                className="td-chip td-chip-area"
+                title="Business area (inferred)"
+              >
+                {area.name}
+              </li>
+            ))}
           </ul>
         </div>
-        {nav}
+        <div className="td-header-side">
+          {nav}
+          {review && <ReviewSummary review={review} tableId={detail.id} />}
+        </div>
       </div>
       {tabs}
     </header>

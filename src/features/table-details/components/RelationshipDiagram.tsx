@@ -180,8 +180,11 @@ export function RelationshipDiagram({
       if (!tableId || tableId === graph.tableId) continue;
       node.classList.add('td-rel-clickable');
       node.setAttribute('tabindex', '0');
-      node.setAttribute('role', 'link');
-      node.setAttribute('aria-label', `Open ${tableId}`);
+      node.setAttribute('role', 'button');
+      node.setAttribute(
+        'aria-label',
+        `${tableId}: select, or double-click (Enter) to open`,
+      );
     }
     for (const label of svg.querySelectorAll<SVGGElement>(
       'g.edgeLabel g.label[data-id]',
@@ -206,6 +209,22 @@ export function RelationshipDiagram({
       ? `${natural.current.height * scale}px`
       : 'auto';
   }, [scale, current]);
+
+  const [pickedState, setPicked] = useState<{
+    source: string;
+    tableId: string;
+  } | null>(null);
+  // A selection belongs to one drawing of the diagram; a new drawing starts unselected.
+  const picked = pickedState?.source === diagram.source ? pickedState : null;
+  useLayoutEffect(() => {
+    for (const node of viewport.current?.querySelectorAll('g.node') ?? []) {
+      const tableId = diagram.nodes.get(NODE_ID.exec(node.id)?.[1] ?? '');
+      node.classList.toggle(
+        'td-rel-picked',
+        !!picked && tableId === picked.tableId,
+      );
+    }
+  }, [picked, current, diagram]);
 
   useLayoutEffect(() => {
     for (const el of viewport.current?.querySelectorAll('[data-id]') ?? [])
@@ -236,12 +255,27 @@ export function RelationshipDiagram({
     if (svg) downloadBlob(svgToBlob(svg), `${fileName}.svg`);
   };
 
-  const activate = (target: EventTarget | null) => {
+  // A click selects a table and a double-click (or Enter) opens it, the same as the ER diagram.
+  const tableAt = (target: EventTarget | null) => {
+    const node = target instanceof Element ? target.closest('g.node') : null;
+    const tableId = node
+      ? diagram.nodes.get(NODE_ID.exec(node.id)?.[1] ?? '')
+      : undefined;
+    return node
+      ? { tableId: tableId && tableId !== graph.tableId ? tableId : null }
+      : null;
+  };
+  const activate = (target: EventTarget | null, open = false) => {
     const element = target instanceof Element ? target : null;
-    const node = element?.closest('g.node');
-    if (node) {
-      const tableId = diagram.nodes.get(NODE_ID.exec(node.id)?.[1] ?? '');
-      if (tableId && tableId !== graph.tableId) onNavigate(tableId);
+    const table = tableAt(target);
+    if (table) {
+      if (table.tableId && open) onNavigate(table.tableId);
+      else if (table.tableId)
+        setPicked(
+          picked?.tableId === table.tableId
+            ? null
+            : { source: diagram.source, tableId: table.tableId },
+        );
       return true;
     }
     const edgeId = element?.closest('[data-id]')?.getAttribute('data-id');
@@ -256,8 +290,14 @@ export function RelationshipDiagram({
   const onClick = (event: MouseEvent) => {
     activate(event.target);
   };
+  const onDoubleClick = (event: MouseEvent) => {
+    activate(event.target, true);
+  };
   const onKeyDown = (event: KeyboardEvent) => {
-    if ((event.key === 'Enter' || event.key === ' ') && activate(event.target))
+    if (
+      (event.key === 'Enter' || event.key === ' ') &&
+      activate(event.target, event.key === 'Enter')
+    )
       event.preventDefault();
   };
 
@@ -336,6 +376,7 @@ export function RelationshipDiagram({
         }
         role="figure"
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
         onKeyDown={onKeyDown}
       >
         {current ? (
@@ -358,8 +399,8 @@ export function RelationshipDiagram({
         />
       ) : (
         <p className="diagram-tip">
-          <strong>Tip:</strong> Select a line to see the relationship details,
-          or a table to open it.
+          <strong>Tip:</strong> Select a line to see the relationship details.
+          Select a table to highlight it, or double-click it to open it.
         </p>
       )}
     </div>

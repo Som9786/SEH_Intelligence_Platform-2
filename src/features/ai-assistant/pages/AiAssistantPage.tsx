@@ -20,11 +20,13 @@ const GREETING: Message = {
   reply: {
     paragraphs: [
       'Hi! I can help explain table keys and relationships in this database. Select a suggested question or ask your own.',
-      'This is a simulated assistant. No AI model or live database is connected yet.',
+      'This is a preview with scripted answers. No AI model or live database is connected yet.',
     ],
   },
 };
 const REPLY_DELAY_MS = 450;
+const plural = (count: number, one: string, many: string) =>
+  `${count} ${count === 1 ? one : many}`;
 
 export function AiAssistantPage() {
   const [params, setParams] = useSearchParams();
@@ -33,12 +35,19 @@ export function AiAssistantPage() {
   return (
     <div className="page-content">
       <PageHeading
-        title="AI database assistant"
+        title="AI Assistant"
         description="Ask questions in plain English about tables, keys, and relationships."
         badge={
-          <span className="tag">
-            {demo ? 'Simulated answers · no live AI' : 'Coming soon'}
-          </span>
+          <div className="td-actions">
+            <button
+              type="button"
+              className="td-action td-action-primary"
+              onClick={() => setParams(demo ? {} : { demo: '1' })}
+            >
+              <Sparkles size={16} aria-hidden="true" />
+              {demo ? 'Close preview' : 'Preview the assistant'}
+            </button>
+          </div>
         }
       />
       {demo ? (
@@ -46,26 +55,18 @@ export function AiAssistantPage() {
       ) : (
         <section
           className="placeholder-panel"
-          aria-label="AI assistant coming soon"
+          aria-label="AI Assistant coming soon"
         >
           <div className="placeholder-icon">
             <Sparkles size={30} aria-hidden="true" />
           </div>
           <p className="eyebrow">Coming soon</p>
-          <h2>AI assistant is coming soon</h2>
+          <h2>AI Assistant</h2>
           <p>
-            An assistant for exploring database knowledge is planned. Try the
-            demo to see how it will look, with scripted answers built from this
-            catalog.
+            An assistant for exploring database knowledge is planned. Use
+            Preview the assistant above to see how it will look once built,
+            with scripted answers based on this catalog.
           </p>
-          <button
-            className="button button-primary ai-demo-button"
-            type="button"
-            onClick={() => setParams({ demo: '1' })}
-          >
-            Try demo
-            <ArrowRight size={16} aria-hidden="true" />
-          </button>
         </section>
       )}
     </div>
@@ -129,11 +130,15 @@ function Demo() {
           <div>
             <h2>SEH Atlas</h2>
             <p>
-              Context: {catalog.tables.size} tables · {catalog.edges.length}{' '}
-              relationships · metadata only
+              Context: {plural(catalog.tables.size, 'table', 'tables')} ·{' '}
+              {plural(catalog.edges.length, 'relationship', 'relationships')} ·
+              metadata only
             </p>
           </div>
-          <span className="tag">Read only</span>
+          <ul className="td-badge-row ai-chips" aria-label="Preview status">
+            <li className="td-chip td-chip-columns">Scripted answers</li>
+            <li className="td-chip td-chip-columns">Read only</li>
+          </ul>
         </header>
         <div className="ai-messages" role="log" aria-live="polite">
           {messages.map((message, i) => (
@@ -166,7 +171,7 @@ function Demo() {
             type="text"
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ask about a table or relationship..."
+            placeholder="Ask about a table or relationship…"
             aria-label="Ask about a table or relationship"
           />
           <button
@@ -179,8 +184,7 @@ function Demo() {
           </button>
         </form>
         <p className="ai-footnote">
-          Replies are scripted from the catalog. A real version would call an AI
-          model securely from the server.
+          Preview only. Replies are scripted from the catalog.
         </p>
       </section>
       <aside className="ai-side">
@@ -202,8 +206,12 @@ function Demo() {
           <ShieldCheck size={18} aria-hidden="true" />
           <h2 id="ai-boundary-title">Data boundary</h2>
           <p>
-            This demo does not read row-level business data, send prompts to
-            external AI providers, or run SQL.
+            <strong>Now:</strong> scripted answers from the catalog files (table
+            names, keys and relationships). No business data, AI model or SQL.
+          </p>
+          <p>
+            <strong>Once built:</strong> an AI model will answer from the same
+            catalog metadata, never from row-level business data.
           </p>
         </section>
       </aside>

@@ -47,7 +47,7 @@ const items = table('dbo.OrderItems', [col('ItemId', true)]);
 const lonely = table('dbo.Lonely', [col('Id', true)]);
 
 describe('ER layout', () => {
-  it('puts referenced tables to the left of the tables that reference them', () => {
+  it('puts referencing tables to the left of the tables they reference', () => {
     const layout = layoutEr(
       [orders, customers, items],
       [
@@ -57,8 +57,8 @@ describe('ER layout', () => {
       false,
     );
     const x = (id: string) => layout.cards.find((c) => c.table.id === id)!.x;
-    expect(x('dbo.Customers')).toBeLessThan(x('dbo.Orders'));
-    expect(x('dbo.Orders')).toBeLessThan(x('dbo.OrderItems'));
+    expect(x('dbo.OrderItems')).toBeLessThan(x('dbo.Orders'));
+    expect(x('dbo.Orders')).toBeLessThan(x('dbo.Customers'));
     expect(layout.edges).toHaveLength(2);
   });
 
