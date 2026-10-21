@@ -28,6 +28,7 @@ export function OverviewPage() {
         <LoadingState />
       ) : query.isError ? (
         <ErrorState
+          title="Overview could not be loaded"
           onRetry={() => {
             void query.refetch();
           }}

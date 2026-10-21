@@ -2,12 +2,9 @@ import { Children, isValidElement, type ReactNode } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MermaidDiagram } from './MermaidDiagram';
-import { useQuery } from '@tanstack/react-query';
+import { useCatalog } from '../hooks/useCatalog';
 import { dataFileUrl } from '../../platform/files/fileDataService';
-import {
-  loadCatalog,
-  type CatalogDocument,
-} from '../../platform/files/snapshot';
+import type { CatalogDocument } from '../../platform/files/snapshot';
 
 function plainText(children: ReactNode): string {
   return Children.toArray(children)
@@ -70,7 +67,7 @@ export function MarkdownDocument({
   markdown: string;
   sourcePath: string;
 }) {
-  const catalog = useQuery({ queryKey: ['catalog'], queryFn: loadCatalog });
+  const catalog = useCatalog();
   const routes = documentRoutes(catalog.data?.documents ?? []);
   return (
     <Markdown

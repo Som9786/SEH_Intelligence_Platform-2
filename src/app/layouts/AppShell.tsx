@@ -15,10 +15,16 @@ import { TopbarTableSearch } from '../../features/table-details/components/Topba
 import { NavLink, Outlet, useLocation } from 'react-router';
 import { routes } from '../router/routes';
 import { SidebarTableNav } from '../../features/table-details/components/SidebarTableNav';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCatalog } from '../../shared/hooks/useCatalog';
+import { CatalogMissingState } from '../../shared/components/CatalogMissingState';
 
 export function AppShell() {
   const { theme, toggle: toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const queryClient = useQueryClient();
+  // With no catalog published, every page would fail on its own; show one message instead.
+  const { missing: catalogMissing } = useCatalog();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
@@ -87,7 +93,9 @@ export function AppShell() {
               );
             })}
         </nav>
-        <SidebarTableNav onSelect={() => setMobileOpen(false)} />
+        {!catalogMissing && (
+          <SidebarTableNav onSelect={() => setMobileOpen(false)} />
+        )}
         <div className="sidebar-bottom">
           <button
             className="collapse-button"
@@ -121,7 +129,9 @@ export function AppShell() {
             <span aria-hidden="true">/</span>
             <strong>{current}</strong>
           </div>
-          {location.pathname === '/table-details' && <TopbarTableSearch />}
+          {location.pathname === '/table-details' && !catalogMissing && (
+            <TopbarTableSearch />
+          )}
           <button
             className="theme-toggle"
             type="button"
@@ -163,7 +173,18 @@ export function AppShell() {
           )}
         </header>
         <main id="main-content">
-          <Outlet />
+          {catalogMissing ? (
+            <div className="page-content">
+              <CatalogMissingState
+                onRetry={() => {
+                  // Reset every query so all pages reload from the new files.
+                  void queryClient.resetQueries();
+                }}
+              />
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
       </div>
     </div>
