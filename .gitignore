@@ -19,3 +19,6 @@ public/data/database.json
 public/data/dbo.*.json
 public/data/manifest.json
 public/data/generated/
+
+# Generated metadata catalog (copied in by npm run sync-data)
+public/catalog/

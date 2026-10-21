@@ -1,7 +1,0 @@
-{
-  "tableId": "dbo.Customers",
-  "status": "verified",
-  "comment": "Column meanings and the table description match how the data is used. Email and City are correctly marked optional. Reviewed against the sample rows; no corrections needed.",
-  "reviewedBy": "Priya Nair",
-  "updatedAt": "2026-10-15T09:30:00Z"
-}
