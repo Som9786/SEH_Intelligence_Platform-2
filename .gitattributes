@@ -1,0 +1,3 @@
+# Launchers must keep their native line endings to run (scripts/serve).
+*.sh text eol=lf
+*.cmd text eol=crlf
