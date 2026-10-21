@@ -15,10 +15,10 @@ export interface AuthService {
   signOut(): void;
 }
 
-// DEMO ONLY. These credentials ship in the page source and are shown on the sign-in screen, so
-// this gate keeps casual visitors out of the UI but protects nothing: the catalog JSON files are
-// still publicly reachable. Replace with real authentication before holding sensitive data.
-export const DEMO_USERNAME = 'sehadmin';
+// DEMO ONLY. These credentials ship in the page source (and in a hidden note on the sign-in
+// screen), so this gate keeps casual visitors out of the UI but protects nothing: the catalog JSON
+// files are still publicly reachable. Replace with real authentication before holding sensitive data.
+export const DEMO_USERNAME = 'Admin';
 export const DEMO_PASSWORD = 'Demo@123';
 
 const SESSION_KEY = 'seh-demo-session';
@@ -42,7 +42,7 @@ function createDemoAuthService(): AuthService {
 
     async signIn(username, password) {
       if (
-        username.trim().toLowerCase() !== DEMO_USERNAME ||
+        username.trim().toLowerCase() !== DEMO_USERNAME.toLowerCase() ||
         password !== DEMO_PASSWORD
       )
         throw new Error('Incorrect username or password.');

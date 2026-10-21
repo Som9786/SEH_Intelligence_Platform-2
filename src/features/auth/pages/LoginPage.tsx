@@ -95,11 +95,9 @@ export function LoginPage() {
             )}
           </button>
           <div className="auth-hint">
-            <p>
-              <strong>Demo credentials:</strong>{' '}
-              <code>
-                {DEMO_USERNAME} / {DEMO_PASSWORD}
-              </code>
+            {/* Not shown on screen; visible with the browser's Inspect element. */}
+            <p hidden data-demo-credentials>
+              Demo credentials: {DEMO_USERNAME} / {DEMO_PASSWORD}
             </p>
             <p>Demo sign-in only. It does not protect the data files.</p>
           </div>
