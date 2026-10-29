@@ -1,19 +1,36 @@
-import { ChevronRight, Search, Table2 } from 'lucide-react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { ChevronRight, Search, Table2, X } from 'lucide-react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router';
-import {
-  sidebarFilterActions,
-  useSidebarFilter,
-} from '../state/sidebarFilterStore';
-import { useSidebarTables } from '../hooks/useSidebarTables';
+import { tableFilterActions, useTableFilter } from '../state/tableFilterStore';
+import { useTableList } from '../hooks/useTableList';
 import { ReviewDot } from './ReviewDot';
 import { groupTablesByArea } from '../utils/groupTablesByArea';
 import type { TableListItem } from '../types/tableDetails';
 
 export const TABLE_DETAILS_PATH = '/table-details';
+export const TABLE_FLYOUT_ID = 'table-flyout';
 
-export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
-  const { query, groupMode, expandedAreas } = useSidebarFilter();
-  const list = useSidebarTables(query);
+const FOCUSABLE =
+  'button:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Browse and filter the catalog's tables in a panel on the right of the screen. While it is open,
+ * Tab stays inside it; Escape or the close button closes it, and focus goes back to whatever
+ * opened it.
+ */
+export function TableFlyout({ onClose }: { onClose: () => void }) {
+  const { query, groupMode, expandedAreas } = useTableFilter();
+  const panelRef = useRef<HTMLElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const opener = document.activeElement;
+    searchRef.current?.focus();
+    return () => {
+      if (opener instanceof HTMLElement) opener.focus();
+    };
+  }, []);
+
+  const list = useTableList(query);
   const navigate = useNavigate();
   const location = useLocation();
   const [params] = useSearchParams();
@@ -22,21 +39,42 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
   const searching = query.trim().length > 0;
   const { groups } = groupTablesByArea(list.tables, groupMode);
 
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      onClose();
+      return;
+    }
+    if (event.key !== 'Tab' || !panelRef.current) return;
+    const focusable = [
+      ...panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
+    ];
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  };
+
   const open = (id: string) => {
     void navigate(`${TABLE_DETAILS_PATH}?table=${encodeURIComponent(id)}`);
-    onSelect?.();
+    onClose();
   };
   const item = (table: TableListItem, key: string) => (
     <button
       key={key}
       type="button"
-      className={'side-table-item' + (table.id === activeId ? ' active' : '')}
+      className={'tf-item' + (table.id === activeId ? ' active' : '')}
       aria-current={table.id === activeId ? 'true' : undefined}
       title={`${table.schemaName}.${table.name}`}
       onClick={() => open(table.id)}
     >
       <Table2 size={14} aria-hidden="true" />
-      <span className="side-table-name">
+      <span className="tf-item-name">
         {`${table.schemaName}.${table.name}`}
       </span>
       <ReviewDot tableId={table.id} />
@@ -44,10 +82,10 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
   );
 
   let body;
-  if (list.isPending) body = <p className="side-table-note">Loading tables…</p>;
+  if (list.isPending) body = <p className="tf-note">Loading tables…</p>;
   else if (list.isError)
     body = (
-      <div className="side-table-note" role="alert">
+      <div className="tf-note" role="alert">
         Tables could not be loaded.{' '}
         <button type="button" onClick={() => void list.refetch()}>
           Retry
@@ -56,7 +94,7 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
     );
   else if (list.tables.length === 0)
     body = (
-      <p className="side-table-note">
+      <p className="tf-note">
         {searching ? 'No matching tables' : 'No tables in this catalog'}
       </p>
     );
@@ -67,13 +105,13 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
           const open_ =
             groupMode === 'all' || searching || expandedAreas.has(group.key);
           return (
-            <div className="side-table-group" key={group.key}>
+            <div className="tf-group" key={group.key}>
               <button
                 type="button"
-                className="side-table-group-head"
+                className="tf-group-head"
                 aria-expanded={open_}
                 disabled={groupMode === 'all' || searching}
-                onClick={() => sidebarFilterActions.toggleArea(group.key)}
+                onClick={() => tableFilterActions.toggleArea(group.key)}
               >
                 {groupMode === 'area' && (
                   <ChevronRight
@@ -95,7 +133,7 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
         {list.hasNextPage && (
           <button
             type="button"
-            className="side-table-more"
+            className="tf-more"
             disabled={list.isFetchingNextPage}
             onClick={() => void list.fetchNextPage()}
           >
@@ -106,42 +144,57 @@ export function SidebarTableNav({ onSelect }: { onSelect?: () => void }) {
     );
 
   return (
-    <section className="side-tables" aria-label="Database tables">
-      <div className="side-tables-head">
-        <span>Database Tables</span>
+    <section
+      ref={panelRef}
+      id={TABLE_FLYOUT_ID}
+      className="table-flyout"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="table-flyout-title"
+      onKeyDown={onKeyDown}
+    >
+      <div className="tf-head">
+        <h2 id="table-flyout-title">Database Tables</h2>
         <small aria-live="polite">
           {list.isSuccess ? `${list.total} tables` : ''}
         </small>
+        <button
+          className="tf-close"
+          type="button"
+          aria-label="Close table filter"
+          onClick={onClose}
+        >
+          <X size={16} aria-hidden="true" />
+        </button>
       </div>
-      <div className="side-table-search">
+      <div className="tf-search">
         <Search size={14} aria-hidden="true" />
         <input
+          ref={searchRef}
           type="search"
           aria-label="Filter database tables"
           placeholder="Search tables…"
           value={query}
-          onChange={(event) =>
-            sidebarFilterActions.setQuery(event.target.value)
-          }
+          onChange={(event) => tableFilterActions.setQuery(event.target.value)}
         />
       </div>
-      <div className="side-table-modes" role="group" aria-label="Group tables">
+      <div className="tf-modes" role="group" aria-label="Group tables">
         <button
           type="button"
           aria-pressed={groupMode === 'all'}
-          onClick={() => sidebarFilterActions.setGroupMode('all')}
+          onClick={() => tableFilterActions.setGroupMode('all')}
         >
           All tables
         </button>
         <button
           type="button"
           aria-pressed={groupMode === 'area'}
-          onClick={() => sidebarFilterActions.setGroupMode('area')}
+          onClick={() => tableFilterActions.setGroupMode('area')}
         >
           By area
         </button>
       </div>
-      <div className="side-table-scroll">{body}</div>
+      <div className="tf-scroll">{body}</div>
     </section>
   );
 }

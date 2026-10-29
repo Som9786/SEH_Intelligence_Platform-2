@@ -1,7 +1,7 @@
 import type { TableListItem } from '../types/tableDetails';
 
 export type GroupMode = 'area' | 'all';
-export interface SidebarGroup {
+export interface TableGroup {
   key: string;
   label: string;
   tables: TableListItem[];
@@ -12,8 +12,8 @@ export const UNASSIGNED_KEY = 'unassigned';
 export function groupTablesByArea(
   tables: TableListItem[],
   mode: GroupMode,
-): { groups: SidebarGroup[]; total: number } {
-  const map = new Map<string, SidebarGroup>();
+): { groups: TableGroup[]; total: number } {
+  const map = new Map<string, TableGroup>();
   const add = (key: string, label: string, table: TableListItem) => {
     const group = map.get(key) ?? { key, label, tables: [] };
     group.tables.push(table);

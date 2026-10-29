@@ -1,5 +1,5 @@
-import { LayoutDashboard } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
+import { BackToDbCatalog } from '../../../shared/components/BackToDbCatalog';
 import { MarkdownDocument } from '../../../shared/components/MarkdownDocument';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import { ResourceState } from '../../table-details/components/ResourceState';
@@ -24,10 +24,7 @@ export function DocumentationPage() {
         description="Read the AI-generated documentation for this catalog."
         badge={
           <div className="td-actions">
-            <Link to="/" className="td-action td-action-primary">
-              <LayoutDashboard size={16} aria-hidden="true" />
-              Overview
-            </Link>
+            <BackToDbCatalog />
           </div>
         }
       />

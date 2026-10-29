@@ -1,25 +1,34 @@
-import { BookOpen, Eye, Network } from 'lucide-react';
+import { BookOpen, Eye, Network, TableProperties } from 'lucide-react';
 import { Link } from 'react-router';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import { LoadingState } from '../../../shared/components/LoadingState';
 import { ErrorState } from '../../../shared/components/ErrorState';
 import { DatabaseHeaderCard } from '../components/DatabaseHeaderCard';
 import { BusinessAreaCards } from '../components/BusinessAreaCards';
+import { ReviewProgressCard } from '../components/ReviewProgressCard';
 import { KeyBadge } from '../../table-details/components/KeyBadge';
 import { useOverviewSummary } from '../hooks/useOverviewSummary';
 
-export function OverviewPage() {
+export function DataCatalogPage() {
   const query = useOverviewSummary();
   return (
     <div className="page-content">
       <PageHeading
-        title="Overview"
+        title="DB Catalog"
         description="Explore your database catalog and its documentation."
         badge={
           <div className="td-actions">
-            <Link to="/documentation" className="td-action td-action-primary">
+            <Link to="/table-details" className="td-action">
+              <TableProperties size={16} aria-hidden="true" />
+              DB Tables
+            </Link>
+            <Link to="/relationships" className="td-action">
+              <Network size={16} aria-hidden="true" />
+              Relationships
+            </Link>
+            <Link to="/documentation" className="td-action">
               <BookOpen size={16} aria-hidden="true" />
-              Read documentation
+              DB details
             </Link>
           </div>
         }
@@ -36,6 +45,7 @@ export function OverviewPage() {
       ) : (
         <>
           <DatabaseHeaderCard summary={query.data} />
+          <ReviewProgressCard />
           <div className="overview-grid">
             <BusinessAreaCards areas={query.data.businessAreas} />
             <aside

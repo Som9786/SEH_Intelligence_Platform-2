@@ -4,14 +4,14 @@ import { fileTableDetailsService } from '../../../platform/files/adapters/FileTa
 
 const PAGE_SIZE = 100;
 
-export function useSidebarTables(query: string) {
+export function useTableList(query: string) {
   const [debounced, setDebounced] = useState(query);
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(query), 250);
     return () => clearTimeout(timer);
   }, [query]);
   const result = useInfiniteQuery({
-    queryKey: ['sidebar-tables', debounced.trim()],
+    queryKey: ['table-list', debounced.trim()],
     queryFn: ({ pageParam }) =>
       fileTableDetailsService.listTables({
         q: debounced.trim(),

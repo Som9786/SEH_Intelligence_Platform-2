@@ -1,15 +1,15 @@
-import { useSidebarFilter } from '../state/sidebarFilterStore';
+import { useTableFilter } from '../state/tableFilterStore';
 import type { TableListItem } from '../types/tableDetails';
 import { buildTableSequence } from '../utils/tableSequence';
-import { useSidebarTables } from './useSidebarTables';
+import { useTableList } from './useTableList';
 
 const qualified = (table: TableListItem | undefined) =>
   table ? `${table.schemaName}.${table.name}` : null;
 
 export function useTableSequence(selectedId: string) {
-  const { query } = useSidebarFilter();
-  const filtered = useSidebarTables(query);
-  const full = useSidebarTables('');
+  const { query } = useTableFilter();
+  const filtered = useTableList(query);
+  const full = useTableList('');
   const useFiltered =
     query.trim() !== '' && filtered.tables.some((t) => t.id === selectedId);
   const active = useFiltered ? filtered : full;

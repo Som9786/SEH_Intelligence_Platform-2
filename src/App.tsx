@@ -18,6 +18,11 @@ export function App() {
                 {routes.map(({ path, element: Page }) => (
                   <Route key={path} path={path} element={<Page />} />
                 ))}
+                {/* The AI Assistant was renamed; keep old links working. */}
+                <Route
+                  path="/ai-assistant"
+                  element={<Navigate to="/insights-assistant" replace />}
+                />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Route>
             </Route>

@@ -1,118 +1,71 @@
-import { ArrowRight, Send, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Info, Send } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
 import { PageHeading } from '../../../shared/components/PageHeading';
-import { ResourceState } from '../../table-details/components/ResourceState';
 import { useRelationshipIndex } from '../../table-details/hooks/useRelationshipIndex';
 import {
-  scriptedReply,
-  suggestedQuestions,
-  type Reply,
-} from '../utils/scriptedAnswers';
+  answerQuestion,
+  SUGGESTED_QUESTIONS,
+  type InsightAnswer,
+} from '../utils/insightAnswers';
 
-interface Message {
-  from: 'assistant' | 'user';
-  reply: Reply;
+interface Exchange {
+  question: string;
+  answer: InsightAnswer | null; // null while the reply is on its way
 }
 
-const GREETING: Message = {
-  from: 'assistant',
-  reply: {
-    paragraphs: [
-      'Hi! I can help explain table keys and relationships in this database. Select a suggested question or ask your own.',
-      'This is a preview with scripted answers. No AI model or live database is connected yet.',
-    ],
-  },
-};
 const REPLY_DELAY_MS = 450;
-const plural = (count: number, one: string, many: string) =>
-  `${count} ${count === 1 ? one : many}`;
+/** The welcome list leaves out the Store 124 follow-up; it reads better after a waste answer. */
+const START_QUESTIONS = SUGGESTED_QUESTIONS.filter((q) => !q.includes('124'));
+const formatValue = (value: number, unit: '%' | '$K' | 'stores') =>
+  unit === '%'
+    ? `${value.toFixed(1)}%`
+    : unit === '$K'
+      ? `$${value.toFixed(1)}K`
+      : String(value);
 
+/** Insights Assistant preview: ask a question, get a sample answer with its reasoning and sources. */
 export function AiAssistantPage() {
-  const [params, setParams] = useSearchParams();
-  const demo = params.get('demo') === '1';
-
-  return (
-    <div className="page-content">
-      <PageHeading
-        title="AI Assistant"
-        description="Ask questions in plain English about tables, keys and relationships."
-        badge={
-          <div className="td-actions">
-            <button
-              type="button"
-              className="td-action td-action-primary"
-              onClick={() => setParams(demo ? {} : { demo: '1' })}
-            >
-              <Sparkles size={16} aria-hidden="true" />
-              {demo ? 'Close preview' : 'Preview the assistant'}
-            </button>
-          </div>
-        }
-      />
-      {demo ? (
-        <Demo />
-      ) : (
-        <section
-          className="placeholder-panel"
-          aria-label="AI Assistant coming soon"
-        >
-          <div className="placeholder-icon">
-            <Sparkles size={30} aria-hidden="true" />
-          </div>
-          <p className="eyebrow">Coming soon</p>
-          <h2>AI Assistant</h2>
-          <p>
-            An assistant for exploring database knowledge is planned. Use
-            Preview the assistant above to see how it will look once built,
-            with scripted answers based on this catalog.
-          </p>
-        </section>
-      )}
-    </div>
-  );
-}
-
-function Demo() {
+  const [params] = useSearchParams();
   const index = useRelationshipIndex();
-  const [messages, setMessages] = useState<Message[]>([GREETING]);
+  const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [draft, setDraft] = useState('');
-  const [thinking, setThinking] = useState(false);
   const timer = useRef<number | undefined>(undefined);
   const end = useRef<HTMLDivElement>(null);
+  const thinking = exchanges.some((exchange) => exchange.answer === null);
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
   useEffect(() => {
-    end.current?.scrollIntoView?.({ block: 'nearest' });
-  }, [messages, thinking]);
+    end.current?.scrollIntoView?.({ block: 'end', behavior: 'smooth' });
+  }, [exchanges]);
 
-  if (index.isPending)
-    return <ResourceState kind="loading" title="Loading the catalog" />;
-  if (index.isError || !index.data)
-    return (
-      <ResourceState
-        kind="error"
-        title="The catalog could not be loaded."
-        onRetry={() => void index.refetch()}
-      />
-    );
-  const catalog = index.data;
+  // A question from the link (`?q=`, e.g. asked on the Overview page) is answered at once, so it
+  // runs only once even when React runs effects twice in development.
+  const initialQuestion = (params.get('q') ?? '').trim();
+  const askedInitial = useRef(false);
+  useEffect(() => {
+    if (askedInitial.current || !initialQuestion) return;
+    askedInitial.current = true;
+    setExchanges([
+      {
+        question: initialQuestion,
+        answer: answerQuestion(initialQuestion, index.data),
+      },
+    ]);
+  }, [initialQuestion, index.data]);
 
   const ask = (question: string) => {
     const text = question.trim();
     if (!text || thinking) return;
-    setMessages((all) => [
-      ...all,
-      { from: 'user', reply: { paragraphs: [text] } },
-    ]);
+    setExchanges((all) => [...all, { question: text, answer: null }]);
     setDraft('');
-    setThinking(true);
     timer.current = window.setTimeout(() => {
-      setMessages((all) => [
-        ...all,
-        { from: 'assistant', reply: scriptedReply(text, catalog) },
-      ]);
-      setThinking(false);
+      const answer = answerQuestion(text, index.data);
+      setExchanges((all) =>
+        all.map((exchange, i) =>
+          i === all.length - 1 ? { ...exchange, answer } : exchange,
+        ),
+      );
     }, REPLY_DELAY_MS);
   };
   const submit = (event: FormEvent) => {
@@ -121,100 +74,165 @@ function Demo() {
   };
 
   return (
-    <div className="ai-layout">
-      <section className="ai-chat" aria-label="AI Assistant chat">
-        <header className="ai-chat-head">
-          <span className="ai-avatar ai-avatar-lg" aria-hidden="true">
-            <Sparkles size={18} />
-          </span>
-          <div>
-            <h2>AI Assistant</h2>
+    <div className="page-content ia-page">
+      <PageHeading
+        title="Insights Assistant"
+        description="Explore what changed, understand why, and ask follow-up questions."
+        badge={
+          <p className="ia-sample-note">
+            <Info size={14} aria-hidden="true" />
+            Preview with sample answers. Numbers are illustrative, not live
+            store data.
+          </p>
+        }
+      />
+      <div className="ia-thread" role="log" aria-live="polite">
+        {exchanges.length === 0 && (
+          <section className="ia-welcome" aria-labelledby="ia-welcome-title">
+            <h2 id="ia-welcome-title">What would you like to understand?</h2>
             <p>
-              Context: {plural(catalog.tables.size, 'table', 'tables')} ·{' '}
-              {plural(catalog.edges.length, 'relationship', 'relationships')} ·
-              metadata only
+              Pick a question or ask your own. Scheduling an answer to run again
+              weekly, monthly or quarterly is coming soon.
             </p>
-          </div>
-          <ul className="td-badge-row ai-chips" aria-label="Preview status">
-            <li className="td-chip td-chip-columns">Scripted answers</li>
-            <li className="td-chip td-chip-columns">Read only</li>
-          </ul>
-        </header>
-        <div className="ai-messages" role="log" aria-live="polite">
-          {messages.map((message, i) => (
-            <div className={`ai-message ai-${message.from}`} key={i}>
-              {message.from === 'assistant' && (
-                <span className="ai-avatar" aria-hidden="true">
-                  <Sparkles size={14} />
-                </span>
-              )}
-              <div className="ai-bubble">
-                {message.reply.paragraphs.map((text) => (
-                  <p key={text}>{text}</p>
-                ))}
-                {message.reply.code && <pre>{message.reply.code}</pre>}
-              </div>
-            </div>
-          ))}
-          {thinking && (
-            <div className="ai-message ai-assistant" role="status">
-              <span className="ai-avatar" aria-hidden="true">
-                <Sparkles size={14} />
-              </span>
-              <div className="ai-bubble ai-thinking">Thinking…</div>
-            </div>
-          )}
-          <div ref={end} />
-        </div>
-        <form className="ai-input-row" onSubmit={submit}>
-          <input
-            type="text"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="Ask about a table or relationship…"
-            aria-label="Ask about a table or relationship"
-          />
-          <button
-            className="button button-primary ai-send"
-            type="submit"
-            aria-label="Send question"
-            disabled={!draft.trim() || thinking}
-          >
-            <Send size={16} aria-hidden="true" />
-          </button>
-        </form>
-        <p className="ai-footnote">
-          Preview only. Replies are scripted from the catalog.
-        </p>
-      </section>
-      <aside className="ai-side">
-        <section className="ai-suggested" aria-labelledby="ai-suggested-title">
-          <h2 id="ai-suggested-title">Suggested questions</h2>
-          <p>Try one of these schema-oriented prompts.</p>
-          <ul>
-            {suggestedQuestions(catalog).map((question) => (
+            <ul aria-label="Suggested questions">
+              {START_QUESTIONS.map((question, i) => (
+                <li key={question}>
+                  <button
+                    type="button"
+                    className={i === 0 ? 'is-featured' : undefined}
+                    onClick={() => ask(question)}
+                  >
+                    {question}
+                    <ArrowRight size={18} aria-hidden="true" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        {exchanges.map((exchange, i) => (
+          <article className="ia-exchange" key={i}>
+            <p className="ia-question">{exchange.question}</p>
+            {exchange.answer ? (
+              <Answer answer={exchange.answer} />
+            ) : (
+              <p className="ia-thinking" role="status">
+                Thinking…
+              </p>
+            )}
+          </article>
+        ))}
+        <div ref={end} />
+      </div>
+      <div className="ia-composer">
+        {exchanges.length > 0 && (
+          <ul className="ia-suggestions" aria-label="Suggested questions">
+            {SUGGESTED_QUESTIONS.map((question) => (
               <li key={question}>
-                <button type="button" onClick={() => ask(question)}>
-                  <span>{question}</span>
-                  <ArrowRight size={16} aria-hidden="true" />
+                <button
+                  type="button"
+                  disabled={thinking}
+                  onClick={() => ask(question)}
+                >
+                  {question}
                 </button>
               </li>
             ))}
           </ul>
+        )}
+        <form className="po-ask" onSubmit={submit}>
+          <input
+            type="text"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Ask about any store, item, date or insight…"
+            aria-label="Ask Insights Assistant"
+          />
+          <button
+            className="td-action td-action-primary"
+            type="submit"
+            disabled={!draft.trim() || thinking}
+          >
+            Ask
+            <Send size={16} aria-hidden="true" />
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Answer({ answer }: { answer: InsightAnswer }) {
+  const { chart } = answer;
+  const max = chart ? Math.max(...chart.rows.map((row) => row.value)) : 0;
+  return (
+    <div className="ia-answer">
+      <p className="ia-route">Routed to · {answer.route.join(' · ')}</p>
+      {answer.summary.map((text) => (
+        <p className="ia-summary" key={text}>
+          {text}
+        </p>
+      ))}
+      {answer.code && <pre className="ia-code">{answer.code}</pre>}
+      {answer.steps && (
+        <section aria-label="How I reached this">
+          <h2 className="ia-label">How I reached this</h2>
+          <ol className="ia-steps">
+            {answer.steps.map((step, i) => (
+              <li key={step}>
+                <span aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                {step}
+              </li>
+            ))}
+          </ol>
         </section>
-        <section className="ai-boundary" aria-labelledby="ai-boundary-title">
-          <ShieldCheck size={18} aria-hidden="true" />
-          <h2 id="ai-boundary-title">Data boundary</h2>
-          <p>
-            <strong>Now:</strong> scripted answers from the catalog files (table
-            names, keys and relationships). No business data, AI model or SQL.
-          </p>
-          <p>
-            <strong>Once built:</strong> an AI model will answer from the same
-            catalog metadata, never from row-level business data.
-          </p>
-        </section>
-      </aside>
+      )}
+      {chart && (
+        <figure className="panel ia-chart">
+          <figcaption className="ia-label">{chart.title}</figcaption>
+          <ul>
+            {chart.rows.map((row) => (
+              <li
+                key={row.label}
+                title={`${row.label}: ${formatValue(row.value, chart.unit)}`}
+              >
+                <span className="ia-chart-label">{row.label}</span>
+                <span className="ia-chart-track" aria-hidden="true">
+                  <span
+                    className="ia-chart-bar"
+                    style={{ width: `${(row.value / max) * 100}%` }}
+                  />
+                </span>
+                <strong className="ia-chart-value">
+                  {formatValue(row.value, chart.unit)}
+                </strong>
+              </li>
+            ))}
+          </ul>
+        </figure>
+      )}
+      {answer.confidence && (
+        <p className="ia-confidence">
+          <span
+            className={`ia-confidence-level is-${answer.confidence.level.toLowerCase()}`}
+          >
+            {answer.confidence.level} confidence
+          </span>
+          {answer.confidence.note}
+        </p>
+      )}
+      {answer.dataUsed && (
+        <div className="ia-data-used">
+          <h2 className="ia-label">Data used</h2>
+          <ul className="td-badge-row">
+            {answer.dataUsed.map((source) => (
+              <li className="td-chip td-chip-columns" key={source}>
+                {source}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

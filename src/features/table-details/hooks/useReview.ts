@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { reviewService } from '../services/reviewService';
 import type { ReviewDraft, TableReview } from '../types/review';
 
@@ -15,6 +20,18 @@ export function useReview(tableId: string) {
     enabled: Boolean(tableId),
     staleTime: Infinity,
     retry: false,
+  });
+}
+
+/** Reviews for many tables at once (e.g. review progress). Shares the cache with `useReview`. */
+export function useReviews(tableIds: string[]) {
+  return useQueries({
+    queries: tableIds.map((tableId) => ({
+      queryKey: reviewKey(tableId),
+      queryFn: () => reviewService.getReview(tableId),
+      staleTime: Infinity,
+      retry: false,
+    })),
   });
 }
 

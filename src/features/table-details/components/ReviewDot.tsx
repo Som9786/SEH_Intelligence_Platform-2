@@ -2,7 +2,7 @@ import { useReview } from '../hooks/useReview';
 import { reviewStatusLabel } from '../utils/reviewStatus';
 
 /**
- * Small status dot for a table in the sidebar: green = Verified, red = Needs Attention,
+ * Small status dot for a table in the table flyout: green = Verified, red = Needs Attention,
  * hollow ring = Not Reviewed. It reads the same cached review as the Table Details page, so a
  * review saved there shows up here immediately.
  */

@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router';
+import { Search, X } from 'lucide-react';
 import { PageHeading } from '../../../shared/components/PageHeading';
+import { tableFilterActions, useTableFilter } from '../state/tableFilterStore';
 import { useReview, useSaveReview } from '../hooks/useReview';
 import { useTable } from '../hooks/useTable';
 import { useTableSequence } from '../hooks/useTableSequence';
 import { DocumentationTab } from '../components/DocumentationTab';
 import { ResourceState } from '../components/ResourceState';
 import { ReviewModal } from '../components/ReviewModal';
+import { BackToDbCatalog } from '../../../shared/components/BackToDbCatalog';
 import { TableActions } from '../components/TableActions';
+import { TABLE_FLYOUT_ID } from '../components/TableFlyout';
 import { TableHeaderCard } from '../components/TableHeaderCard';
 import { TableSequenceNav } from '../components/TableSequenceNav';
 import { ColumnsCard } from '../components/ColumnsCard';
@@ -26,6 +30,9 @@ const tabLabels: Record<Tab, string> = {
 
 export function TableDetailsPage() {
   const [params, setParams] = useSearchParams();
+  const { flyoutOpen, query } = useTableFilter();
+  // The flyout's filter also narrows Previous / Next, so show it here while the flyout is closed.
+  const filter = query.trim();
   const id = params.get('table') ?? '';
   // The tab lives in the URL, so a copied link opens the same view.
   const tab: Tab =
@@ -100,30 +107,60 @@ export function TableDetailsPage() {
   return (
     <div className="page-content">
       <PageHeading
-        title="Table Details"
+        title="DB Tables"
         description="Explore each table's columns, keys, relationships and documentation."
         badge={
-          table.data && (
-            <TableActions
-              table={table.data}
-              showingAi={tab === 'Documentation'}
-              hasReview={Boolean(review.data)}
-              onReview={() => {
-                saveReview.reset();
-                setReviewFor(id);
-              }}
-              onToggleAi={() =>
-                setTab(tab === 'Documentation' ? 'Overview' : 'Documentation')
-              }
-            />
-          )
+          <div className="td-actions">
+            <div className={'td-browse' + (filter ? ' is-filtered' : '')}>
+              <button
+                type="button"
+                className="td-action"
+                aria-expanded={flyoutOpen}
+                aria-controls={TABLE_FLYOUT_ID}
+                aria-keyshortcuts="/"
+                title="Search tables (press /)"
+                onClick={() => tableFilterActions.setFlyoutOpen(!flyoutOpen)}
+              >
+                <Search size={16} aria-hidden="true" />
+                Search tables
+                {filter && (
+                  <span className="td-filter-chip">
+                    <span className="td-sr-only">, filtered by </span>
+                    {filter}
+                  </span>
+                )}
+              </button>
+              {filter && (
+                <button
+                  type="button"
+                  className="td-filter-clear"
+                  aria-label={`Clear table filter "${filter}"`}
+                  title="Clear filter"
+                  onClick={() => tableFilterActions.setQuery('')}
+                >
+                  <X size={14} aria-hidden="true" />
+                </button>
+              )}
+            </div>
+            {table.data && (
+              <TableActions
+                table={table.data}
+                hasReview={Boolean(review.data)}
+                onReview={() => {
+                  saveReview.reset();
+                  setReviewFor(id);
+                }}
+              />
+            )}
+            <BackToDbCatalog />
+          </div>
         }
       />
       {!id ? (
         <section className="panel table-detail-panel">
           <ResourceState
             kind="empty"
-            title="Select a table from the sidebar, or search for one above."
+            title="Use Search tables (or press /) to pick a table."
           />
         </section>
       ) : table.isPending ? (
@@ -198,11 +235,7 @@ export function TableDetailsPage() {
           tableId={id}
           review={review.data ?? null}
           saving={saveReview.isPending}
-          error={
-            saveReview.isError
-              ? 'The review could not be saved.'
-              : null
-          }
+          error={saveReview.isError ? 'The review could not be saved.' : null}
           onSave={(draft) =>
             saveReview.mutate(draft, { onSuccess: () => setReviewFor(null) })
           }

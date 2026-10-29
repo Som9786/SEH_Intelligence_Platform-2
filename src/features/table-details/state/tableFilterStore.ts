@@ -1,27 +1,31 @@
 import { useSyncExternalStore } from 'react';
 import type { GroupMode } from '../utils/groupTablesByArea';
 
-interface SidebarFilterState {
+interface TableFilterState {
   query: string;
   groupMode: GroupMode;
   expandedAreas: ReadonlySet<string>;
+  /** The table filter flyout is showing. */
+  flyoutOpen: boolean;
 }
 
-const initial: SidebarFilterState = {
+const initial: TableFilterState = {
   query: '',
   groupMode: 'all',
   expandedAreas: new Set(),
+  flyoutOpen: false,
 };
 let state = initial;
 const listeners = new Set<() => void>();
-const update = (patch: Partial<SidebarFilterState>) => {
+const update = (patch: Partial<TableFilterState>) => {
   state = { ...state, ...patch };
   listeners.forEach((listener) => listener());
 };
 
-export const sidebarFilterActions = {
+export const tableFilterActions = {
   setQuery: (query: string) => update({ query: query.slice(0, 200) }),
   setGroupMode: (groupMode: GroupMode) => update({ groupMode }),
+  setFlyoutOpen: (flyoutOpen: boolean) => update({ flyoutOpen }),
   toggleArea: (key: string) => {
     const next = new Set(state.expandedAreas);
     if (next.has(key)) next.delete(key);
@@ -34,7 +38,7 @@ export const sidebarFilterActions = {
   },
 };
 
-export function useSidebarFilter() {
+export function useTableFilter() {
   return useSyncExternalStore(
     (listener) => {
       listeners.add(listener);

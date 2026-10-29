@@ -1,6 +1,7 @@
 import { ChevronDown, List, Network, Search } from 'lucide-react';
 import { Fragment, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
+import { BackToDbCatalog } from '../../../shared/components/BackToDbCatalog';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import { RelationshipColumns } from '../../table-details/components/RelationshipColumns';
 import { ErExplorer } from '../components/ErExplorer';
@@ -80,11 +81,11 @@ export function RelationshipsPage() {
         title="Relationships"
         description="How the tables in this catalog are connected."
         badge={
-          // One button: it offers the view you are not on, like Documentation / Schema on Table Details.
+          // One view button that offers the view you are not on, then Back.
           <div className="td-actions">
             <button
               type="button"
-              className="td-action td-action-primary"
+              className="td-action"
               onClick={() => show(mode === 'diagram' ? 'list' : 'diagram')}
             >
               {mode === 'diagram' ? (
@@ -94,6 +95,7 @@ export function RelationshipsPage() {
               )}
               {mode === 'diagram' ? 'All relationships' : 'ER diagram'}
             </button>
+            <BackToDbCatalog />
           </div>
         }
       />

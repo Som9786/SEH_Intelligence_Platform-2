@@ -11,13 +11,21 @@ import {
 import { useAuth } from '../../features/auth/useAuth';
 import { BrandLogo } from '../../shared/components/BrandLogo';
 import { useTheme } from '../../shared/hooks/useTheme';
-import { TopbarTableSearch } from '../../features/table-details/components/TopbarTableSearch';
 import { NavLink, Outlet, useLocation } from 'react-router';
-import { routes } from '../router/routes';
-import { SidebarTableNav } from '../../features/table-details/components/SidebarTableNav';
+import { navSections, routes } from '../router/routes';
+import { TableFlyout } from '../../features/table-details/components/TableFlyout';
+import {
+  tableFilterActions,
+  useTableFilter,
+} from '../../features/table-details/state/tableFilterStore';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCatalog } from '../../shared/hooks/useCatalog';
 import { CatalogMissingState } from '../../shared/components/CatalogMissingState';
+
+const isTyping = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable ||
+    ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
 export function AppShell() {
   const { theme, toggle: toggleTheme } = useTheme();
@@ -27,13 +35,37 @@ export function AppShell() {
   const { missing: catalogMissing } = useCatalog();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { flyoutOpen } = useTableFilter();
+  const closeTables = () => tableFilterActions.setFlyoutOpen(false);
   const location = useLocation();
   useEffect(() => {
     setMobileOpen(false);
+    tableFilterActions.setFlyoutOpen(false);
   }, [location.pathname]);
-  const current =
-    routes.find((route) => route.path === location.pathname)?.label ??
-    'Overview';
+  // Press "/" anywhere to open the table flyout with its search ready.
+  useEffect(() => {
+    if (catalogMissing) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (
+        event.key !== '/' ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        isTyping(event.target)
+      )
+        return;
+      event.preventDefault();
+      tableFilterActions.setFlyoutOpen(true);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [catalogMissing]);
+  const currentRoute = routes.find((route) => route.path === location.pathname);
+  const current = currentRoute?.label ?? 'DB Catalog';
+  // A page opened from DB Catalog keeps DB Catalog selected and shows it in the breadcrumb.
+  const parentPath =
+    currentRoute && 'parent' in currentRoute ? currentRoute.parent : null;
+  const parent = routes.find((route) => route.path === parentPath);
 
   return (
     <div className={'app-shell' + (collapsed ? ' is-collapsed' : '')}>
@@ -53,7 +85,6 @@ export function AppShell() {
           <BrandLogo size={40} />
           <div className="brand-copy">
             <strong>SEH Intelligence Platform</strong>
-            <small>Database workspace</small>
           </div>
           <button
             className="mobile-close icon-button"
@@ -70,32 +101,52 @@ export function AppShell() {
           <span />
         </div>
         <nav className="nav-list" aria-label="Main">
-          {routes
-            .filter((route) => route.inSidebar)
-            .map((route) => {
-              const { path, label, icon: Icon } = route;
-              return (
-                <NavLink
-                  key={path}
-                  to={path}
-                  end={path === '/'}
-                  title={collapsed ? label : undefined}
-                  className={({ isActive }) =>
-                    'nav-link' + (isActive ? ' active' : '')
-                  }
-                >
-                  <Icon size={18} aria-hidden="true" />
-                  <span className="nav-text">{label}</span>
-                  {'badge' in route && (
-                    <span className="nav-soon">{route.badge}</span>
-                  )}
-                </NavLink>
-              );
-            })}
+          {navSections.map((section) => (
+            <div
+              className="nav-section"
+              key={section.key}
+              role="group"
+              aria-labelledby={`nav-section-${section.key}`}
+            >
+              <p
+                className="nav-section-label"
+                id={`nav-section-${section.key}`}
+              >
+                {section.label}
+              </p>
+              {routes
+                .filter((route) => route.section === section.key)
+                .map((route) => {
+                  const { path, label, icon: Icon } = route;
+                  return (
+                    <NavLink
+                      key={path}
+                      to={path}
+                      end
+                      title={collapsed ? label : undefined}
+                      className={({ isActive }) =>
+                        'nav-link' +
+                        ('badge' in route ? ' is-soon' : '') +
+                        (isActive || path === parentPath ? ' active' : '')
+                      }
+                    >
+                      {'number' in route ? (
+                        <span className="nav-number" aria-hidden="true">
+                          {route.number}
+                        </span>
+                      ) : (
+                        <Icon size={20} aria-hidden="true" />
+                      )}
+                      <span className="nav-text">{label}</span>
+                      {'badge' in route && (
+                        <span className="nav-soon">{route.badge}</span>
+                      )}
+                    </NavLink>
+                  );
+                })}
+            </div>
+          ))}
         </nav>
-        {!catalogMissing && (
-          <SidebarTableNav onSelect={() => setMobileOpen(false)} />
-        )}
         <div className="sidebar-bottom">
           <button
             className="collapse-button"
@@ -114,6 +165,18 @@ export function AppShell() {
           </button>
         </div>
       </aside>
+      {flyoutOpen && !catalogMissing && (
+        <>
+          <button
+            className="table-flyout-scrim"
+            type="button"
+            aria-label="Close table filter"
+            tabIndex={-1}
+            onClick={closeTables}
+          />
+          <TableFlyout onClose={closeTables} />
+        </>
+      )}
       <div className="main-column">
         <header className="topbar">
           <button
@@ -127,11 +190,15 @@ export function AppShell() {
           <div className="breadcrumb" aria-label="Breadcrumb">
             <span>Workspace</span>
             <span aria-hidden="true">/</span>
+            {parent && (
+              <>
+                <NavLink to={parent.path}>{parent.label}</NavLink>
+                <span aria-hidden="true">/</span>
+              </>
+            )}
             <strong>{current}</strong>
           </div>
-          {location.pathname === '/table-details' && !catalogMissing && (
-            <TopbarTableSearch />
-          )}
+
           <button
             className="theme-toggle"
             type="button"
