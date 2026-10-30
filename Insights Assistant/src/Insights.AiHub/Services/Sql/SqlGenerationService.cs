@@ -2,7 +2,6 @@ using System.Text.Json;
 using Insights.AiHub.Models;
 using Insights.AiHub.Services.Llm;
 using Insights.AiHub.Services.KnowledgeModel;
-using OpenAI.Chat;
 
 namespace Insights.AiHub.Services.Sql;
 
@@ -10,7 +9,7 @@ namespace Insights.AiHub.Services.Sql;
 /// (PostgreSQL or SQL Server, from the context), written from the part of the knowledge model the question is about.
 /// Earlier turns of the conversation go along as chat history, and a query the database rejected goes back with its error
 /// so the model can correct it. A plain question (no history, no correction) asked again with the same knowledge model
-/// context is answered from the cache without calling OpenAI; the context names the dialect, so switching databases
+/// context is answered from the cache without calling the model; the context names the dialect, so switching databases
 /// writes queries afresh.
 public sealed class SqlGenerationService(
     KnowledgeModelClient knowledgeModel, LlmClient llm, ResponseCache<SqlResponse> cache, ILogger<SqlGenerationService> logger)
@@ -33,32 +32,28 @@ public sealed class SqlGenerationService(
         var cacheKey = history.Count == 0 && !fixing ? ResponseCache<SqlResponse>.KeyOf(context, ResponseCache<SqlResponse>.Normalize(question)) : null;
         if (cacheKey is not null && cache.Get(cacheKey) is { } cached)
         {
-            logger.LogInformation("SQL: reusing the query written earlier for this question (no OpenAI call)");
+            logger.LogInformation("SQL: reusing the query written earlier for this question (no model call)");
             return cached with { Usage = null, Cached = true };
         }
 
         // Earlier turns come from the caller, so they're quoted as context in the user's message rather than passed off
         // as the model's own past replies, which it would trust and repeat.
-        List<ChatMessage> messages = [new SystemChatMessage(SqlPrompt.System(context))];
-        messages.Add(new UserChatMessage(history.Count == 0 ? question : WithEarlier(history, question)));
+        List<LlmMessage> messages = [LlmMessage.System(SqlPrompt.System(context))];
+        messages.Add(LlmMessage.User(history.Count == 0 ? question : WithEarlier(history, question)));
         if (fixing)
         {
-            messages.Add(new AssistantChatMessage(Reply(true, request.FailedSql!, "")));
-            messages.Add(new UserChatMessage($"""
+            messages.Add(LlmMessage.Assistant(Reply(true, request.FailedSql!, "")));
+            messages.Add(LlmMessage.User($"""
                 {dialect} rejected that query with this error:
                 {request.Error}
 
                 Write a corrected query for the same question, following the same rules.
                 """));
         }
-        var options = new ChatCompletionOptions
-        {
-            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-                "sql_query", BinaryData.FromString(SqlPrompt.ResponseSchema), jsonSchemaIsStrict: true),
-        };
+        var schema = new LlmJsonSchema("sql_query", SqlPrompt.ResponseSchema);
 
         logger.LogInformation("SQL step 2/2: asking the model for a {Dialect} query (knowledge model context {Chars} characters)", dialect, context.Length);
-        var reply = await llm.CompleteAsync(messages, options, ct);
+        var reply = await llm.CompleteAsync(messages, schema, ct);
         var response = JsonSerializer.Deserialize<SqlResponse>(reply.Text, JsonSerializerOptions.Web) is { } r
             ? r with { Usage = reply.Usage, KnowledgeModel = used } : null;
         if (response is { Answerable: true })

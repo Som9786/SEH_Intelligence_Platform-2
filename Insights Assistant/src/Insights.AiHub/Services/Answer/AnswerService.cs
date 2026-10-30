@@ -3,12 +3,11 @@ using Insights.AiHub.Configuration;
 using Insights.AiHub.Models;
 using Insights.AiHub.Services.Llm;
 using Microsoft.Extensions.Options;
-using OpenAI.Chat;
 
 namespace Insights.AiHub.Services.Answer;
 
 /// Question + the analytics service's query results -> a plain-English answer. The same question, query and results
-/// asked again are answered from the cache without calling OpenAI.
+/// asked again are answered from the cache without calling the model.
 public sealed class AnswerService(
     LlmClient llm, ResponseCache<AnswerResponse> cache, IOptions<AnswerOptions> options, ILogger<AnswerService> logger)
 {
@@ -20,7 +19,7 @@ public sealed class AnswerService(
         var cacheKey = ResponseCache<AnswerResponse>.KeyOf(ResponseCache<AnswerResponse>.Normalize(request.Question), request.Sql, results);
         if (cache.Get(cacheKey) is { } cached)
         {
-            logger.LogInformation("Answer: reusing the answer given earlier for the same question and results (no OpenAI call)");
+            logger.LogInformation("Answer: reusing the answer given earlier for the same question and results (no model call)");
             return cached with { Usage = null, Cached = true };
         }
         if (results.Length > max)
@@ -29,10 +28,10 @@ public sealed class AnswerService(
             results = results[..max] + "\n[results truncated]";
         }
 
-        List<ChatMessage> messages =
+        List<LlmMessage> messages =
         [
-            new SystemChatMessage(AnswerPrompt.System),
-            new UserChatMessage($"""
+            LlmMessage.System(AnswerPrompt.System),
+            LlmMessage.User($"""
                 Question: {request.Question}
 
                 Query used: {request.Sql ?? "(not provided)"}

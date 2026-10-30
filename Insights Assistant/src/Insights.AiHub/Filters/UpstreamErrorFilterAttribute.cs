@@ -1,4 +1,6 @@
 using System.ClientModel;
+using Amazon.BedrockRuntime;
+using Amazon.BedrockRuntime.Model;
 using Insights.AiHub.Services.Llm;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -6,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace Insights.AiHub.Filters;
 
-/// Maps configuration, OpenAI and analytics-service failures to readable problem responses.
+/// Maps configuration, OpenAI, Bedrock and analytics-service failures to readable problem responses.
 public sealed class UpstreamErrorFilterAttribute : ExceptionFilterAttribute
 {
     public override void OnException(ExceptionContext context)
@@ -22,13 +24,27 @@ public sealed class UpstreamErrorFilterAttribute : ExceptionFilterAttribute
             ClientResultException { Status: 429 } e => (StatusCodes.Status502BadGateway, "OpenAI rate limit or quota reached",
                 $"OpenAI refused the request: too many requests, or the account is out of credit. Try again shortly, or check billing. {e.Message}"),
             ClientResultException e => (StatusCodes.Status502BadGateway, $"OpenAI error ({e.Status})", e.Message),
-            LlmReplyException e => (StatusCodes.Status502BadGateway, "No usable answer from OpenAI", e.Message),
-            BudgetExceededException e => (StatusCodes.Status429TooManyRequests, "Daily OpenAI budget reached", e.Message),
+            AccessDeniedException e => (StatusCodes.Status502BadGateway, "Bedrock refused access",
+                "The Bedrock API key or AWS credentials are wrong or expired, or they aren't allowed to call this model in this region. " +
+                "Check Bedrock:ApiKey (or AccessKeyId/SecretAccessKey), Bedrock:Region and the model access in the Bedrock console, " +
+                $"then restart the AI Hub. {e.Message}"),
+            ThrottlingException or ServiceQuotaExceededException => (StatusCodes.Status502BadGateway, "Bedrock rate limit or quota reached",
+                $"Bedrock refused the request: too many requests or tokens. Try again shortly. {context.Exception.Message}"),
+            ValidationException e => (StatusCodes.Status502BadGateway, "Bedrock rejected the request",
+                $"Check Bedrock:Model (a model or inference profile ID that supports JSON schema output) and Bedrock:Region. {e.Message}"),
+            AmazonBedrockRuntimeException e => (StatusCodes.Status502BadGateway, $"Bedrock error ({(int)e.StatusCode})", e.Message),
+            // Raised before any request is sent, most often because no credentials were found.
+            Amazon.Runtime.AmazonClientException e => (StatusCodes.Status502BadGateway, "Bedrock credentials not found or not usable",
+                "Set Bedrock:ApiKey (a Bedrock API key) with " +
+                "`dotnet user-secrets set Bedrock:ApiKey <key> --project src/Insights.AiHub`, or Bedrock:AccessKeyId and " +
+                $"Bedrock:SecretAccessKey, or the AWS_BEARER_TOKEN_BEDROCK environment variable, then restart the AI Hub. {e.Message}"),
+            LlmReplyException e => (StatusCodes.Status502BadGateway, "No usable answer from the model", e.Message),
+            BudgetExceededException e => (StatusCodes.Status429TooManyRequests, "Daily model budget reached", e.Message),
             HttpRequestException e => (StatusCodes.Status503ServiceUnavailable, "Analytics service unavailable",
                 $"Could not load the knowledge model context from the analytics service: {e.Message}"),
-            // The OpenAI client's network timeout surfaces as TaskCanceledException; a caller hanging up is not one.
+            // The model client's network timeout surfaces as TaskCanceledException; a caller hanging up is not one.
             TaskCanceledException when !context.HttpContext.RequestAborted.IsCancellationRequested =>
-                (StatusCodes.Status504GatewayTimeout, "OpenAI timeout", "The model did not answer in time (OpenAI:TimeoutSeconds)."),
+                (StatusCodes.Status504GatewayTimeout, "Model timeout", "The model did not answer in time (OpenAI:TimeoutSeconds or Bedrock:TimeoutSeconds)."),
             _ => null,
         };
         if (problem is not { } p)

@@ -12,7 +12,7 @@ Lets people ask questions about point-of-sale (POS) basket data in plain English
 
 ## Quick start
 
-**Prerequisites:** the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0), PostgreSQL with the `pos_basket` database loaded (see [Local-only files](#local-only-files-temp)), Neo4j 5 or later, and an OpenAI API key.
+**Prerequisites:** the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0), PostgreSQL with the `pos_basket` database loaded (see [Local-only files](#local-only-files-temp)), Neo4j 5 or later, and an OpenAI API key or Amazon Bedrock access (see [Choosing OpenAI or Bedrock](#choosing-openai-or-bedrock)).
 
 1. **Start the databases.** PostgreSQL on `localhost:5432`, and Neo4j. On the team's machines Neo4j runs in **Neo4j Desktop 2** as the local instance `salespoc`: start it with ▶ and wait for **RUNNING**.
 2. **Create the `knowledge-model` database** once. In Neo4j Desktop open **Query**, connect to `salespoc`, select the `system` database and run ``CREATE DATABASE `knowledge-model` IF NOT EXISTS`` (the backticks are needed because of the dash). (Neo4j Community has only one database: set `Neo4j:Database` to `neo4j` instead.)
@@ -23,6 +23,11 @@ Lets people ask questions about point-of-sale (POS) basket data in plain English
    dotnet user-secrets set "OpenAI:ApiKey"      "<openai key>"        --project src/Insights.AiHub
    ```
    Environment variables also work: `Neo4j__Password`, `PosBasket__Password`, `OpenAI__ApiKey` or `OPENAI_API_KEY`.
+
+   To use Amazon Bedrock instead of OpenAI, set `Llm:Provider` to `Bedrock` in [src/Insights.AiHub/appsettings.json](src/Insights.AiHub/appsettings.json) and store the Bedrock API key:
+   ```powershell
+   dotnet user-secrets set "Bedrock:ApiKey"     "<bedrock api key>"   --project src/Insights.AiHub
+   ```
 4. **Run both services**, each in its own terminal:
    ```powershell
    dotnet run --project src/Insights.Analytics   # http://localhost:5100
@@ -273,6 +278,7 @@ Settings are in each project's `appsettings.json`; `appsettings.Development.json
 | `PosBasket:SqlServer:Schema` | Analytics | `dbo` | The schema the knowledge model's tables are in on SQL Server: `public.pos_basket_line` is read as `dbo.pos_basket_line`. |
 | `Query:MaxRows` / `TimeoutSeconds` | Analytics | `1000` / `30` | Limits for `/query`; the timeout is PostgreSQL's `statement_timeout`, or SQL Server's command timeout |
 | `AiHub:BaseUrl` / `TimeoutSeconds` | Analytics | `http://localhost:5200` / `180` | Where `/ai/*` and `/ask` go, and how long to wait for each call |
+| `Llm:Provider` | AI Hub | `Bedrock` | `OpenAI` or `Bedrock`: which section below answers. Read on every call, so no restart is needed. |
 | `OpenAI:Model` | AI Hub | *(empty)* | The model to use. When empty, `FallbackModel` is used. |
 | `OpenAI:FallbackModel` | AI Hub | `gpt-5` | Also used if `Model` returns "model not found" (404) |
 | `OpenAI:TimeoutSeconds` | AI Hub | `150` | How long one model call may take; keep it under `AiHub:TimeoutSeconds` |
@@ -280,6 +286,11 @@ Settings are in each project's `appsettings.json`; `appsettings.Development.json
 | `OpenAI:DailyBudgetUsd` | AI Hub | `5` | Questions are refused (429) once today's OpenAI cost reaches this; `0` means no limit |
 | `Cache:Enabled` / `MaxEntries` | AI Hub | `true` / `500` | Reuse the query for a repeated question while its knowledge model context is the same, and the answer for the same question, query and results, without calling OpenAI. Follow-ups and corrections are never cached. |
 | `OpenAI:Prices` | AI Hub | gpt-5, gpt-5-mini, gpt-5-nano, gpt-4.1, gpt-4o families | US dollars per million input, cached input and output tokens, used to count cost (see [OpenAI cost](#openai-cost)) |
+| `Bedrock:Region` | AI Hub | `us-east-1` | The AWS region the model is enabled in |
+| `Bedrock:ApiKey` / `AccessKeyId` / `SecretAccessKey` / `SessionToken` | AI Hub | *(empty)* | A Bedrock API key, or an IAM key pair. All empty: `AWS_BEARER_TOKEN_BEDROCK`, then the default AWS credentials (`AWS_PROFILE`, `~/.aws`, an instance role) |
+| `Bedrock:Model` / `FallbackModel` | AI Hub | `us.anthropic.claude-sonnet-5` / `us.anthropic.claude-haiku-4-5-20251001-v1:0` (the two our AWS account allows) | A model ID or inference profile ID that supports JSON schema output. The fallback is also used if `Model` isn't found or isn't enabled |
+| `Bedrock:TimeoutSeconds` / `MaxTokens` / `Effort` | AI Hub | `150` / `8192` / `low` | Time limit, longest reply, and effort (`low` to `max`, empty for the model's default; dropped for a model that rejects it) |
+| `Bedrock:DailyBudgetUsd` / `Prices` | AI Hub | `5` / Claude Sonnet 5 and Haiku 4.5 | As for OpenAI; a price key matches the model ID with or without the `us.` prefix. Check them against [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
 | `Analytics:BaseUrl` | AI Hub | `http://localhost:5100` | Where AI Hub gets each question's knowledge model context |
 | `Answer:MaxResultChars` | AI Hub | `50000` | Longer query results are cut before they're sent to OpenAI |
 | `DebugLog:*` | Both | | See [Debug log](#debug-log) |
@@ -294,6 +305,12 @@ Both services log each step of what they do, at Information level:
 - **Data:** whether the data's database (PostgreSQL or SQL Server) answers, and the dates it covers.
 - **Calls between the services:** every call from Analytics to AI Hub and back, with status and time.
 - **OpenAI:** every call, with model, time, tokens, finish reason and cost.
+
+### Choosing OpenAI or Bedrock
+
+AI Hub calls one model service, chosen by `Llm:Provider` in its `appsettings.json`: `OpenAI` or `Bedrock` (the current setting). Everything else stays the same: the prompts, the JSON schemas the replies follow, the cache, the cost line and the daily budget. The budget and prices are the active provider's (`OpenAI:*` or `Bedrock:*`), and the running total in `App_Data/openai-usage.json` counts both.
+
+Bedrock calls go to the [Converse API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) with structured output, so `Bedrock:Model` must be a model that supports a JSON schema response (recent Anthropic Claude models do). Enable the model in the Bedrock console for `Bedrock:Region` first, and copy its model ID or inference profile ID from there.
 
 ### OpenAI cost
 
@@ -364,7 +381,7 @@ Both services follow the same layout: thin controllers, logic in `Services/`, on
 | `Services/Answer/` | `AnswerService` and `AnswerPrompt` (rows → English) |
 | `Services/Guide/` | `GuideService` and `GuidePrompt` (question + database catalog context → answer and example query, for DB Guide `/guide`) |
 | `Services/Knowledge model/` | `KnowledgeModelClient` (gets each question's context from Analytics `/context`) |
-| `Services/Llm/` | `LlmClient` (OpenAI chat with model fallback), `UsageTracker` (cost and daily budget), `ResponseCache` |
+| `Services/Llm/` | `LlmClient` (passes each call to `OpenAIChat` or `BedrockChat` by `Llm:Provider`; each applies its model fallback), `UsageTracker` (cost and daily budget), `ResponseCache` |
 | `Filters/` | `UpstreamErrorFilter`: missing configuration, OpenAI and Analytics errors as 500, 502 and 503 |
 | `Models/`, `Configuration/`, `Extensions/` | Request and response records, options classes, `AddAiHub()`. No CORS: only Analytics calls AI Hub, server to server. |
 
@@ -418,9 +435,12 @@ Open the **Debug log** card or the log files first: failed steps show their real
 | The AI uses the wrong column or misses a rule | Check **Knowledge model used** under the answer. If the right concept or metric isn't there, add the question's word to its `Synonyms`; if a rule is missing, add the concept or metric to its `AppliesTo`. |
 | 400 "Query rejected" | The SQL guard refused the query; the message says why. The AI is told the reason and corrects its query once. |
 | 400 "Query took too long" | The database cancelled it after `Query:TimeoutSeconds`. Narrow the question, or add an index for it. |
-| 429 "Daily OpenAI budget reached" | Today's OpenAI cost reached `OpenAI:DailyBudgetUsd`. Raise it in the AI Hub's `appsettings.json` (no restart needed) or wait until tomorrow. |
+| 429 "Daily model budget reached" | Today's cost reached `OpenAI:DailyBudgetUsd` (or `Bedrock:DailyBudgetUsd`). Raise it in the AI Hub's `appsettings.json` (no restart needed) or wait until tomorrow. |
 | `/ai/*` or `/ask` return 503 "AI Hub unavailable" | AI Hub isn't running, or `AiHub:BaseUrl` is wrong. |
 | `/ai/sql` returns 503 "Analytics service unavailable" | AI Hub can't reach Analytics `/context`: Analytics isn't running, `Analytics:BaseUrl` is wrong, or Neo4j is down (the detail says which). |
+| 502 "Bedrock refused access" | The Bedrock API key or AWS credentials are wrong or expired, or aren't allowed to call `Bedrock:Model` in `Bedrock:Region`. Check them and the model access in the Bedrock console. |
+| 502 "Bedrock credentials not found or not usable" | `Llm:Provider` is `Bedrock` but no credentials were found. Set `Bedrock:ApiKey` with user-secrets for AI Hub, or `AWS_BEARER_TOKEN_BEDROCK`. |
+| 502 "Bedrock rejected the request" | Usually a wrong `Bedrock:Model`, or a model without JSON schema output. |
 | 502 "OpenAI rejected the API key" | The OpenAI key is wrong or revoked. Set a valid one with `dotnet user-secrets set OpenAI:ApiKey <key> --project src/Insights.AiHub` and restart AI Hub. |
 | Configuration error: OpenAI API key is not configured | Set `OpenAI:ApiKey` with user-secrets for AI Hub, or `OPENAI_API_KEY`. |
 

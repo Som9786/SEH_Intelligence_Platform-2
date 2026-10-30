@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Insights.AiHub.Models;
 using Insights.AiHub.Services.Llm;
-using OpenAI.Chat;
 
 namespace Insights.AiHub.Services.Routing;
 
@@ -24,27 +23,23 @@ public sealed class IntentService(LlmClient llm, ServiceProfiles profiles, Respo
             : null;
         if (cacheKey is not null && cache.Get(cacheKey) is { } cached)
         {
-            logger.LogInformation("Intent: reusing the intent given earlier for \"{Question}\": {Intent} (no OpenAI call)", request.Question, cached.Intent);
+            logger.LogInformation("Intent: reusing the intent given earlier for \"{Question}\": {Intent} (no model call)", request.Question, cached.Intent);
             return cached with { Usage = null, Cached = true };
         }
 
         var earlier = history.Count == 0
             ? ""
             : "Earlier questions, oldest first:\n" + string.Join('\n', history.Select(t => $"- [{t.Intent ?? "unknown"}] {t.Question}")) + "\n\nLatest question:\n";
-        List<ChatMessage> messages =
+        List<LlmMessage> messages =
         [
-            new SystemChatMessage(IntentPrompt.System(analytics, dbGuide)),
-            new UserChatMessage(earlier + request.Question),
+            LlmMessage.System(IntentPrompt.System(analytics, dbGuide)),
+            LlmMessage.User(earlier + request.Question),
         ];
-        var options = new ChatCompletionOptions
-        {
-            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-                "question_intent", BinaryData.FromString(IntentPrompt.ResponseSchema), jsonSchemaIsStrict: true),
-        };
+        var schema = new LlmJsonSchema("question_intent", IntentPrompt.ResponseSchema);
 
         logger.LogInformation("Intent: classifying \"{Question}\"{History}", request.Question,
             history.Count > 0 ? $" with {history.Count} earlier questions" : "");
-        var reply = await llm.CompleteAsync(messages, options, ct);
+        var reply = await llm.CompleteAsync(messages, schema, ct);
         var response = JsonSerializer.Deserialize<IntentResponse>(reply.Text, JsonSerializerOptions.Web) is { } r
             ? r with { Usage = reply.Usage }
             : throw new LlmReplyException("The model's intent could not be read.");

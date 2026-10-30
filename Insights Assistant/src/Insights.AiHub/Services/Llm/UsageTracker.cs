@@ -5,10 +5,11 @@ using Microsoft.Extensions.Options;
 
 namespace Insights.AiHub.Services.Llm;
 
-/// Prices each OpenAI call from the tokens in its reply and keeps a running total, and today's total, in
-/// App_Data/openai-usage.json, so they survive restarts. It counts only this AI Hub's calls, not other uses of the same
-/// API key. Delete the file to start counting again.
-public sealed class UsageTracker(IOptionsMonitor<OpenAIOptions> options, IHostEnvironment env, ILogger<UsageTracker> logger)
+/// Prices each model call (OpenAI or Bedrock) from the tokens in its reply and keeps a running total, and today's total, in
+/// App_Data/openai-usage.json, so they survive restarts. The budget and prices are the active provider's (Llm:Provider).
+/// It counts only this AI Hub's calls, not other uses of the same key. Delete the file to start counting again.
+public sealed class UsageTracker(IOptionsMonitor<LlmOptions> llm, IOptionsMonitor<OpenAIOptions> openAI, IOptionsMonitor<BedrockOptions> bedrock,
+    IHostEnvironment env, ILogger<UsageTracker> logger)
 {
     static readonly JsonSerializerOptions FileJson = new(JsonSerializerOptions.Web) { WriteIndented = true };
 
@@ -18,19 +19,24 @@ public sealed class UsageTracker(IOptionsMonitor<OpenAIOptions> options, IHostEn
 
     static string Today => DateTime.Now.ToString("yyyy-MM-dd");
 
-    /// Throws BudgetExceededException when today's cost has reached OpenAI:DailyBudgetUsd. Called before each model call;
-    /// the call that crosses the limit still completes, so a day can end slightly over it.
+    /// The active provider's appsettings section and settings.
+    (string Section, LlmProviderOptions Options) Active => llm.CurrentValue.UsesBedrock
+        ? (BedrockOptions.SectionName, bedrock.CurrentValue) : (OpenAIOptions.SectionName, openAI.CurrentValue);
+
+    /// Throws BudgetExceededException when today's cost has reached the active provider's DailyBudgetUsd. Called before each
+    /// model call; the call that crosses the limit still completes, so a day can end slightly over it.
     public void EnsureWithinBudget()
     {
-        var budget = options.CurrentValue.DailyBudgetUsd;
+        var (section, active) = Active;
+        var budget = active.DailyBudgetUsd;
         if (budget <= 0)
             return;
         var spent = Totals().TodayCostUsd;
         if (spent >= budget)
         {
-            logger.LogWarning("OpenAI: daily budget reached (${Spent:0.00} of ${Budget:0.00}); refusing the call", spent, budget);
+            logger.LogWarning("{Provider}: daily budget reached (${Spent:0.00} of ${Budget:0.00}); refusing the call", section, spent, budget);
             throw new BudgetExceededException(
-                $"Today's OpenAI cost (${spent:0.00}) has reached the daily budget of ${budget:0.00} (OpenAI:DailyBudgetUsd). " +
+                $"Today's model cost (${spent:0.00}) has reached the daily budget of ${budget:0.00} ({section}:DailyBudgetUsd). " +
                 "Questions work again tomorrow, or raise the budget in the AI Hub's appsettings.json.");
         }
     }
@@ -43,7 +49,7 @@ public sealed class UsageTracker(IOptionsMonitor<OpenAIOptions> options, IHostEn
             cost = ((inputTokens - cachedInputTokens) * price.InputPerMillion + cachedInputTokens * price.CachedInputPerMillion
                 + outputTokens * price.OutputPerMillion) / 1_000_000m;
         else
-            logger.LogWarning("OpenAI: no price for model {Model} in OpenAI:Prices, so this call is counted without a cost", model);
+            logger.LogWarning("No price for model {Model} in {Section}:Prices, so this call is counted without a cost", model, Active.Section);
 
         var usage = new LlmUsage(model, inputTokens, cachedInputTokens, outputTokens, reasoningTokens, cost);
         UsageTotals t;
@@ -61,7 +67,7 @@ public sealed class UsageTracker(IOptionsMonitor<OpenAIOptions> options, IHostEn
             };
             Save(t);
         }
-        logger.LogInformation("OpenAI: this call cost {Cost}; today {Today}, {Total} over {Calls} calls since {Since:d}",
+        logger.LogInformation("LLM: this call cost {Cost}; today {Today}, {Total} over {Calls} calls since {Since:d}",
             cost is { } c ? $"${c:0.0000}" : "an unknown amount", $"${t.TodayCostUsd:0.0000}", $"${t.CostUsd:0.0000}", t.Calls, t.Since);
         return usage;
     }
@@ -69,11 +75,13 @@ public sealed class UsageTracker(IOptionsMonitor<OpenAIOptions> options, IHostEn
     public UsageTotals Totals()
     {
         lock (gate)
-            return Current() with { DailyBudgetUsd = options.CurrentValue.DailyBudgetUsd };
+            return Current() with { DailyBudgetUsd = Active.Options.DailyBudgetUsd };
     }
 
-    ModelPrice? PriceFor(string model) => options.CurrentValue.Prices
-        .Where(p => model.StartsWith(p.Key, StringComparison.OrdinalIgnoreCase))
+    /// A Bedrock inference profile ID ("us.anthropic.claude-...") is also priced by the model ID after its region prefix.
+    ModelPrice? PriceFor(string model) => Active.Options.Prices
+        .Where(p => model.StartsWith(p.Key, StringComparison.OrdinalIgnoreCase)
+            || model.IndexOf('.') is > 0 and var dot && model[(dot + 1)..].StartsWith(p.Key, StringComparison.OrdinalIgnoreCase))
         .MaxBy(p => p.Key.Length).Value;
 
     /// Call with the lock held. The totals, read from the file on first use, with today's cost reset on a new day.
@@ -88,7 +96,7 @@ public sealed class UsageTracker(IOptionsMonitor<OpenAIOptions> options, IHostEn
             }
             catch (Exception e) when (e is IOException or JsonException)
             {
-                logger.LogWarning("Could not read the OpenAI usage from {Path}, so counting starts again: {Message}", path, e.Message);
+                logger.LogWarning("Could not read the model usage from {Path}, so counting starts again: {Message}", path, e.Message);
             }
             totals ??= new(DateTimeOffset.UtcNow, 0, 0, 0, 0, 0, new Dictionary<string, ModelUsageTotals>());
         }
@@ -106,7 +114,7 @@ public sealed class UsageTracker(IOptionsMonitor<OpenAIOptions> options, IHostEn
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            logger.LogWarning("Could not save the OpenAI usage to {Path}: {Message}", path, e.Message);
+            logger.LogWarning("Could not save the model usage to {Path}: {Message}", path, e.Message);
         }
     }
 }

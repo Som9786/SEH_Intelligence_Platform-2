@@ -8,7 +8,7 @@ namespace Insights.AiHub.Controllers;
 [Route("health")]
 public sealed class HealthController(LlmClient llm) : ControllerBase
 {
-    /// Liveness plus the model in use, for the Q&A page's status pill. Doesn't call OpenAI.
+    /// Liveness plus the model in use, for the Q&A page's status pill. Doesn't call the model.
     [HttpGet]
     public HealthResponse Get() => new("ok", llm.ConfiguredModel);
 }

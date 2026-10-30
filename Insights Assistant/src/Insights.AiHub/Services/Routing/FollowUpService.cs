@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Insights.AiHub.Models;
 using Insights.AiHub.Services.Llm;
-using OpenAI.Chat;
 
 namespace Insights.AiHub.Services.Routing;
 
@@ -23,29 +22,25 @@ public sealed class FollowUpService(LlmClient llm, ServiceProfiles profiles, Res
             ResponseCache<FollowUpResponse>.Normalize(request.Question), request.Intent, answer, columns);
         if (cache.Get(cacheKey) is { } cached)
         {
-            logger.LogInformation("Follow-ups: reusing the questions suggested earlier (no OpenAI call)");
+            logger.LogInformation("Follow-ups: reusing the questions suggested earlier (no model call)");
             return cached with { Usage = null, Cached = true };
         }
 
         var analytics = await profiles.AnalyticsAsync(ct);
         var dbGuide = await profiles.DbGuideAsync(ct);
-        List<ChatMessage> messages =
+        List<LlmMessage> messages =
         [
-            new SystemChatMessage(System(analytics, dbGuide)),
-            new UserChatMessage($"""
+            LlmMessage.System(System(analytics, dbGuide)),
+            LlmMessage.User($"""
                 Question ({request.Intent ?? "unknown"}): {request.Question}
                 {(columns.Length > 0 ? $"Result columns: {columns}\n" : "")}Answer:
                 {answer}
                 """),
         ];
-        var options = new ChatCompletionOptions
-        {
-            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
-                "follow_up_questions", BinaryData.FromString(ResponseSchema), jsonSchemaIsStrict: true),
-        };
+        var schema = new LlmJsonSchema("follow_up_questions", ResponseSchema);
 
         logger.LogInformation("Follow-ups: suggesting questions after \"{Question}\"", request.Question);
-        var reply = await llm.CompleteAsync(messages, options, ct);
+        var reply = await llm.CompleteAsync(messages, schema, ct);
         var questions = JsonSerializer.Deserialize<FollowUpResponse>(reply.Text, JsonSerializerOptions.Web)?.Questions ?? [];
         var response = new FollowUpResponse(
             questions.Select(q => q.Trim()).Where(q => q.Length > 0)

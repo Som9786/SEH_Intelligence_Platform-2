@@ -11,11 +11,13 @@ namespace Insights.AiHub.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    /// Registers the options, the OpenAI and analytics-service clients, the SQL, answer and guide services, and the intent
+    /// Registers the options, the model (OpenAI or Bedrock, by Llm:Provider) and analytics-service clients, the SQL, answer and guide services, and the intent
     /// routing. No CORS: browsers never call the AI Hub directly; Analytics and DB Guide do, and the gateway.
     public static IServiceCollection AddAiHub(this IServiceCollection services, IConfiguration configuration)
     {
+        services.Configure<LlmOptions>(configuration.GetSection(LlmOptions.SectionName));
         services.Configure<OpenAIOptions>(configuration.GetSection(OpenAIOptions.SectionName));
+        services.Configure<BedrockOptions>(configuration.GetSection(BedrockOptions.SectionName));
         services.Configure<AnalyticsOptions>(configuration.GetSection(AnalyticsOptions.SectionName));
         services.Configure<AnswerOptions>(configuration.GetSection(AnswerOptions.SectionName));
         services.Configure<CacheOptions>(configuration.GetSection(CacheOptions.SectionName));
@@ -27,10 +29,13 @@ public static class ServiceCollectionExtensions
         });
         // Fetches each question's part of the knowledge model from the analytics service.
         services.AddSingleton<KnowledgeModelClient>();
-        // Singleton: one running total of OpenAI cost, served by GET /usage.
+        // Singleton: one running total of model cost, served by GET /usage.
         services.AddSingleton<UsageTracker>();
         // Singletons: replies reused across requests (Cache:*).
         services.AddSingleton(typeof(ResponseCache<>));
+        // Both providers are registered; LlmClient picks one on each call from Llm:Provider.
+        services.AddSingleton<OpenAIChat>();
+        services.AddSingleton<BedrockChat>();
         services.AddSingleton<LlmClient>();
         services.AddSingleton<SqlGenerationService>();
         services.AddSingleton<AnswerService>();
