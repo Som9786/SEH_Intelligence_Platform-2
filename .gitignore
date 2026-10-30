@@ -10,15 +10,16 @@ test-results/
 Thumbs.db
 .claude/
 
-# .NET build output (contains machine-specific paths)
-backend/**/obj/
-backend/**/bin/
+# Insights Assistant APIs (.NET): build output, and logs and usage data written at runtime
+Insights Assistant/**/bin/
+Insights Assistant/**/obj/
+Insights Assistant/**/logs/
+Insights Assistant/**/App_Data/
+.vs/
+*.user
 
-# Old MetaXtract snapshot, replaced by public/catalog (it names an internal server)
-public/data/database.json
-public/data/dbo.*.json
-public/data/manifest.json
-public/data/generated/
-
-# Generated metadata catalog (copied in by npm run sync-data)
-public/catalog/
+# UI (SEH Intelligence Platform): old MetaXtract snapshot, replaced by the catalog (it names an internal server)
+SEH Intelligence Platform/public/data/database.json
+SEH Intelligence Platform/public/data/dbo.*.json
+SEH Intelligence Platform/public/data/manifest.json
+SEH Intelligence Platform/public/data/generated/

@@ -1,0 +1,28 @@
+{
+  "businessAreas": [
+    {
+      "name": "Sales",
+      "purpose": "Customers, their addresses, the orders they place and the lines of those orders.",
+      "evidence": "inferred",
+      "tables": ["sales.Customers", "sales.CustomerAddresses", "sales.Orders", "sales.OrderItems"]
+    },
+    {
+      "name": "Products and inventory",
+      "purpose": "The product catalogue with categories, prices, tax rates and stock quantities, and the suppliers products come from.",
+      "evidence": "inferred",
+      "tables": ["inventory.Categories", "inventory.Products", "inventory.Suppliers"]
+    },
+    {
+      "name": "Human resources",
+      "purpose": "The organisation's departments and the employees in them, including the sales representatives named on orders.",
+      "evidence": "inferred",
+      "tables": ["hr.Departments", "hr.Employees"]
+    },
+    {
+      "name": "Audit and change tracking",
+      "purpose": "A technical log of inserts, updates and deletes on selected tables, written by database triggers.",
+      "evidence": "inferred",
+      "tables": ["dbo.AuditLog"]
+    }
+  ]
+}

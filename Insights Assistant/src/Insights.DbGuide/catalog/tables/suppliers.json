@@ -1,0 +1,178 @@
+{
+  "id": "inventory.Suppliers",
+  "schema": "inventory",
+  "name": "Suppliers",
+  "businessArea": "Products and inventory",
+  "purpose": { "text": "Companies that supply products, with contact, country, banking, tax and supplier-portal access details.", "evidence": "inferred" },
+  "recordMeaning": { "text": "One supplier company with its contact person, country, payment and tax details and access credentials.", "evidence": "inferred" },
+  "rowCount": 3,
+  "rowCountExact": false,
+  "primaryKey": ["SupplierId"],
+  "columns": [
+    {
+      "ordinal": 1,
+      "name": "SupplierId",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": true,
+      "foreignKey": null,
+      "unique": true,
+      "identity": true,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Number that identifies the supplier, assigned automatically by the database starting at 1.", "evidence": "confirmed" }
+    },
+    {
+      "ordinal": 2,
+      "name": "Name",
+      "dataType": "nvarchar(150)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Company name of the supplier; the database does not require it to be unique.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 3,
+      "name": "ContactEmail",
+      "dataType": "nvarchar(256)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": "ContactEmail",
+      "meaning": { "text": "Email address for contacting the supplier, if known.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 4,
+      "name": "Country",
+      "dataType": "char(2)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": "('IN')",
+      "sensitivity": null,
+      "meaning": { "text": "Two-letter country code of the supplier, apparently ISO style; IN unless another country is given.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 5,
+      "name": "BankAccountNumber",
+      "dataType": "varchar(20)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": "Financial",
+      "meaning": { "text": "Domestic bank account number for paying the supplier, if known.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 6,
+      "name": "Iban",
+      "dataType": "varchar(34)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": "Financial",
+      "meaning": { "text": "International bank account number (IBAN) for paying the supplier, if known.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 7,
+      "name": "TaxId",
+      "dataType": "varchar(20)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": "GovernmentId",
+      "meaning": { "text": "Tax registration number of the supplier.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 8,
+      "name": "ApiKey",
+      "dataType": "varchar(64)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": "Credential",
+      "meaning": { "text": "Secret key for system-to-system access, apparently used by or for the supplier; a credential.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 9,
+      "name": "PortalAccessCode",
+      "dataType": "varchar(20)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": "Credential",
+      "meaning": { "text": "Access code for a supplier portal; the database classifies it as highly confidential credentials.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 10,
+      "name": "ContactName",
+      "dataType": "nvarchar(100)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": "PersonName",
+      "meaning": { "text": "Name of the contact person at the supplier, if known.", "evidence": "inferred" }
+    }
+  ],
+  "relationships": [
+    {
+      "direction": "incoming",
+      "relatedTable": "inventory.Products",
+      "columns": ["SupplierId"],
+      "relatedColumns": ["SupplierId"],
+      "cardinality": "one-to-many",
+      "evidence": "inferred",
+      "meaning": "A product can name the supplier it comes from; a supplier can supply many products and the supplier is optional."
+    }
+  ],
+  "indexes": [
+    { "name": "PK_Suppliers", "columns": ["SupplierId"], "includedColumns": [], "unique": true, "clustered": true, "filter": null }
+  ],
+  "constraints": [
+    { "name": "PK_Suppliers", "type": "primaryKey", "columns": ["SupplierId"], "definition": null, "enforced": true },
+    { "name": "DF_Suppliers_Country", "type": "default", "columns": ["Country"], "definition": "('IN')", "enforced": true }
+  ],
+  "triggers": [],
+  "businessRules": [
+    { "text": "Every supplier has a name and a two-letter country, which is IN when none is given; all other details are optional.", "evidence": "confirmed" },
+    { "text": "A supplier is paid either to a domestic bank account or to an IBAN, but the database requires neither and does not prevent both.", "evidence": "inferred" },
+    { "text": "Banking, tax, contact and credential details are confidential and must be protected; the access code carries a database classification of highly confidential credentials.", "evidence": "inferred" },
+    { "text": "A supplier can be deleted while products still refer to it, because no foreign key protects the link.", "evidence": "inferred" }
+  ]
+}

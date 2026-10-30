@@ -1,0 +1,220 @@
+{
+  "id": "inventory.Products",
+  "schema": "inventory",
+  "name": "Products",
+  "businessArea": "Products and inventory",
+  "purpose": { "text": "Products we sell.", "evidence": "confirmed" },
+  "recordMeaning": { "text": "One sellable product with its stock-keeping code, category, optional supplier, net price, tax rate, price including tax and quantity in stock.", "evidence": "inferred" },
+  "rowCount": 7,
+  "rowCountExact": false,
+  "primaryKey": ["ProductId"],
+  "columns": [
+    {
+      "ordinal": 1,
+      "name": "ProductId",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": true,
+      "foreignKey": null,
+      "unique": true,
+      "identity": true,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Number that identifies the product, assigned automatically by the database starting at 1.", "evidence": "confirmed" }
+    },
+    {
+      "ordinal": 2,
+      "name": "Sku",
+      "dataType": "varchar(20)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": true,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Stock-keeping unit, the business code of the product; unique across products.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 3,
+      "name": "Name",
+      "dataType": "nvarchar(150)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Product name shown to staff and customers.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 4,
+      "name": "CategoryId",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": { "table": "inventory.Categories", "column": "CategoryId" },
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "The category the product is classified in; must exist in categories.", "evidence": "confirmed" }
+    },
+    {
+      "ordinal": 5,
+      "name": "SupplierId",
+      "dataType": "int",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "The supplier the product comes from, if known; no foreign key enforces the link to suppliers.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 6,
+      "name": "UnitPrice",
+      "dataType": "decimal(10,2)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Selling price per unit before tax, in an unstated currency; it cannot be negative.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 7,
+      "name": "TaxRate",
+      "dataType": "decimal(4,3)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": "((0.180))",
+      "sensitivity": null,
+      "meaning": { "text": "Tax rate applied to the price as a fraction, for example 0.180 for 18 percent; 0.180 unless another rate is given.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 8,
+      "name": "PriceWithTax",
+      "dataType": "decimal(12,2)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": "(CONVERT([decimal](12,2),[UnitPrice]*((1)+[TaxRate])))",
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Price including tax, calculated from UnitPrice and TaxRate.", "evidence": "confirmed" }
+    },
+    {
+      "ordinal": 9,
+      "name": "StockQty",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": "((0))",
+      "sensitivity": null,
+      "meaning": { "text": "Number of units in stock; 0 unless another quantity is given.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 10,
+      "name": "ModifiedAt",
+      "dataType": "datetime2(0)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Date and time in UTC of the last change to the product, set by a trigger on update; empty for products never changed since they were added.", "evidence": "confirmed" }
+    },
+    {
+      "ordinal": 11,
+      "name": "RowVer",
+      "dataType": "timestamp",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Row version number that the database changes automatically on every insert or update, typically used to detect conflicting edits.", "evidence": "inferred" }
+    }
+  ],
+  "relationships": [
+    {
+      "direction": "outgoing",
+      "relatedTable": "inventory.Categories",
+      "columns": ["CategoryId"],
+      "relatedColumns": ["CategoryId"],
+      "cardinality": "many-to-one",
+      "evidence": "confirmed",
+      "meaning": "Every product is classified in exactly one category; a category can hold many products."
+    },
+    {
+      "direction": "outgoing",
+      "relatedTable": "inventory.Suppliers",
+      "columns": ["SupplierId"],
+      "relatedColumns": ["SupplierId"],
+      "cardinality": "many-to-one",
+      "evidence": "inferred",
+      "meaning": "A product can name the supplier it comes from; a supplier can supply many products and the supplier is optional."
+    },
+    {
+      "direction": "incoming",
+      "relatedTable": "sales.OrderItems",
+      "columns": ["ProductId"],
+      "relatedColumns": ["ProductId"],
+      "cardinality": "one-to-many",
+      "evidence": "inferred",
+      "meaning": "Each order line appears to refer to one product; a product can appear on many order lines."
+    }
+  ],
+  "indexes": [
+    { "name": "PK_Products", "columns": ["ProductId"], "includedColumns": [], "unique": true, "clustered": true, "filter": null },
+    { "name": "UQ_Products_Sku", "columns": ["Sku"], "includedColumns": [], "unique": true, "clustered": false, "filter": null },
+    { "name": "IX_Products_CategoryId", "columns": ["CategoryId"], "includedColumns": ["Name", "UnitPrice"], "unique": false, "clustered": false, "filter": null },
+    { "name": "IX_Products_SupplierId", "columns": ["SupplierId"], "includedColumns": [], "unique": false, "clustered": false, "filter": null }
+  ],
+  "constraints": [
+    { "name": "PK_Products", "type": "primaryKey", "columns": ["ProductId"], "definition": null, "enforced": true },
+    { "name": "UQ_Products_Sku", "type": "unique", "columns": ["Sku"], "definition": null, "enforced": true },
+    { "name": "FK_Products_Categories", "type": "foreignKey", "columns": ["CategoryId"], "definition": "REFERENCES inventory.Categories (CategoryId) ON DELETE NO ACTION ON UPDATE NO ACTION", "enforced": true },
+    { "name": "CK_Products_UnitPrice", "type": "check", "columns": ["UnitPrice"], "definition": "([UnitPrice]>=(0))", "enforced": true },
+    { "name": "DF_Products_TaxRate", "type": "default", "columns": ["TaxRate"], "definition": "((0.180))", "enforced": true },
+    { "name": "DF_Products_StockQty", "type": "default", "columns": ["StockQty"], "definition": "((0))", "enforced": true }
+  ],
+  "triggers": [
+    { "name": "trg_Products_ModifiedAt", "events": ["UPDATE"], "timing": "AFTER", "enabled": true, "summary": "After an update, sets ModifiedAt to the current UTC date and time on the changed products, unless the update itself set ModifiedAt." }
+  ],
+  "businessRules": [
+    { "text": "Every product has a unique SKU, a name, a category that exists, a unit price of zero or more, a tax rate and a stock quantity.", "evidence": "confirmed" },
+    { "text": "The price including tax is always the unit price times one plus the tax rate, rounded to two decimals.", "evidence": "confirmed" },
+    { "text": "Every update stamps the product with the time of the change in UTC, unless the update sets that time itself.", "evidence": "confirmed" },
+    { "text": "The supplier is optional and refers to a supplier record, but the database does not check that the supplier exists.", "evidence": "inferred" },
+    { "text": "Stock quantity is not prevented from going below zero, and the export shows no process that reduces stock when orders are placed.", "evidence": "inferred" }
+  ]
+}

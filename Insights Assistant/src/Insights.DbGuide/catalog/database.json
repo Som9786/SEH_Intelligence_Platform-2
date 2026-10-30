@@ -1,0 +1,201 @@
+{
+  "database": {
+    "name": "SEH_Validation_Retail",
+    "provider": "SqlServer",
+    "productVersion": "16.0.1210.3",
+    "collation": "SQL_Latin1_General_CP1_CI_AS",
+    "summary": {
+      "text": "A test retail database covering staff and departments, customers and their addresses, products with categories and suppliers, and customer orders with order lines. Its stored description says some relationships were deliberately left without foreign keys.",
+      "evidence": "confirmed"
+    }
+  },
+  "counts": {
+    "schemas": 4,
+    "tables": 10,
+    "columns": 92,
+    "rows": 84,
+    "relationships": 5,
+    "indexes": 23,
+    "views": 1,
+    "procedures": 1,
+    "functions": 0,
+    "triggers": 3
+  },
+  "documents": [
+    { "id": "database-overview", "title": "Database overview", "path": "database-overview.md", "table": null },
+    { "id": "relationships", "title": "Relationships", "path": "relationships.md", "table": null },
+    { "id": "business-areas", "title": "Business areas", "path": "business-areas.md", "table": null },
+    { "id": "dbo.AuditLog", "title": "Audit log", "path": "documentation/auditlog.md", "table": "dbo.AuditLog" },
+    { "id": "hr.Departments", "title": "Departments", "path": "documentation/departments.md", "table": "hr.Departments" },
+    { "id": "hr.Employees", "title": "Employees", "path": "documentation/employees.md", "table": "hr.Employees" },
+    { "id": "inventory.Categories", "title": "Categories", "path": "documentation/categories.md", "table": "inventory.Categories" },
+    { "id": "inventory.Products", "title": "Products", "path": "documentation/products.md", "table": "inventory.Products" },
+    { "id": "inventory.Suppliers", "title": "Suppliers", "path": "documentation/suppliers.md", "table": "inventory.Suppliers" },
+    { "id": "sales.CustomerAddresses", "title": "Customer addresses", "path": "documentation/customeraddresses.md", "table": "sales.CustomerAddresses" },
+    { "id": "sales.Customers", "title": "Customers", "path": "documentation/customers.md", "table": "sales.Customers" },
+    { "id": "sales.OrderItems", "title": "Order items", "path": "documentation/orderitems.md", "table": "sales.OrderItems" },
+    { "id": "sales.Orders", "title": "Orders", "path": "documentation/orders.md", "table": "sales.Orders" }
+  ],
+  "tables": [
+    {
+      "id": "dbo.AuditLog",
+      "schema": "dbo",
+      "name": "AuditLog",
+      "businessArea": "Audit and change tracking",
+      "purpose": {
+        "text": "Change log that records which row of which table was inserted, updated or deleted, when and by which database login. Triggers on hr.Employees and sales.Orders write to it.",
+        "evidence": "inferred"
+      },
+      "rowCount": 28,
+      "rowCountExact": false,
+      "columnCount": 6,
+      "primaryKey": [],
+      "detailsPath": "tables/auditlog.json",
+      "relatedTables": []
+    },
+    {
+      "id": "hr.Departments",
+      "schema": "hr",
+      "name": "Departments",
+      "businessArea": "Human resources",
+      "purpose": {
+        "text": "Organisational units. A department can sit under a parent department.",
+        "evidence": "confirmed"
+      },
+      "rowCount": 5,
+      "rowCountExact": false,
+      "columnCount": 4,
+      "primaryKey": ["DepartmentId"],
+      "detailsPath": "tables/departments.json",
+      "relatedTables": ["hr.Departments", "hr.Employees"]
+    },
+    {
+      "id": "hr.Employees",
+      "schema": "hr",
+      "name": "Employees",
+      "businessArea": "Human resources",
+      "purpose": {
+        "text": "People employed by the company, including sales representatives.",
+        "evidence": "confirmed"
+      },
+      "rowCount": 6,
+      "rowCountExact": false,
+      "columnCount": 18,
+      "primaryKey": ["EmployeeId"],
+      "detailsPath": "tables/employees.json",
+      "relatedTables": ["hr.Departments", "hr.Employees", "sales.Orders"]
+    },
+    {
+      "id": "inventory.Categories",
+      "schema": "inventory",
+      "name": "Categories",
+      "businessArea": "Products and inventory",
+      "purpose": {
+        "text": "Product categories with unique names, which can be arranged in a hierarchy under a parent category.",
+        "evidence": "inferred"
+      },
+      "rowCount": 5,
+      "rowCountExact": false,
+      "columnCount": 3,
+      "primaryKey": ["CategoryId"],
+      "detailsPath": "tables/categories.json",
+      "relatedTables": ["inventory.Categories", "inventory.Products"]
+    },
+    {
+      "id": "inventory.Products",
+      "schema": "inventory",
+      "name": "Products",
+      "businessArea": "Products and inventory",
+      "purpose": {
+        "text": "Products we sell.",
+        "evidence": "confirmed"
+      },
+      "rowCount": 7,
+      "rowCountExact": false,
+      "columnCount": 11,
+      "primaryKey": ["ProductId"],
+      "detailsPath": "tables/products.json",
+      "relatedTables": ["inventory.Categories", "inventory.Suppliers", "sales.OrderItems"]
+    },
+    {
+      "id": "inventory.Suppliers",
+      "schema": "inventory",
+      "name": "Suppliers",
+      "businessArea": "Products and inventory",
+      "purpose": {
+        "text": "Companies that supply products, with contact, country, banking, tax and supplier-portal access details.",
+        "evidence": "inferred"
+      },
+      "rowCount": 3,
+      "rowCountExact": false,
+      "columnCount": 10,
+      "primaryKey": ["SupplierId"],
+      "detailsPath": "tables/suppliers.json",
+      "relatedTables": ["inventory.Products"]
+    },
+    {
+      "id": "sales.CustomerAddresses",
+      "schema": "sales",
+      "name": "CustomerAddresses",
+      "businessArea": "Sales",
+      "purpose": {
+        "text": "Postal addresses of customers, with at most one default address per customer; orders appear to use them as shipping addresses.",
+        "evidence": "inferred"
+      },
+      "rowCount": 7,
+      "rowCountExact": false,
+      "columnCount": 10,
+      "primaryKey": ["AddressId"],
+      "detailsPath": "tables/customeraddresses.json",
+      "relatedTables": ["sales.Customers", "sales.Orders"]
+    },
+    {
+      "id": "sales.Customers",
+      "schema": "sales",
+      "name": "Customers",
+      "businessArea": "Sales",
+      "purpose": {
+        "text": "People and companies that buy from us.",
+        "evidence": "confirmed"
+      },
+      "rowCount": 6,
+      "rowCountExact": false,
+      "columnCount": 13,
+      "primaryKey": ["CustomerId"],
+      "detailsPath": "tables/customers.json",
+      "relatedTables": ["sales.CustomerAddresses", "sales.Orders"]
+    },
+    {
+      "id": "sales.OrderItems",
+      "schema": "sales",
+      "name": "OrderItems",
+      "businessArea": "Sales",
+      "purpose": {
+        "text": "Lines of a customer order: which product, how many and at what unit price, with a calculated line total.",
+        "evidence": "inferred"
+      },
+      "rowCount": 10,
+      "rowCountExact": false,
+      "columnCount": 6,
+      "primaryKey": ["OrderId", "LineNumber"],
+      "detailsPath": "tables/orderitems.json",
+      "relatedTables": ["inventory.Products", "sales.Orders"]
+    },
+    {
+      "id": "sales.Orders",
+      "schema": "sales",
+      "name": "Orders",
+      "businessArea": "Sales",
+      "purpose": {
+        "text": "Customer purchase orders.",
+        "evidence": "confirmed"
+      },
+      "rowCount": 7,
+      "rowCountExact": false,
+      "columnCount": 11,
+      "primaryKey": ["OrderId"],
+      "detailsPath": "tables/orders.json",
+      "relatedTables": ["hr.Employees", "sales.CustomerAddresses", "sales.Customers", "sales.OrderItems"]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  // The POS basket dataset: its name and the suggested questions on the Q&A page.
+  // The business rules the AI must follow when it writes queries are in business-rules.json.
+  //
+  // Edit this file freely: changes apply without a restart (the page shows new questions when it's reloaded).
+  "Dataset": {
+    "Name": "POS baskets",
+    "Suggestions": [
+      "Which 5 stores had the highest net sales?",
+      "Which items are most often bought with SPAM Musubi?",
+      "How many baskets were paid with EBT each day?",
+      "What is the average basket value by hour of day?",
+      "Which offers gave the most discount?",
+      "What were gross sales, total discounts and net sales each day?",
+      "Which 10 items sold the most units?",
+      "Which items appear in the most baskets?",
+      "Which 5 stores had the highest average basket value?",
+      "Which day of the week had the most baskets?",
+      "Which hour of the day is busiest by number of baskets?",
+      "How many baskets were returns, and what was their total value?",
+      "How much non-merchandise sales such as gas and gift cards did each store have?",
+      "Which offers were used in the most baskets?",
+      "What share of baskets were paid with EBT at each store?"
+    ]
+  }
+}

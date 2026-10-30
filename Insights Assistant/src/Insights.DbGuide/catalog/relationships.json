@@ -1,0 +1,148 @@
+{
+  "relationships": [
+    {
+      "name": "FK_Departments_Parent",
+      "from": { "table": "hr.Departments", "columns": ["ParentDepartmentId"] },
+      "to": { "table": "hr.Departments", "columns": ["DepartmentId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": false,
+      "onDelete": "NO_ACTION",
+      "onUpdate": "NO_ACTION",
+      "enforced": true,
+      "evidence": "confirmed",
+      "meaning": "A department can sit under one parent department; top-level departments have no parent."
+    },
+    {
+      "name": "FK_Employees_Departments",
+      "from": { "table": "hr.Employees", "columns": ["DepartmentId"] },
+      "to": { "table": "hr.Departments", "columns": ["DepartmentId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": true,
+      "onDelete": "NO_ACTION",
+      "onUpdate": "NO_ACTION",
+      "enforced": true,
+      "evidence": "confirmed",
+      "meaning": "Every employee belongs to exactly one department; a department can have many employees."
+    },
+    {
+      "name": "FK_Products_Categories",
+      "from": { "table": "inventory.Products", "columns": ["CategoryId"] },
+      "to": { "table": "inventory.Categories", "columns": ["CategoryId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": true,
+      "onDelete": "NO_ACTION",
+      "onUpdate": "NO_ACTION",
+      "enforced": true,
+      "evidence": "confirmed",
+      "meaning": "Every product is classified in exactly one category; a category can hold many products."
+    },
+    {
+      "name": "FK_OrderItems_Orders",
+      "from": { "table": "sales.OrderItems", "columns": ["OrderId"] },
+      "to": { "table": "sales.Orders", "columns": ["OrderId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": true,
+      "onDelete": "CASCADE",
+      "onUpdate": "NO_ACTION",
+      "enforced": true,
+      "evidence": "confirmed",
+      "meaning": "Every order line belongs to exactly one order; deleting an order deletes its lines."
+    },
+    {
+      "name": "FK_Orders_Customers",
+      "from": { "table": "sales.Orders", "columns": ["CustomerId"] },
+      "to": { "table": "sales.Customers", "columns": ["CustomerId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": true,
+      "onDelete": "NO_ACTION",
+      "onUpdate": "NO_ACTION",
+      "enforced": true,
+      "evidence": "confirmed",
+      "meaning": "Every order is placed by exactly one customer; a customer can place many orders."
+    },
+    {
+      "name": null,
+      "from": { "table": "sales.Orders", "columns": ["SalesRepId"] },
+      "to": { "table": "hr.Employees", "columns": ["EmployeeId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": false,
+      "onDelete": null,
+      "onUpdate": null,
+      "enforced": false,
+      "evidence": "inferred",
+      "meaning": "An order can name the employee who handled the sale; the stored column description says so and that no foreign key enforces it."
+    },
+    {
+      "name": null,
+      "from": { "table": "sales.Orders", "columns": ["ShippingAddressId"] },
+      "to": { "table": "sales.CustomerAddresses", "columns": ["AddressId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": false,
+      "onDelete": null,
+      "onUpdate": null,
+      "enforced": false,
+      "evidence": "inferred",
+      "meaning": "An order can point to the customer address it ships to; nothing in the database enforces the link or that the address belongs to the ordering customer."
+    },
+    {
+      "name": null,
+      "from": { "table": "sales.CustomerAddresses", "columns": ["CustomerId"] },
+      "to": { "table": "sales.Customers", "columns": ["CustomerId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": true,
+      "onDelete": null,
+      "onUpdate": null,
+      "enforced": false,
+      "evidence": "inferred",
+      "meaning": "Each address appears to belong to one customer, and a customer can have several addresses with at most one marked as default."
+    },
+    {
+      "name": null,
+      "from": { "table": "sales.OrderItems", "columns": ["ProductId"] },
+      "to": { "table": "inventory.Products", "columns": ["ProductId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": true,
+      "onDelete": null,
+      "onUpdate": null,
+      "enforced": false,
+      "evidence": "inferred",
+      "meaning": "Each order line appears to refer to one product; a product can appear on many order lines."
+    },
+    {
+      "name": null,
+      "from": { "table": "inventory.Products", "columns": ["SupplierId"] },
+      "to": { "table": "inventory.Suppliers", "columns": ["SupplierId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": false,
+      "onDelete": null,
+      "onUpdate": null,
+      "enforced": false,
+      "evidence": "inferred",
+      "meaning": "A product can name the supplier it comes from; a supplier can supply many products and the supplier is optional."
+    },
+    {
+      "name": null,
+      "from": { "table": "hr.Employees", "columns": ["ManagerId"] },
+      "to": { "table": "hr.Employees", "columns": ["EmployeeId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": false,
+      "onDelete": null,
+      "onUpdate": null,
+      "enforced": false,
+      "evidence": "inferred",
+      "meaning": "An employee can have a line manager who is another employee; the stored column description says so and that no foreign key enforces it."
+    },
+    {
+      "name": null,
+      "from": { "table": "inventory.Categories", "columns": ["ParentCategoryId"] },
+      "to": { "table": "inventory.Categories", "columns": ["CategoryId"] },
+      "cardinality": "many-to-one",
+      "fromRequired": false,
+      "onDelete": null,
+      "onUpdate": null,
+      "enforced": false,
+      "evidence": "inferred",
+      "meaning": "A category can sit under a parent category, forming a category tree; top-level categories have no parent."
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "id": "inventory.Categories",
+  "schema": "inventory",
+  "name": "Categories",
+  "businessArea": "Products and inventory",
+  "purpose": { "text": "Product categories with unique names, which can be arranged in a hierarchy under a parent category.", "evidence": "inferred" },
+  "recordMeaning": { "text": "One product category, such as a main group or a sub-group under another category.", "evidence": "inferred" },
+  "rowCount": 5,
+  "rowCountExact": false,
+  "primaryKey": ["CategoryId"],
+  "columns": [
+    {
+      "ordinal": 1,
+      "name": "CategoryId",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": true,
+      "foreignKey": null,
+      "unique": true,
+      "identity": true,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Number that identifies the category, assigned automatically by the database starting at 1.", "evidence": "confirmed" }
+    },
+    {
+      "ordinal": 2,
+      "name": "Name",
+      "dataType": "nvarchar(100)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": true,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Display name of the category; no two categories may have the same name.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 3,
+      "name": "ParentCategoryId",
+      "dataType": "int",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "The category this category sits under; empty for a top-level category. No foreign key enforces the link.", "evidence": "inferred" }
+    }
+  ],
+  "relationships": [
+    {
+      "direction": "outgoing",
+      "relatedTable": "inventory.Categories",
+      "columns": ["ParentCategoryId"],
+      "relatedColumns": ["CategoryId"],
+      "cardinality": "many-to-one",
+      "evidence": "inferred",
+      "meaning": "A category can sit under a parent category, forming a category tree; top-level categories have no parent."
+    },
+    {
+      "direction": "incoming",
+      "relatedTable": "inventory.Categories",
+      "columns": ["CategoryId"],
+      "relatedColumns": ["ParentCategoryId"],
+      "cardinality": "one-to-many",
+      "evidence": "inferred",
+      "meaning": "A category can have several sub-categories under it."
+    },
+    {
+      "direction": "incoming",
+      "relatedTable": "inventory.Products",
+      "columns": ["CategoryId"],
+      "relatedColumns": ["CategoryId"],
+      "cardinality": "one-to-many",
+      "evidence": "confirmed",
+      "meaning": "Every product is classified in exactly one category; a category can hold many products."
+    }
+  ],
+  "indexes": [
+    { "name": "PK_Categories", "columns": ["CategoryId"], "includedColumns": [], "unique": true, "clustered": true, "filter": null },
+    { "name": "UQ_Categories_Name", "columns": ["Name"], "includedColumns": [], "unique": true, "clustered": false, "filter": null }
+  ],
+  "constraints": [
+    { "name": "PK_Categories", "type": "primaryKey", "columns": ["CategoryId"], "definition": null, "enforced": true },
+    { "name": "UQ_Categories_Name", "type": "unique", "columns": ["Name"], "definition": null, "enforced": true }
+  ],
+  "triggers": [],
+  "businessRules": [
+    { "text": "Every category has a name, and category names are unique; the comparison ignores upper and lower case.", "evidence": "confirmed" },
+    { "text": "A category cannot be deleted while products are classified in it.", "evidence": "confirmed" },
+    { "text": "Categories form a tree through the parent category, but the database does not check that the parent exists or that the tree has no loops.", "evidence": "inferred" }
+  ]
+}

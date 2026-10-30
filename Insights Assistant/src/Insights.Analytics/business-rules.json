@@ -1,0 +1,86 @@
+{
+  // The POS basket dataset's business rules: how the AI must count, total and filter when it writes SQL.
+  // They're loaded into the Neo4j knowledge model with knowledge-model.json. Each rule reaches the AI with the questions about the
+  // concepts or metrics in its AppliesTo (names from knowledge-model.json); a rule without AppliesTo goes with every question.
+  // The suggested questions on the Q&A page are in suggested-questions.json.
+  //
+  // Edit this file freely: changes apply without a restart.
+  // Each rule should be one or two plain sentences, naming the columns it's about.
+  //
+  // The rules come from the table owner's answers in the knowledge-model review workbook, restated for SQL
+  // and corrected where the loaded data differs (returned lines carry a negative qty, not NULL).
+  "Dataset": {
+    "BusinessRules": [
+      {
+        "Text": "The data is point-of-sale baskets from 7-Eleven stores, in public.pos_basket_line: one row per scanned line. Amounts are US dollars excluding tax and bottle deposit. coverage gives the first and last business date in the data."
+      },
+      {
+        "Text": "A basket is one checkout, and every line of a basket is its own row. Count baskets with count(DISTINCT idtuuid), never count(*).",
+        "AppliesTo": [ "Basket", "Basket count", "EBT share" ]
+      },
+      {
+        "Text": "amount is signed: positive for sales, negative for discounts (line_type 'PROMO'), loyalty rewards ('REWARDS'), coupons ('COUPON') and returned items. sum(amount) over all lines is net sales, already after discounts, so keep negative lines in sales totals.",
+        "AppliesTo": [ "BasketLine", "Net sales", "Discounts", "Store" ]
+      },
+      {
+        "Text": "Sales lines have line_type 'REGULAR' (merchandise), 'DEPARTMENT SALE' (non-merchandise) or '7-DIGIT ITEM'. For gross sales before discounts, sum amount over those line types only.",
+        "AppliesTo": [ "Gross sales", "Discounts" ]
+      },
+      {
+        "Text": "A PROMO line is a discount, not an item sold. It names the discounted item (true_item_id) and its offer (promo_item_id), and has no qty. For items sold, item rankings and items bought together, use only lines with line_type = 'REGULAR'.",
+        "AppliesTo": [ "Item", "Offer", "Units sold", "Items bought together" ]
+      },
+      {
+        "Text": "Department items (coalesce(true_item_id, single_item_id) LIKE 'dept%', line_type 'DEPARTMENT SALE') are non-merchandise sales such as gasoline, gift cards and money orders, with very large amounts. Include them in store or total revenue, but exclude them from item rankings and basket analysis.",
+        "AppliesTo": [ "Item", "Units sold", "Items bought together" ]
+      },
+      {
+        "Text": "An item is coalesce(true_item_id, single_item_id), because true_item_id is NULL on a few lines. Group items by that ID and show max(coalesce(true_item_desc, single_item_desc)) as the name, since one ID can carry slightly different names.",
+        "AppliesTo": [ "Item", "Units sold", "Items bought together" ]
+      },
+      {
+        "Text": "Units sold = sum(qty). qty is null on PROMO lines and negative on returned items, so sum(qty) is net units.",
+        "AppliesTo": [ "Units sold" ]
+      },
+      {
+        "Text": "price_multiple is units per pack (a 6-pack is 6). Never sum it; single-unit equivalents are qty * price_multiple.",
+        "AppliesTo": [ "Units sold", "BasketLine" ]
+      },
+      {
+        "Text": "psa_cd (Product SubCategory Analysis, the main category) and cat_cd are independent numeric codes with no names in this data. Never roll one up into the other; if asked for a category name, say only codes are available.",
+        "AppliesTo": [ "Item" ]
+      },
+      {
+        "Text": "A return basket has return_regular = 'return'; a returned item is a line with a negative amount and qty. is_ebt is true when the basket was paid with EBT / SNAP. Both are basket-level: the same on every line of a basket.",
+        "AppliesTo": [ "Basket", "Return value", "EBT share" ]
+      },
+      {
+        "Text": "Use transaction_end_date for daily reporting and transaction_end_time for time of day (extract(hour FROM transaction_end_time)). For a day of week, return the name with to_char(transaction_end_date, 'FMDay'), and order by extract(isodow FROM transaction_end_date) (1 = Monday) when the order matters.",
+        "AppliesTo": [ "Basket" ]
+      },
+      {
+        "Text": "Average basket value: sum amount per basket first (GROUP BY idtuuid in a CTE or subquery), then average over baskets.",
+        "AppliesTo": [ "Average basket value" ]
+      },
+      {
+        "Text": "Items bought together: first take the distinct (idtuuid, item) pairs of merchandise sales lines (line_type = 'REGULAR', amount > 0, item NOT LIKE 'dept%'), then self-join them on idtuuid with different items. baskets is the number of baskets holding both items. lift = baskets * total_baskets / (baskets_with_a * baskets_with_b), where total_baskets is count(DISTINCT idtuuid) over all lines and baskets_with_x counts the merchandise pairs; above 1 means they go together more often than chance.",
+        "AppliesTo": [ "Items bought together" ]
+      },
+      {
+        "Text": "When one item is given, find its baskets first and count the other items in those baskets only; that is much faster than pairing every item with every other. Rank by baskets for 'most often' and by lift for 'most strongly associated', and leave out pairs in fewer than 5 baskets when ranking by lift.",
+        "AppliesTo": [ "Items bought together" ]
+      },
+      {
+        "Text": "When listing pairs of items (neither item given), keep each pair once with a.item < b.item, and only pairs in at least 5 baskets.",
+        "AppliesTo": [ "Items bought together" ]
+      },
+      {
+        "Text": "Stores have only a number (str_num), no names or locations.",
+        "AppliesTo": [ "Store" ]
+      },
+      {
+        "Text": "Never return row_hash or load_dte; they are technical columns."
+      }
+    ]
+  }
+}

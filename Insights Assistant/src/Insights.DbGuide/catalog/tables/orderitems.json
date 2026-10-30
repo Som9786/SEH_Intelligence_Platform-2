@@ -1,0 +1,133 @@
+{
+  "id": "sales.OrderItems",
+  "schema": "sales",
+  "name": "OrderItems",
+  "businessArea": "Sales",
+  "purpose": { "text": "Lines of a customer order: which product, how many and at what unit price, with a calculated line total.", "evidence": "inferred" },
+  "recordMeaning": { "text": "One line of one order, identified by the order number and a line number within the order.", "evidence": "inferred" },
+  "rowCount": 10,
+  "rowCountExact": false,
+  "primaryKey": ["OrderId", "LineNumber"],
+  "columns": [
+    {
+      "ordinal": 1,
+      "name": "OrderId",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": true,
+      "foreignKey": { "table": "sales.Orders", "column": "OrderId" },
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "The order the line belongs to; must exist in orders.", "evidence": "confirmed" }
+    },
+    {
+      "ordinal": 2,
+      "name": "LineNumber",
+      "dataType": "smallint",
+      "nullable": false,
+      "primaryKey": true,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Position of the line within its order, starting at 1.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 3,
+      "name": "ProductId",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "The product ordered on this line; no foreign key enforces the link to products.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 4,
+      "name": "Quantity",
+      "dataType": "int",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Number of units ordered, at least 1.", "evidence": "confirmed" }
+    },
+    {
+      "ordinal": 5,
+      "name": "UnitPrice",
+      "dataType": "decimal(10,2)",
+      "nullable": false,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": null,
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Price per unit at the time of the order, in an unstated currency.", "evidence": "inferred" }
+    },
+    {
+      "ordinal": 6,
+      "name": "LineTotal",
+      "dataType": "decimal(12,2)",
+      "nullable": true,
+      "primaryKey": false,
+      "foreignKey": null,
+      "unique": false,
+      "identity": false,
+      "computed": "(CONVERT([decimal](12,2),[Quantity]*[UnitPrice]))",
+      "default": null,
+      "sensitivity": null,
+      "meaning": { "text": "Line total, calculated by the database as quantity times unit price.", "evidence": "confirmed" }
+    }
+  ],
+  "relationships": [
+    {
+      "direction": "outgoing",
+      "relatedTable": "sales.Orders",
+      "columns": ["OrderId"],
+      "relatedColumns": ["OrderId"],
+      "cardinality": "many-to-one",
+      "evidence": "confirmed",
+      "meaning": "Every order line belongs to exactly one order; deleting an order deletes its lines."
+    },
+    {
+      "direction": "outgoing",
+      "relatedTable": "inventory.Products",
+      "columns": ["ProductId"],
+      "relatedColumns": ["ProductId"],
+      "cardinality": "many-to-one",
+      "evidence": "inferred",
+      "meaning": "Each order line appears to refer to one product; a product can appear on many order lines."
+    }
+  ],
+  "indexes": [
+    { "name": "PK_OrderItems", "columns": ["OrderId", "LineNumber"], "includedColumns": [], "unique": true, "clustered": true, "filter": null },
+    { "name": "IX_OrderItems_ProductId", "columns": ["ProductId"], "includedColumns": ["Quantity"], "unique": false, "clustered": false, "filter": null }
+  ],
+  "constraints": [
+    { "name": "PK_OrderItems", "type": "primaryKey", "columns": ["OrderId", "LineNumber"], "definition": null, "enforced": true },
+    { "name": "FK_OrderItems_Orders", "type": "foreignKey", "columns": ["OrderId"], "definition": "REFERENCES sales.Orders (OrderId) ON DELETE CASCADE ON UPDATE NO ACTION", "enforced": true },
+    { "name": "CK_OrderItems_Quantity", "type": "check", "columns": ["Quantity"], "definition": "([Quantity]>(0))", "enforced": true }
+  ],
+  "triggers": [],
+  "businessRules": [
+    { "text": "Every line belongs to an existing order, line numbers are unique within an order, and deleting an order deletes its lines.", "evidence": "confirmed" },
+    { "text": "Quantity must be at least 1, and the line total is always quantity times unit price.", "evidence": "confirmed" },
+    { "text": "The unit price is captured when the order is taken, so later product price changes do not alter past orders.", "evidence": "inferred" },
+    { "text": "The line totals of an order should add up to the order's total amount, which the database does not check.", "evidence": "inferred" }
+  ]
+}

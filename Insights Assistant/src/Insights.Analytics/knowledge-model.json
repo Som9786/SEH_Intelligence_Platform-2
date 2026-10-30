@@ -1,0 +1,188 @@
+{
+  // The POS basket knowledge model: what the business terms mean and where their data lives in PostgreSQL.
+  // Analytics loads it into Neo4j at startup and whenever this file changes. The graph holds only this knowledge model,
+  // never the sales data: for each question, the AI gets the part of the knowledge model the question is about
+  // (POST /context) and writes SQL that runs on PostgreSQL pos_basket.
+  //
+  // Tables: the only tables questions may read, with every column's type and meaning.
+  // Concepts: business things. Each lives in a table, is identified by a key, and has attributes: SQL expressions
+  //   over the table's columns. Synonyms are the words people use for it; they decide which concepts a question is about.
+  // Relationships: how concepts connect, and how to join them in SQL.
+  // Metrics: the agreed SQL formula for each measure, with its synonyms.
+  // Business rules are in business-rules.json and verified examples in query-examples.json; both load with this file.
+  //
+  // Edit this file freely: changes apply without a restart.
+  "KnowledgeModel": {
+    "Tables": [
+      {
+        "Name": "public.pos_basket_line",
+        "Description": "One scanned line within one POS basket (checkout). Basket columns repeat on every line of the basket.",
+        "DateColumn": "transaction_end_date",
+        "Columns": [
+          { "Name": "row_hash", "Type": "varchar", "Description": "Technical row hash, unique per line. Never return it." },
+          { "Name": "idtuuid", "Type": "uuid", "Description": "Basket ID: one checkout. Repeats on every line of the basket." },
+          { "Name": "transaction_start_time", "Type": "timestamp", "Description": "When the checkout started." },
+          { "Name": "transaction_end_time", "Type": "timestamp", "Description": "Checkout time; use it for time of day." },
+          { "Name": "transaction_end_date", "Type": "date", "Description": "Business date; use it for daily reporting." },
+          { "Name": "str_num", "Type": "integer", "Description": "Store number." },
+          { "Name": "single_item_id", "Type": "varchar", "Description": "Item code as scanned." },
+          { "Name": "single_item_desc", "Type": "varchar", "Description": "Name of the item as scanned." },
+          { "Name": "true_item_id", "Type": "varchar", "Description": "Item sold (resolved pack or parent item); NULL on a few lines. dept* codes are non-merchandise department sales." },
+          { "Name": "true_item_desc", "Type": "varchar", "Description": "Name of the item sold." },
+          { "Name": "psa_cd", "Type": "smallint", "Description": "Product SubCategory Analysis code (the main category). Independent of cat_cd; no names in this data." },
+          { "Name": "cat_cd", "Type": "smallint", "Description": "Category code. Independent of psa_cd; no names in this data." },
+          { "Name": "price_multiple", "Type": "smallint", "Description": "Units per pack (a 6-pack is 6). Never sum it." },
+          { "Name": "line_type", "Type": "varchar", "Description": "Kind of line.", "Values": [ "REGULAR", "PROMO", "DEPARTMENT SALE", "REWARDS", "COUPON", "7-DIGIT ITEM" ] },
+          { "Name": "promo_item_id", "Type": "integer", "Description": "Offer code; only on PROMO lines." },
+          { "Name": "promo_desc", "Type": "varchar", "Description": "Offer name; only on PROMO lines." },
+          { "Name": "is_ebt", "Type": "boolean", "Description": "The basket was paid with EBT / SNAP." },
+          { "Name": "return_regular", "Type": "varchar", "Description": "Whether the whole basket is a return.", "Values": [ "regular", "return" ] },
+          { "Name": "qty", "Type": "numeric", "Description": "Units on the line: null on PROMO lines, negative on returned items." },
+          { "Name": "amount", "Type": "numeric", "Description": "Signed line amount in US dollars, excluding tax and bottle deposit. Negative for discounts, rewards, coupons and returns." },
+          { "Name": "load_dte", "Type": "timestamp", "Description": "ETL load time on some rows. Not meaningful; never use it." }
+        ]
+      }
+    ],
+    "Concepts": [
+      {
+        "Name": "Store",
+        "Description": "A 7-Eleven store. Only its number is known: no names or locations.",
+        "Table": "public.pos_basket_line",
+        "Key": "str_num",
+        "Synonyms": [ "store", "shop", "location", "site", "outlet", "branch" ],
+        "Attributes": [
+          { "Name": "storeNumber", "Expression": "str_num", "Description": "Store number." }
+        ]
+      },
+      {
+        "Name": "Basket",
+        "Description": "One checkout: a receipt, transaction, ticket or trip.",
+        "Table": "public.pos_basket_line",
+        "Key": "idtuuid",
+        "Synonyms": [ "basket", "receipt", "transaction", "ticket", "trip", "checkout", "visit", "customer", "day", "daily", "date", "week", "weekday", "weekend", "hour", "hourly", "time", "morning", "afternoon", "evening", "night", "busiest", "busy" ],
+        "Attributes": [
+          { "Name": "basketId", "Expression": "idtuuid", "Description": "Basket ID." },
+          { "Name": "businessDate", "Expression": "transaction_end_date", "Description": "Business date, for daily reporting." },
+          { "Name": "checkoutTime", "Expression": "transaction_end_time", "Description": "Checkout time, for time of day." },
+          { "Name": "hourOfDay", "Expression": "extract(hour FROM transaction_end_time)::int", "Description": "Hour of the checkout, 0 to 23." },
+          { "Name": "dayOfWeek", "Expression": "extract(isodow FROM transaction_end_date)::int", "Description": "1 = Monday ... 7 = Sunday. Show the name with to_char(transaction_end_date, 'FMDay')." },
+          { "Name": "startTime", "Expression": "transaction_start_time", "Description": "When the checkout started." },
+          { "Name": "isEbt", "Expression": "is_ebt", "Description": "Paid with EBT / SNAP." },
+          { "Name": "isReturn", "Expression": "return_regular = 'return'", "Description": "The basket is a return." }
+        ]
+      },
+      {
+        "Name": "BasketLine",
+        "Description": "One scanned line on a receipt: an item sold, a discount, a loyalty reward, a coupon or a returned item.",
+        "Table": "public.pos_basket_line",
+        "Key": "row_hash",
+        "Synonyms": [ "line", "basket line", "line item", "scan", "scanned line", "line type" ],
+        "Attributes": [
+          { "Name": "lineType", "Expression": "line_type", "Description": "REGULAR, PROMO, DEPARTMENT SALE, REWARDS, COUPON or 7-DIGIT ITEM." },
+          { "Name": "qty", "Expression": "qty", "Description": "Units: null on PROMO lines, negative on returned items." },
+          { "Name": "amount", "Expression": "amount", "Description": "Signed US dollars, excluding tax and bottle deposit." },
+          { "Name": "priceMultiple", "Expression": "price_multiple", "Description": "Units per pack." },
+          { "Name": "scannedItemId", "Expression": "single_item_id", "Description": "Item code as scanned." },
+          { "Name": "scannedItemName", "Expression": "single_item_desc", "Description": "Item name as scanned." }
+        ]
+      },
+      {
+        "Name": "Item",
+        "Description": "A product. Department items (dept* codes) are non-merchandise sales such as gasoline, gift cards and money orders.",
+        "Table": "public.pos_basket_line",
+        "Key": "coalesce(true_item_id, single_item_id)",
+        "Synonyms": [ "item", "product", "sku", "article", "merchandise", "goods", "category", "categories", "psa", "department", "gas", "gasoline", "fuel", "gift card", "money order", "best seller", "best selling", "top selling", "musubi", "spam" ],
+        "Attributes": [
+          { "Name": "itemId", "Expression": "coalesce(true_item_id, single_item_id)", "Description": "Item ID." },
+          { "Name": "name", "Expression": "coalesce(true_item_desc, single_item_desc)", "Description": "Item name." },
+          { "Name": "psaCode", "Expression": "psa_cd", "Description": "Main category code." },
+          { "Name": "categoryCode", "Expression": "cat_cd", "Description": "Category code." },
+          { "Name": "isDepartment", "Expression": "coalesce(true_item_id, single_item_id) LIKE 'dept%'", "Description": "Non-merchandise department sale (gas, gift cards, money orders)." }
+        ]
+      },
+      {
+        "Name": "Offer",
+        "Description": "A promotion. Its discount is a PROMO line with a negative amount, which names the discounted item and the offer.",
+        "Table": "public.pos_basket_line",
+        "Key": "promo_item_id",
+        "Synonyms": [ "offer", "promotion", "promo", "deal", "campaign", "coupon", "discount" ],
+        "Attributes": [
+          { "Name": "offerId", "Expression": "promo_item_id", "Description": "Offer code." },
+          { "Name": "name", "Expression": "promo_desc", "Description": "Offer name; one code can carry several wordings, so show max(promo_desc)." }
+        ]
+      }
+    ],
+    "Relationships": [
+      { "Name": "HAS_BASKET", "From": "Store", "To": "Basket", "Join": "Same table: every line of a basket carries its store's str_num." },
+      { "Name": "HAS_LINE", "From": "Basket", "To": "BasketLine", "Join": "Same table: the lines of a basket share idtuuid." },
+      { "Name": "OF_ITEM", "From": "BasketLine", "To": "Item", "Join": "Same table: the line's item is coalesce(true_item_id, single_item_id). A PROMO line names the discounted item." },
+      { "Name": "APPLIES_OFFER", "From": "BasketLine", "To": "Offer", "Join": "Same table: promo_item_id, on PROMO lines only." },
+      { "Name": "BOUGHT_WITH", "From": "Item", "To": "Item", "Join": "Self-join of the distinct (idtuuid, item) pairs of merchandise sales lines on idtuuid: two different items in the same basket." }
+    ],
+    "Metrics": [
+      {
+        "Name": "Net sales",
+        "Description": "Sales after discounts, rewards, coupons and returns.",
+        "Expression": "sum(amount)",
+        "Concepts": [ "BasketLine" ],
+        "Synonyms": [ "net sales", "sales", "revenue", "turnover", "takings", "income", "money" ]
+      },
+      {
+        "Name": "Gross sales",
+        "Description": "Sales before discounts.",
+        "Expression": "sum(amount) FILTER (WHERE line_type IN ('REGULAR', 'DEPARTMENT SALE', '7-DIGIT ITEM'))",
+        "Concepts": [ "BasketLine" ],
+        "Synonyms": [ "gross sales", "gross", "before discount" ]
+      },
+      {
+        "Name": "Discounts",
+        "Description": "Total of discount, reward and coupon lines; negative.",
+        "Expression": "sum(amount) FILTER (WHERE line_type IN ('PROMO', 'REWARDS', 'COUPON'))",
+        "Concepts": [ "BasketLine", "Offer" ],
+        "Synonyms": [ "discount", "saving", "markdown", "reward", "coupon", "promo value" ]
+      },
+      {
+        "Name": "Units sold",
+        "Description": "Net units sold.",
+        "Expression": "sum(qty)",
+        "Concepts": [ "BasketLine", "Item" ],
+        "Synonyms": [ "unit", "units sold", "quantity", "volume", "sold the most", "best seller", "best selling", "top selling" ]
+      },
+      {
+        "Name": "Basket count",
+        "Description": "Number of checkouts.",
+        "Expression": "count(DISTINCT idtuuid)",
+        "Concepts": [ "Basket" ],
+        "Synonyms": [ "basket count", "number of basket", "transaction count", "traffic", "footfall", "busiest", "appear in the most" ]
+      },
+      {
+        "Name": "Average basket value",
+        "Description": "Average amount per checkout: sum amount per basket first, then average over baskets.",
+        "Expression": "avg(basket_total), where basket_total is sum(amount) per idtuuid",
+        "Concepts": [ "Basket" ],
+        "Synonyms": [ "average basket", "average basket value", "basket value", "basket size", "average ticket", "average transaction", "atv", "spend per visit" ]
+      },
+      {
+        "Name": "Items bought together",
+        "Description": "How often two items share a basket (baskets) and how much more often than chance (lift; above 1 means they go together).",
+        "Expression": "baskets = count of baskets with both items; lift = baskets * total_baskets / (baskets_with_a * baskets_with_b)",
+        "Concepts": [ "Item" ],
+        "Synonyms": [ "bought with", "bought together", "goes with", "go together", "sold together", "associated", "association", "affinity", "pair", "combo", "cross sell", "lift" ]
+      },
+      {
+        "Name": "EBT share",
+        "Description": "Percentage of baskets paid with EBT / SNAP.",
+        "Expression": "100.0 * count(DISTINCT idtuuid) FILTER (WHERE is_ebt) / count(DISTINCT idtuuid)",
+        "Concepts": [ "Basket" ],
+        "Synonyms": [ "ebt", "snap", "food stamp" ]
+      },
+      {
+        "Name": "Return value",
+        "Description": "Total amount of return baskets; negative.",
+        "Expression": "sum(amount) FILTER (WHERE return_regular = 'return')",
+        "Concepts": [ "Basket" ],
+        "Synonyms": [ "return", "refund", "returned" ]
+      }
+    ]
+  }
+}

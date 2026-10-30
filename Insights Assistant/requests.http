@@ -1,0 +1,192 @@
+### Sample requests for all three services.
+### Open in VS Code with the "REST Client" extension (or Visual Studio) and click "Send Request".
+
+@analytics = http://localhost:5100
+@aihub = http://localhost:5200
+
+### ---------- Insights.Analytics ----------
+
+### Whether Neo4j holds a loaded knowledge model and PostgreSQL answers, with the business dates the data covers
+GET {{analytics}}/health
+
+### The whole knowledge model from Neo4j: tables and columns, concepts, relationships, metrics, business rules, examples
+GET {{analytics}}/schema
+
+### The part of the knowledge model one question is about (what the AI Hub puts in its prompt)
+POST {{analytics}}/context
+Content-Type: application/json
+
+{
+  "question": "Which 5 stores had the highest net sales?"
+}
+
+### A follow-up keeps the earlier question's concepts
+POST {{analytics}}/context
+Content-Type: application/json
+
+{
+  "question": "and only on Thursday?",
+  "history": ["Which 5 stores had the highest net sales?"]
+}
+
+### The last knowledge model load (it loads at startup and whenever knowledge-model.json, business-rules.json or query-examples.json changes)
+GET {{analytics}}/knowledge-model/status
+
+### Load the knowledge model files into Neo4j again
+POST {{analytics}}/knowledge-model/reload
+
+### Run a read-only SQL query on PostgreSQL
+POST {{analytics}}/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT str_num AS store, round(sum(amount), 2) AS net_sales FROM public.pos_basket_line GROUP BY str_num ORDER BY net_sales DESC LIMIT 5"
+}
+
+### Anything but a single SELECT over the knowledge model's tables is rejected with 400
+POST {{analytics}}/query
+Content-Type: application/json
+
+{
+  "sql": "DELETE FROM public.pos_basket_line"
+}
+
+### ---------- AI through Insights.Analytics (clients only need {{analytics}}) ----------
+
+### Whole question in one call: SQL, rows and plain-English answer
+POST {{analytics}}/ask
+Content-Type: application/json
+
+{
+  "question": "Which 5 stores had the highest net sales?"
+}
+
+### English question -> SQL (forwarded to Insights.AiHub)
+POST {{analytics}}/ai/sql
+Content-Type: application/json
+
+{
+  "question": "Which 5 stores had the highest net sales?"
+}
+
+### AI Hub status and model
+GET {{analytics}}/ai/health
+
+### ---------- Insights.AiHub directly (same endpoints Insights.Analytics forwards to) ----------
+
+### 1. English question -> SQL (the AI Hub gets the question's knowledge model context from {{analytics}}/context)
+POST {{aihub}}/sql
+Content-Type: application/json
+
+{
+  "question": "Which 5 stores had the highest net sales?"
+}
+
+### 2. Run the returned SQL with POST {{analytics}}/query, then send the question + results here
+POST {{aihub}}/answer
+Content-Type: application/json
+
+{
+  "question": "Which 5 stores had the highest net sales?",
+  "sql": "SELECT str_num AS store, round(sum(amount), 2) AS net_sales FROM public.pos_basket_line GROUP BY str_num ORDER BY net_sales DESC LIMIT 5",
+  "results": {
+    "columns": ["store", "net_sales"],
+    "rows": [{ "store": 101, "net_sales": 152340.55 }],
+    "truncated": false
+  }
+}
+
+### OpenAI tokens and estimated cost so far
+GET {{aihub}}/usage
+
+### Which service a question is for: "analytics" (the sales data), "db-guide" (the database's structure) or "unclear"
+POST {{aihub}}/intent
+Content-Type: application/json
+
+{ "question": "Which table holds product prices?" }
+
+### One question, answered by whichever service it's for (Analytics or DB Guide POST /ask, passed through in "result")
+POST {{aihub}}/ask
+Content-Type: application/json
+
+{ "question": "Which 5 stores had the highest net sales?" }
+
+### A follow-up: each earlier turn says its intent, and what answered it (sql from Analytics, answer from DB Guide)
+POST {{aihub}}/ask
+Content-Type: application/json
+
+{
+  "question": "and the lowest?",
+  "history": [
+    { "question": "Which 5 stores had the highest net sales?", "intent": "analytics", "sql": "SELECT ..." }
+  ]
+}
+
+### Up to three questions to ask next, after an answer
+POST {{aihub}}/follow-ups
+Content-Type: application/json
+
+{ "question": "Which 5 stores had the highest net sales?", "intent": "analytics", "answer": "Store 12 had the highest net sales.", "columns": ["store", "net_sales"] }
+
+### ---------- Insights.Workspace (each user's schedules and board widgets; normally reached through the gateway) ----------
+
+@workspace = http://localhost:5400
+
+### The user's schedules, with when each would next run
+GET {{workspace}}/schedules
+X-User: Admin
+
+### Save a schedule (not run yet)
+POST {{workspace}}/schedules
+X-User: Admin
+Content-Type: application/json
+
+{ "name": "Top stores", "question": "Which 5 stores had the highest net sales?", "frequency": "weekly", "dayOfWeek": 1, "time": "08:00", "startsOn": "2026-11-02", "board": "basket-intelligence" }
+
+### The widgets on a board
+GET {{workspace}}/widgets?board=basket-intelligence
+X-User: Admin
+
+### ---------- Insights.DbGuide (questions about a database's structure, from its catalog in Neo4j) ----------
+
+@dbguide = http://localhost:5300
+
+### Whether the catalog is loaded in Neo4j and the AI Hub answers
+GET {{dbguide}}/health
+
+### The whole catalog: database, business areas, tables in brief, every join with its SQL condition
+GET {{dbguide}}/catalog
+
+### One table in full, with its documentation page
+GET {{dbguide}}/catalog/tables/inventory.Products
+
+### The part of the catalog one question is about (what the AI Hub is given)
+POST {{dbguide}}/context
+Content-Type: application/json
+
+{
+  "question": "How do I join order items to products?"
+}
+
+### Whole question in one call: answer, tables used and an example query
+POST {{dbguide}}/ask
+Content-Type: application/json
+
+{
+  "question": "Which table should I use for product data?"
+}
+
+### A follow-up builds on the earlier question and its answer
+POST {{dbguide}}/ask
+Content-Type: application/json
+
+{
+  "question": "and how do I get its supplier?",
+  "history": [{ "question": "Which table should I use for product data?", "answer": "Use inventory.Products." }]
+}
+
+### The last catalog load (it loads at startup and whenever a file in catalog/ or db-guide.json changes)
+GET {{dbguide}}/catalog/status
+
+### Load the catalog export into Neo4j again
+POST {{dbguide}}/catalog/reload
