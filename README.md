@@ -74,6 +74,40 @@ npm install   # first time only
 npm run dev
 ```
 
+## Running as Windows services (VDI or server)
+
+Each service can run as a Windows service, so it starts with Windows and keeps running after you sign out. As a service it reads its files (appsettings, logs, `App_Data`, the catalog) from the folder it's installed in.
+
+1. **Publish** each service into its own folder, and build the UI. The machine then needs only the [.NET 9 ASP.NET Core Runtime](https://dotnet.microsoft.com/download/dotnet/9.0), not the SDK.
+   ```powershell
+   cd "Insights Assistant"
+   foreach ($s in 'Gateway', 'Analytics', 'AiHub', 'DbGuide', 'Workspace') {
+       dotnet publish "src/Insights.$s" -c Release -o "C:\SEH\$s"
+   }
+   cd "..\SEH Intelligence Platform"; npm run build   # then copy dist to C:\SEH\ui
+   ```
+2. **Gateway settings:** in `C:\SEH\Gateway\appsettings.json`:
+   - Set `Gateway:UiPath` to `C:\SEH\ui`, so the gateway serves the app.
+   - Set `Urls` to `http://0.0.0.0:5000` if other machines should open it.
+
+   The other services stay on `localhost`.
+3. **Secrets:** user-secrets aren't read outside Development, so set them as machine environment variables, as an administrator:
+   ```powershell
+   [Environment]::SetEnvironmentVariable('Neo4j__Password',     '<neo4j password>',    'Machine')
+   [Environment]::SetEnvironmentVariable('PosBasket__Password', '<postgres password>', 'Machine')
+   [Environment]::SetEnvironmentVariable('OpenAI__ApiKey',      '<openai key>',        'Machine')
+   ```
+4. **Install and start** them, as an administrator:
+   ```powershell
+   foreach ($s in 'Analytics', 'AiHub', 'DbGuide', 'Workspace', 'Gateway') {
+       sc.exe create "SEH-$s" binPath= "C:\SEH\$s\Insights.$s.exe" start= auto
+       sc.exe start "SEH-$s"
+   }
+   ```
+5. **Check:** http://localhost:5000/health should show every service as ok, and http://localhost:5000 opens the app. If other machines will connect, open port 5000 in the Windows firewall.
+
+To update, stop the services (`sc.exe stop SEH-<name>`), publish over their folders, and start them again. To remove one, use `sc.exe delete SEH-<name>`.
+
 ## Working on the UI
 
 From `SEH Intelligence Platform`:

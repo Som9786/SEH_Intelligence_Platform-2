@@ -1,7 +1,8 @@
+using Insights.Common;
 using Insights.Common.Diagnostics;
 using Insights.AiHub.Extensions;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = ServiceHost.CreateBuilder(args);
 builder.AddDebugLog();
 builder.Services.AddAiHub(builder.Configuration);
 builder.Services.AddControllers();

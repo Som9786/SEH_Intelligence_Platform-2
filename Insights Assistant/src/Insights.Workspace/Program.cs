@@ -1,10 +1,11 @@
 using System.Text.Json;
+using Insights.Common;
 using Insights.Workspace;
 
 // Each user's saved work: questions scheduled to run again, and answers kept as widgets on a capability board. Stored in
 // files (WorkspaceStore). Schedules are saved and shown, not run yet. Reached through Insights.Gateway at /api/workspace,
 // which sends the signed-in user in X-User; this service listens on localhost only, so nothing else can set it.
-var builder = WebApplication.CreateBuilder(args);
+var builder = ServiceHost.CreateBuilder(args);
 builder.Services.AddSingleton<WorkspaceStore>();
 builder.Services.AddSingleton<ReviewStore>();
 builder.Services.AddSingleton<ShareStore>();

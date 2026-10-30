@@ -1,8 +1,9 @@
 using Insights.Analytics.Configuration;
+using Insights.Common;
 using Insights.Common.Diagnostics;
 using Insights.Analytics.Extensions;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = ServiceHost.CreateBuilder(args);
 // The knowledge model, the dataset's business rules and example queries (all loaded into Neo4j), and its suggested questions.
 // Reloaded when a file changes, so edits apply without a restart. The examples file is optional: "Save as example" on
 // the Q&A page creates it.

@@ -12,6 +12,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.3.1" />
   </ItemGroup>
 
+  <!-- The catalog's documentation is served from the published folder too (its JSON files are published by default). -->
+  <ItemGroup>
+    <None Update="catalog\**\*.md" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Insights.Common\Insights.Common.csproj" />
   </ItemGroup>

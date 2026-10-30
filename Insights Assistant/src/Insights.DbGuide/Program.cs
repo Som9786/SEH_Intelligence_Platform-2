@@ -1,9 +1,10 @@
 using System.Text.Json.Serialization;
+using Insights.Common;
 using Insights.Common.Diagnostics;
 using Insights.DbGuide.Configuration;
 using Insights.DbGuide.Extensions;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = ServiceHost.CreateBuilder(args);
 // The page's name, suggested questions and synonyms. Reloaded when it changes, and the synonyms reloaded into Neo4j.
 builder.Configuration.AddJsonFile(GuideOptions.FileName, optional: false, reloadOnChange: true);
 builder.AddDebugLog();
