@@ -1860,6 +1860,42 @@ a {
 .td-action-primary:hover {
   background: var(--b-09613f);
 }
+/* For actions that can't be undone, such as Remove or Delete in a confirm dialog. */
+.td-action-danger {
+  border-color: var(--b-e74646);
+  background: var(--b-e74646);
+  color: var(--on-brand);
+}
+.td-action-danger:hover {
+  background: var(--b-e74646);
+  filter: brightness(0.92);
+}
+
+/* Confirm dialog: a narrower dialog with a warning icon beside its title. */
+.cf-modal {
+  width: min(440px, 100%);
+}
+.cf-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cf-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+.cf-text {
+  margin: 0;
+  color: var(--t-3f5449);
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+}
 
 /* sequence navigation */
 .td-sequence {
@@ -3414,9 +3450,14 @@ small {
 .viz-figure .ia-label {
   margin-bottom: 10px;
 }
-.viz-figure .recharts-wrapper,
-.viz-figure svg {
+/* Charts take keyboard focus (to step through the points): show it then, not on a click. */
+.viz-figure .recharts-wrapper:focus:not(:focus-visible),
+.viz-figure svg:focus:not(:focus-visible) {
   outline: none;
+}
+.viz-figure .recharts-surface:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
 }
 /* KPI: the figure is the answer. */
 .viz-kpis {

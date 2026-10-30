@@ -1,6 +1,7 @@
 using Insights.Analytics.Filters;
 using Insights.Analytics.Models;
 using Insights.Analytics.Services.Ask;
+using Insights.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Insights.Analytics.Controllers;
@@ -19,8 +20,8 @@ public sealed class AskController(AskService askService) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<AskResponse>> Ask(AskRequest request, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Question))
-            return Problem("'question' is required.", statusCode: StatusCodes.Status400BadRequest);
+        if (QuestionRules.Problem(request.Question) is { } problem)
+            return Problem(problem, statusCode: StatusCodes.Status400BadRequest);
         return Ok(await askService.AskAsync(request, ct));
     }
 }

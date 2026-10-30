@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarClock, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import {
   BOARD_LABEL,
@@ -27,6 +28,8 @@ export function ScheduledInsightsPage() {
     queryFn: listSchedules,
   });
   const [editing, setEditing] = useState<Schedule | null>(null);
+  // The schedule whose Delete was clicked, while the user confirms.
+  const [deleting, setDeleting] = useState<Schedule | null>(null);
   const refresh = () =>
     void queryClient.invalidateQueries({
       queryKey: ['workspace', 'schedules'],
@@ -104,10 +107,7 @@ export function ScheduledInsightsPage() {
                 busy={toggle.isPending || remove.isPending}
                 onToggle={() => toggle.mutate(view.schedule)}
                 onEdit={() => setEditing(view.schedule)}
-                onDelete={() => {
-                  if (window.confirm(`Delete “${view.schedule.name}”?`))
-                    remove.mutate(view.schedule);
-                }}
+                onDelete={() => setDeleting(view.schedule)}
               />
             ))}
           </ul>
@@ -116,6 +116,20 @@ export function ScheduledInsightsPage() {
             data with “Schedule this”.
           </p>
         </>
+      )}
+      {deleting && (
+        <ConfirmDialog
+          title="Delete schedule?"
+          confirmLabel="Delete"
+          onCancel={() => setDeleting(null)}
+          onConfirm={() => {
+            remove.mutate(deleting);
+            setDeleting(null);
+          }}
+        >
+          “{deleting.name}” will no longer be scheduled. A widget it refreshes
+          stays on its board.
+        </ConfirmDialog>
       )}
       {editing && (
         <ScheduleDialog

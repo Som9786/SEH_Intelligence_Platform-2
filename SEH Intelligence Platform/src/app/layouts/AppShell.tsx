@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../features/auth/useAuth';
 import { BrandLogo } from '../../shared/components/BrandLogo';
+import { ErrorBoundary } from '../../shared/components/ErrorBoundary';
 import { useTheme } from '../../shared/hooks/useTheme';
 import { matchPath, NavLink, Outlet, useLocation } from 'react-router';
 import { navSections, routes } from '../router/routes';
@@ -256,7 +257,9 @@ export function AppShell() {
               />
             </div>
           ) : (
-            <Outlet />
+            <ErrorBoundary resetKey={location.pathname}>
+              <Outlet />
+            </ErrorBoundary>
           )}
         </main>
       </div>

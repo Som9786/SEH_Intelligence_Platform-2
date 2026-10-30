@@ -2,6 +2,7 @@ using System.Text.Json;
 using Insights.AiHub.Filters;
 using Insights.AiHub.Models;
 using Insights.AiHub.Services.Routing;
+using Insights.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Insights.AiHub.Controllers;
@@ -17,8 +18,8 @@ public sealed class RoutingController(IntentService intentService, AskRouter rou
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IntentResponse>> Intent(RouteRequest request, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Question))
-            return Problem("'question' is required.", statusCode: StatusCodes.Status400BadRequest);
+        if (QuestionRules.Problem(request.Question) is { } problem)
+            return Problem(problem, statusCode: StatusCodes.Status400BadRequest);
         return Ok(await intentService.ClassifyAsync(request, ct));
     }
 
@@ -31,8 +32,8 @@ public sealed class RoutingController(IntentService intentService, AskRouter rou
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
     public async Task<IActionResult> Ask(RouteRequest request, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Question))
-            return Problem("'question' is required.", statusCode: StatusCodes.Status400BadRequest);
+        if (QuestionRules.Problem(request.Question) is { } problem)
+            return Problem(problem, statusCode: StatusCodes.Status400BadRequest);
         var intent = await intentService.ClassifyAsync(request, ct);
         if (intent.Intent is not (Intents.Analytics or Intents.DbGuide))
             return Ok(new RoutedAnswer(request.Question, Intents.Unclear, intent.Reason, Boards.None, null, null,

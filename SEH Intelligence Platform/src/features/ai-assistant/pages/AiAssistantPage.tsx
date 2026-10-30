@@ -1,6 +1,7 @@
 import { ArrowRight, Compass, RotateCcw, Send, SquarePen } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router';
+import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import { AnswerActions } from '../components/AnswerActions';
 import { AssistantAnswer } from '../components/AssistantAnswer';
@@ -8,7 +9,12 @@ import { ExploreQuestions } from '../components/ExploreQuestions';
 import { FollowUps } from '../components/FollowUps';
 import { useSuggestedQuestions } from '../hooks/useSuggestedQuestions';
 import { useAuth } from '../../auth/useAuth';
-import { askAssistant, interleave, turnOf } from '../services/assistantService';
+import {
+  askAssistant,
+  interleave,
+  MAX_QUESTION_LENGTH,
+  turnOf,
+} from '../services/assistantService';
 import { loadThread, saveThread, type Exchange } from '../services/threadStore';
 
 /** Earlier answers sent with each question, so follow-ups are understood. */
@@ -66,6 +72,16 @@ export function AiAssistantPage() {
   const [exploring, setExploring] = useState(false);
   const latest = useRef<HTMLElement>(null);
   const thinking = exchanges.some((exchange) => exchange.status === 'pending');
+  // Screen readers hear that the answer arrived, not the whole card; they can then read it at
+  // their own pace. Errors are announced by their own alert.
+  const [announced, setAnnounced] = useState('');
+  const wasThinking = useRef(false);
+  useEffect(() => {
+    const last = exchanges[exchanges.length - 1];
+    if (wasThinking.current && !thinking && last?.status === 'done')
+      setAnnounced(`Answer ready: ${last.question}`);
+    wasThinking.current = thinking;
+  }, [thinking, exchanges]);
 
   // A new question scrolls to the top of the screen, so its progress and then its answer show
   // below it and read from the start. The answer arriving doesn't scroll. Coming back to a saved
@@ -121,13 +137,15 @@ export function AiAssistantPage() {
   };
 
   // A question from the link (`?q=`, e.g. asked on the Overview page) is asked at once, and only
-  // once even when React runs effects twice in development.
+  // once even when React runs effects twice in development. It then leaves the address, so a reload
+  // or Back doesn't ask it again.
   const initialQuestion = (params.get('q') ?? '').trim();
   const askedInitial = useRef(false);
   useEffect(() => {
     if (askedInitial.current || !initialQuestion) return;
     askedInitial.current = true;
     ask(initialQuestion);
+    setParams({}, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- asked once, on arrival
   }, [initialQuestion]);
 
@@ -153,7 +171,10 @@ export function AiAssistantPage() {
         title="Insights Assistant"
         description="Ask questions to explore sales trends, store performance, customer baskets, and how your data is organised."
       />
-      <div className="ia-thread" role="log" aria-live="polite">
+      <p className="td-sr-only" role="status">
+        {announced}
+      </p>
+      <div className="ia-thread">
         {exchanges.length === 0 && (
           <section className="ia-welcome" aria-labelledby="ia-welcome-title">
             <h2 id="ia-welcome-title">What would you like to know?</h2>
@@ -183,8 +204,22 @@ export function AiAssistantPage() {
               <>
                 {/* One card per answer, with its actions, so answers stand apart. */}
                 <div className="ia-card">
-                  <AssistantAnswer reply={exchange.reply} />
-                  <AnswerActions reply={exchange.reply} />
+                  <ErrorBoundary compact>
+                    <AssistantAnswer reply={exchange.reply} />
+                  </ErrorBoundary>
+                  <AnswerActions
+                    reply={exchange.reply}
+                    kept={exchange.kept}
+                    onKept={(change) =>
+                      setExchanges((all) =>
+                        all.map((e, j) =>
+                          j === i && e.status === 'done'
+                            ? { ...e, kept: { ...e.kept, ...change } }
+                            : e,
+                        ),
+                      )
+                    }
+                  />
                 </div>
                 {/* Only the latest answer suggests what to ask next. */}
                 {i === exchanges.length - 1 && (
@@ -222,6 +257,7 @@ export function AiAssistantPage() {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             placeholder="Ask about sales, stores, items, or the database’s tables…"
+            maxLength={MAX_QUESTION_LENGTH}
             aria-label="Ask Insights Assistant"
           />
           {exchanges.length > 0 && (

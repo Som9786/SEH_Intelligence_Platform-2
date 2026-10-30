@@ -1,8 +1,21 @@
+import type { Board } from '../../workspace/workspaceService';
 import type { AssistantReply } from './assistantService';
+
+/** What was already done with an answer, so coming back to the thread doesn't offer it again. */
+export interface KeptActions {
+  /** The board the answer was added to as a widget. */
+  addedTo?: Board;
+  scheduled?: boolean;
+}
 
 export type Exchange =
   | { question: string; status: 'pending' }
-  | { question: string; status: 'done'; reply: AssistantReply }
+  | {
+      question: string;
+      status: 'done';
+      reply: AssistantReply;
+      kept?: KeptActions;
+    }
   | { question: string; status: 'error'; error: string };
 
 /**

@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Insights.Gateway;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Yarp.ReverseProxy.Configuration;
@@ -57,6 +58,9 @@ builder.Services.AddRateLimiter(options =>
         context.Connection.RemoteIpAddress?.ToString() ?? "",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
 });
+
+// The largest request body passed on to the AI and query services: a question plus a few earlier turns.
+const long MaxAiRequestBytes = 64 * 1024;
 
 var app = builder.Build();
 app.UseExceptionHandler();
@@ -114,6 +118,10 @@ app.UseWhen(c => c.Request.Path.StartsWithSegments("/api") && !c.Request.Path.St
                 statusCode: StatusCodes.Status403Forbidden).ExecuteAsync(context);
             return;
         }
+        // A question and its recent history are small; a larger body to the AI or query services is refused (413)
+        // before it costs anything. Workspace keeps widgets with their rows, so it keeps the server's limit.
+        if (service != "workspace" && context.Features.Get<IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } body)
+            body.MaxRequestBodySize = MaxAiRequestBytes;
         await next();
     }));
 

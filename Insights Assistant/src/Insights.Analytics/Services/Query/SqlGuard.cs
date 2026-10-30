@@ -86,7 +86,14 @@ public static partial class SqlGuard
                     break;
                 if (tokens[j] == "(")
                 {
-                    // A subquery or VALUES list: its own FROMs are checked when the outer loop reaches them.
+                    // A subquery or VALUES list: its own FROMs are checked when the outer loop reaches them. A
+                    // parenthesized join, FROM (a JOIN b), starts with a table no FROM or JOIN precedes: check it here.
+                    var first = j + 1;
+                    while (first < tokens.Count && tokens[first] == "(")
+                        first++;
+                    if (first < tokens.Count && IsName(tokens[first]) && !SubqueryStart().IsMatch(tokens[first])
+                        && !(first + 1 < tokens.Count && tokens[first + 1] == "("))
+                        yield return tokens[first];
                     j = SkipParentheses(tokens, j);
                 }
                 else if (IsName(tokens[j]))
@@ -235,18 +242,19 @@ public static partial class SqlGuard
     private static partial Regex SelectStart();
 
     // Statements and clauses that change data, schema, settings or transactions, or lock rows (FOR UPDATE / FOR SHARE).
-    // SELECT ... INTO creates a table.
+    // SELECT ... INTO creates a table. TABLE x reads a whole table without a FROM, so it would skip the table check.
     [GeneratedRegex(@"\b(INSERT|UPDATE|DELETE|MERGE|UPSERT|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE|COPY|CALL|DO|EXECUTE|PREPARE|DEALLOCATE|" +
                     @"LISTEN|NOTIFY|UNLISTEN|VACUUM|ANALYZE|CLUSTER|REINDEX|REFRESH|LOCK|SET|RESET|SHOW|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|" +
-                    @"RELEASE|DISCARD|LOAD|IMPORT|SECURITY|COMMENT|INTO|SHARE|EXPLAIN)\b", RegexOptions.IgnoreCase)]
+                    @"RELEASE|DISCARD|LOAD|IMPORT|SECURITY|COMMENT|INTO|SHARE|EXPLAIN|TABLE)\b", RegexOptions.IgnoreCase)]
     private static partial Regex Forbidden();
 
     // System catalogs and pg_* functions such as pg_read_file, pg_ls_dir, pg_sleep and pg_terminate_backend.
     [GeneratedRegex(@"\b(pg_\w*|information_schema)\b", RegexOptions.IgnoreCase)]
     private static partial Regex SystemName();
 
-    // Large objects (files), other servers, SQL run from a string, settings, sequences (which write even in a read-only query).
-    [GeneratedRegex(@"\b(lo_\w+|dblink\w*|\w+_to_xml\w*|\w+_to_json_\w*|set_config|current_setting|nextval|setval|currval|lastval|txid_\w+|xmlparse)\s*\(",
+    // Large objects (files), other servers, SQL run from a string (query_to_xml, ts_stat, ts_rewrite), settings, sequences
+    // (which write even in a read-only query).
+    [GeneratedRegex(@"\b(lo_\w+|dblink\w*|\w+_to_xml\w*|\w+_to_json_\w*|ts_stat|ts_rewrite|set_config|current_setting|nextval|setval|currval|lastval|txid_\w+|xmlparse)\s*\(",
         RegexOptions.IgnoreCase)]
     private static partial Regex ForbiddenFunction();
 
@@ -262,6 +270,10 @@ public static partial class SqlGuard
     [GeneratedRegex(@"^(WHERE|JOIN|INNER|LEFT|RIGHT|FULL|CROSS|NATURAL|OUTER|ON|USING|GROUP|ORDER|LIMIT|OFFSET|FETCH|HAVING|WINDOW|" +
                     @"UNION|EXCEPT|INTERSECT|FOR|TABLESAMPLE|LATERAL|SELECT|WITH|WHEN|THEN|ELSE|END|AND|OR|NOT|RETURNING)$", RegexOptions.IgnoreCase)]
     private static partial Regex ClauseWord();
+
+    // The first word of a subquery or VALUES list in parentheses, as opposed to a parenthesized join.
+    [GeneratedRegex(@"^(SELECT|WITH|VALUES|TABLE)$", RegexOptions.IgnoreCase)]
+    private static partial Regex SubqueryStart();
 
     [GeneratedRegex(@"\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$")]
     private static partial Regex DollarTag();

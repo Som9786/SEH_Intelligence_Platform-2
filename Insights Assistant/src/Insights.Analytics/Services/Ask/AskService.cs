@@ -18,8 +18,9 @@ public sealed class AskService(AiHubClient ai, SqlQueryService queryService, IOp
     {
         var question = request.Question;
         var timer = Stopwatch.StartNew();
+        var history = SafeHistory(request.History);
         logger.LogInformation("Ask step 1/3: asking the AI Hub to write SQL for \"{Question}\"", question);
-        var generated = await ai.GenerateSqlAsync(new(question, request.History), ct);
+        var generated = await ai.GenerateSqlAsync(new(question, history), ct);
         var usages = new List<LlmUsage?> { generated.Usage };
         if (!generated.Answerable)
         {
@@ -37,7 +38,7 @@ public sealed class AskService(AiHubClient ai, SqlQueryService queryService, IOp
         catch (AskQueryException first)
         {
             logger.LogInformation("Ask: asking the AI Hub to correct the query once");
-            generated = await ai.GenerateSqlAsync(new(question, request.History, generated.Sql, $"{first.Title}: {first.Message}"), ct);
+            generated = await ai.GenerateSqlAsync(new(question, history, generated.Sql, $"{first.Title}: {first.Message}"), ct);
             usages.Add(generated.Usage);
             if (!generated.Answerable)
                 throw;
@@ -60,6 +61,17 @@ public sealed class AskService(AiHubClient ai, SqlQueryService queryService, IOp
         logger.LogInformation("Ask finished in {Ms} ms", timer.ElapsedMilliseconds);
         return new(question, true, generated.Sql, generated.Explanation, result, answer.Answer,
             Cost(usages, generated.Cached && answer.Cached), corrected, generated.KnowledgeModel, fetchedAt);
+    }
+
+    /// The history comes from the client, so an earlier query the guard would refuse to run isn't shown to the AI as an
+    /// example to build on: that turn is left out.
+    List<ConversationTurn> SafeHistory(IReadOnlyList<ConversationTurn>? history)
+    {
+        var turns = history ?? [];
+        var safe = turns.Where(t => SqlGuard.RejectionReason(t.Sql, queryService.Tables) is null).ToList();
+        if (safe.Count < turns.Count)
+            logger.LogWarning("Ask: left out {Count} earlier turns whose query the guard refuses", turns.Count - safe.Count);
+        return safe;
     }
 
     async Task<QueryResult> RunAsync(SqlResponse generated, CancellationToken ct)

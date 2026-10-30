@@ -16,7 +16,10 @@ import { useAuth } from '../../auth/useAuth';
 import { useSuggestedQuestions } from '../../ai-assistant/hooks/useSuggestedQuestions';
 import { listWidgets } from '../../workspace/workspaceService';
 import { headlineOf } from '../utils/basketHeadline';
-import { interleave } from '../../ai-assistant/services/assistantService';
+import {
+  interleave,
+  MAX_QUESTION_LENGTH,
+} from '../../ai-assistant/services/assistantService';
 
 type Tone = 'risk' | 'warn' | 'good';
 
@@ -141,6 +144,7 @@ export function PlatformOverviewPage() {
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Ask Insights Assistant anything…"
+              maxLength={MAX_QUESTION_LENGTH}
               aria-label="Ask Insights Assistant"
             />
             <button

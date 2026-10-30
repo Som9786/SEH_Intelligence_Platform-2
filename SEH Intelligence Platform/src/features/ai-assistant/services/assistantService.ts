@@ -3,6 +3,9 @@ import type { Board } from '../../workspace/workspaceService';
 
 export type Intent = 'analytics' | 'db-guide' | 'unclear';
 
+/** The longest question the services accept (QuestionRules.MaxLength in Insights.Common). */
+export const MAX_QUESTION_LENGTH = 2000;
+
 /** Analytics POST /ask: a query on the sales data, its rows and a plain-English answer. */
 export interface AnalyticsResult {
   question: string;

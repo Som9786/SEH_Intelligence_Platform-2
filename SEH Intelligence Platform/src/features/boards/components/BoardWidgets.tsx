@@ -32,6 +32,8 @@ import {
   type Widget,
 } from '../../workspace/workspaceService';
 import { ShareDialog } from '../../insights/components/ShareDialog';
+import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
+import { ErrorBoundary } from '../../../shared/components/ErrorBoundary';
 import { moveItem } from '../utils/moveItem';
 
 const sameQuestion = (a: string, b: string) =>
@@ -122,20 +124,27 @@ export function BoardWidgets({ board }: { board: Board }) {
     queryKey: widgetsKey,
     queryFn: () => listWidgets(board),
   });
-  // Shown in the new order at once; one save at a time, and the saved order is read back if one fails.
+  // Shown in the new order at once, and saved one move at a time.
   const reorder = useMutation({
     mutationFn: (arranged: Widget[]) =>
       reorderWidgets(
         board,
         arranged.map((w) => w.id),
       ),
-    onMutate: (arranged) =>
-      queryClient.setQueryData<Widget[]>(widgetsKey, arranged),
-    onError: () => void queryClient.invalidateQueries({ queryKey: widgetsKey }),
+    // A reload already on its way would bring back the old order, so it's cancelled first; once the
+    // order is saved (or fails), the board is read again so it shows what was kept.
+    onMutate: async (arranged) => {
+      await queryClient.cancelQueries({ queryKey: widgetsKey });
+      queryClient.setQueryData<Widget[]>(widgetsKey, arranged);
+    },
+    onSettled: () =>
+      void queryClient.invalidateQueries({ queryKey: widgetsKey }),
     scope: { id: `reorder-${board}` },
   });
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
+  // Said by screen readers after a move, since the card's new place can't be seen.
+  const [moved, setMoved] = useState('');
   // Schedules, to show which widgets refresh on their own. Only for users who can schedule.
   const canSchedule = useAuth().can('scheduled-insights');
   const schedules = useQuery({
@@ -143,6 +152,8 @@ export function BoardWidgets({ board }: { board: Board }) {
     queryFn: listSchedules,
     enabled: canSchedule,
   });
+  // The widget whose Remove was clicked, while the user confirms.
+  const [removing, setRemoving] = useState<Widget | null>(null);
   const remove = useMutation({
     mutationFn: (widget: Widget) => deleteWidget(widget.id),
     onSuccess: () =>
@@ -190,7 +201,10 @@ export function BoardWidgets({ board }: { board: Board }) {
   const list = widgets.data;
   const move = (from: number, to: number) => {
     const arranged = moveItem(list, from, to);
-    if (arranged !== list) reorder.mutate(arranged);
+    if (arranged === list) return;
+    reorder.mutate(arranged);
+    const place = arranged.indexOf(list[from]) + 1;
+    setMoved(`Moved ${list[from].title} to place ${place} of ${list.length}.`);
   };
   const endDrag = () => {
     setDragging(null);
@@ -209,6 +223,9 @@ export function BoardWidgets({ board }: { board: Board }) {
           Couldn't keep the new order: {reorder.error.message}
         </p>
       )}
+      <p className="td-sr-only" role="status">
+        {moved}
+      </p>
       <ul className="bw-grid">
         {list.map((widget, index) => (
           <WidgetCard
@@ -233,13 +250,24 @@ export function BoardWidgets({ board }: { board: Board }) {
             canSchedule={canSchedule}
             schedule={scheduleOf(widget, schedules.data ?? [])}
             removing={remove.isPending}
-            onRemove={() => {
-              if (window.confirm(`Remove “${widget.title}” from this board?`))
-                remove.mutate(widget);
-            }}
+            onRemove={() => setRemoving(widget)}
           />
         ))}
       </ul>
+      {removing && (
+        <ConfirmDialog
+          title="Remove widget?"
+          confirmLabel="Remove"
+          onCancel={() => setRemoving(null)}
+          onConfirm={() => {
+            remove.mutate(removing);
+            setRemoving(null);
+          }}
+        >
+          “{removing.title}” will be removed from this board. Its schedule and
+          any links you shared stay as they are.
+        </ConfirmDialog>
+      )}
     </>
   );
 }
@@ -418,8 +446,11 @@ function WidgetCard({
           Couldn't refresh: {refresh.error.message}
         </p>
       )}
-      {widget.answer && <Prose markdown={widget.answer} />}
-      {widget.result && <ResultVisual result={widget.result} />}
+      {/* A widget that can't be drawn says so; the rest of the board still shows. */}
+      <ErrorBoundary compact resetKey={widget.fetchedAt ?? undefined}>
+        {widget.answer && <Prose markdown={widget.answer} />}
+        {widget.result && <ResultVisual result={widget.result} />}
+      </ErrorBoundary>
       {scheduling && (
         <ScheduleDialog
           question={widget.question}

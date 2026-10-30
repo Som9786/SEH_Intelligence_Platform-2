@@ -13,24 +13,37 @@ import {
   type Board,
 } from '../../workspace/workspaceService';
 import type { AssistantReply } from '../services/assistantService';
+import type { KeptActions } from '../services/threadStore';
 import { DataBehindThis } from './DataBehindThis';
 
 /**
  * What can be done with an answer: open the data behind it, and for an answer about the data,
  * schedule the question to run again and keep the answer as a widget on the board AI Hub picked.
+ * What was done is reported with onKept and comes back as kept, so a saved thread doesn't offer
+ * to add the same answer twice.
  */
-export function AnswerActions({ reply }: { reply: AssistantReply }) {
+export function AnswerActions({
+  reply,
+  kept,
+  onKept,
+}: {
+  reply: AssistantReply;
+  kept?: KeptActions;
+  onKept?: (change: KeptActions) => void;
+}) {
   const { can } = useAuth();
   const queryClient = useQueryClient();
   const [behind, setBehind] = useState(false);
   const [scheduling, setScheduling] = useState(false);
-  const [scheduled, setScheduled] = useState(false);
+  const [scheduled, setScheduled] = useState(kept?.scheduled ?? false);
   const add = useMutation({
     mutationFn: addWidget,
-    onSuccess: (widget) =>
+    onSuccess: (widget) => {
+      onKept?.({ addedTo: widget.board });
       void queryClient.invalidateQueries({
         queryKey: ['workspace', 'widgets', widget.board],
-      }),
+      });
+    },
   });
 
   if (reply.intent === 'unclear') return null;
@@ -101,7 +114,7 @@ export function AnswerActions({ reply }: { reply: AssistantReply }) {
           </button>
         ))}
       {board &&
-        (add.isSuccess ? (
+        (add.isSuccess || kept?.addedTo === board ? (
           <Link to={BOARD_PATH[board]} className="td-action is-done">
             <Check size={16} aria-hidden="true" />
             Added to {BOARD_LABEL[board]} · View
@@ -137,7 +150,10 @@ export function AnswerActions({ reply }: { reply: AssistantReply }) {
           answer={result.answer}
           board={board}
           onClose={() => setScheduling(false)}
-          onSaved={() => setScheduled(true)}
+          onSaved={() => {
+            setScheduled(true);
+            onKept?.({ scheduled: true });
+          }}
         />
       )}
     </div>

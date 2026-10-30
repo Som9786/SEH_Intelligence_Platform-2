@@ -1,4 +1,5 @@
 using Insights.DbGuide.Models;
+using Insights.Common;
 using Insights.DbGuide.Services.Ask;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,8 +16,8 @@ public sealed class AskController(AskService askService) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<AskResponse>> Ask(AskRequest request, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.Question))
-            return Problem("'question' is required.", statusCode: StatusCodes.Status400BadRequest);
+        if (QuestionRules.Problem(request.Question) is { } problem)
+            return Problem(problem, statusCode: StatusCodes.Status400BadRequest);
         return await askService.AskAsync(request, ct);
     }
 }
