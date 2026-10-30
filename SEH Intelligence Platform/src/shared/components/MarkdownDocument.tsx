@@ -1,5 +1,6 @@
 import { Children, isValidElement, type ReactNode } from 'react';
 import Markdown from 'react-markdown';
+import { Link } from 'react-router';
 import remarkGfm from 'remark-gfm';
 import { MermaidDiagram } from './MermaidDiagram';
 import { useCatalog } from '../hooks/useCatalog';
@@ -32,32 +33,33 @@ function documentRoutes(documents: CatalogDocument[]): Map<string, string> {
       '/' + d.path,
       d.table
         ? `/db-catalog/tables?table=${encodeURIComponent(d.table)}&tab=Documentation`
-        : `/documentation?document=${encodeURIComponent(d.id)}`,
+        : `/db-catalog/documentation?document=${encodeURIComponent(d.id)}`,
     ]),
   );
 }
 
+/** Where a link in a document goes: a page in the app (`to`, opened without reloading it) or an address (`href`). */
 function documentLink(
   href: string | undefined,
   sourcePath: string,
   routes: Map<string, string>,
-): string | undefined {
+): { to: string } | { href: string | undefined } {
   if (
     !href ||
     href.startsWith('#') ||
     /^[a-z][a-z0-9+.-]*:/i.test(href) ||
     href.startsWith('//')
   )
-    return href;
+    return { href };
   const url = new URL(href, `https://files.invalid/${sourcePath}`);
   const path = decodeURIComponent(url.pathname);
   const route = routes.get(path);
-  if (route) return route + url.hash;
+  if (route) return { to: route + url.hash };
   // Catalog JSON is published beside the documents; files outside the catalog (e.g. ../extracted) are not.
   const json = /^\/((?:[^/]+\/)*[^/]+\.json)$/.exec(path);
   if (json && !json[1].toLowerCase().endsWith('.data.json'))
-    return dataFileUrl(json[1]);
-  return undefined;
+    return { href: dataFileUrl(json[1]) };
+  return { href: undefined };
 }
 
 export function MarkdownDocument({
@@ -89,8 +91,11 @@ export function MarkdownDocument({
           return <pre>{children}</pre>;
         },
         a({ href, children }) {
-          return (
-            <a href={documentLink(href, sourcePath, routes)}>{children}</a>
+          const link = documentLink(href, sourcePath, routes);
+          return 'to' in link ? (
+            <Link to={link.to}>{children}</Link>
+          ) : (
+            <a href={link.href}>{children}</a>
           );
         },
         img({ alt }) {

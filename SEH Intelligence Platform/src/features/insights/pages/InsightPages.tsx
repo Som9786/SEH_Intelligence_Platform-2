@@ -64,6 +64,18 @@ function Pending({
   );
 }
 
+/** Names the browser tab after the insight while it's open, and gives the app's name back on leaving. */
+function useInsightTitle(title: string | undefined) {
+  useEffect(() => {
+    if (!title) return;
+    const previous = document.title;
+    document.title = `${title} · SEH Intelligence`;
+    return () => {
+      document.title = previous;
+    };
+  }, [title]);
+}
+
 /**
  * A board widget on a page of its own, opened in a new tab from the board
  * (/basket-intelligence/insight/<widget id>).
@@ -77,9 +89,7 @@ export function WidgetInsightPage() {
     retry: false,
   });
   const [sharing, setSharing] = useState(false);
-  useEffect(() => {
-    if (widget.data) document.title = `${widget.data.title} · SEH Intelligence`;
-  }, [widget.data]);
+  useInsightTitle(widget.data?.title);
 
   if (!widget.data)
     return (
@@ -125,9 +135,7 @@ export function SharedInsightPage() {
     retry: false,
     staleTime: Infinity,
   });
-  useEffect(() => {
-    if (share.data) document.title = `${share.data.title} · SEH Intelligence`;
-  }, [share.data]);
+  useInsightTitle(share.data?.title);
 
   if (!share.data)
     return (

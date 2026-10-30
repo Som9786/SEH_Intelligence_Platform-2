@@ -14,7 +14,7 @@ import { Link, useNavigate } from 'react-router';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import { useAuth } from '../../auth/useAuth';
 import { useSuggestedQuestions } from '../../ai-assistant/hooks/useSuggestedQuestions';
-import { listWidgets } from '../../workspace/workspaceService';
+import { listWidgets, type Widget } from '../../workspace/workspaceService';
 import { headlineOf } from '../utils/basketHeadline';
 import {
   interleave,
@@ -98,7 +98,14 @@ export function PlatformOverviewPage() {
     queryFn: () => listWidgets('basket-intelligence'),
     enabled: can('basket-intelligence'),
   });
-  const latest = widgets.data?.[0];
+  // The newest one: the board's own order is the user's arrangement, not when each was added.
+  const latest = widgets.data?.reduce<Widget | undefined>(
+    (newest, w) =>
+      !newest || Date.parse(w.createdAt) > Date.parse(newest.createdAt)
+        ? w
+        : newest,
+    undefined,
+  );
   const starter = suggestions.data[0];
   const basket: Capability | null = latest
     ? { ...BASKET, ...headlineOf(latest), question: latest.question }

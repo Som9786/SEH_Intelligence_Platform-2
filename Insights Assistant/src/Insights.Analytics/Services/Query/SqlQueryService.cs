@@ -35,7 +35,8 @@ public sealed partial class SqlQueryService(
         // The guard allows one trailing semicolon; without it, the text is exactly one statement.
         await using var cmd = new NpgsqlCommand(sql.TrimEnd().TrimEnd(';'), conn, tx) { CommandTimeout = o.TimeoutSeconds + 5 };
         QueryResult result;
-        await using (var reader = await cmd.ExecuteReaderAsync(ct))
+        var reader = await cmd.ExecuteReaderAsync(ct);
+        try
         {
             // Two columns can share a name (SELECT a.x, b.x); rows are keyed by column, so later ones get a suffix.
             var columns = new List<string>();
@@ -61,6 +62,20 @@ public sealed partial class SqlQueryService(
                 rows.Add(row);
             }
             result = new QueryResult(columns, rows, truncated);
+            // Closing the reader would otherwise read every remaining row; cancel the query so PostgreSQL stops sending them.
+            if (truncated)
+                cmd.Cancel();
+        }
+        finally
+        {
+            try
+            {
+                await reader.DisposeAsync();
+            }
+            catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.QueryCanceled)
+            {
+                // The cancel above, as expected.
+            }
         }
         await tx.RollbackAsync(ct);
 
