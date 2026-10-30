@@ -8,11 +8,11 @@ Lets people ask questions about point-of-sale (POS) basket data in plain English
 | Knowledge model | Neo4j database `knowledge-model` | Tables, columns, concepts (Store, Basket, BasketLine, Item, Offer), relationships, metrics, synonyms, business rules and examples. Loaded from three JSON files. |
 | Database catalog for [DB Guide](#db-guide) | Neo4j database `db-guide` | The `SEH_Validation_Retail` SQL Server database's tables, columns, joins, indexes, rules and documentation, from its metadata export. DB Guide answers questions about the database's structure from it. |
 
-**Contents:** [Quick start](#quick-start) · [How it works](#how-it-works) · [Q&A page](#qa-page) · [The knowledge model](#the-knowledge-model) · [DB Guide](#db-guide) · [Endpoints](#endpoints) · [Configuration](#configuration) · [Debug log](#debug-log) · [Project structure](#project-structure) · [Source data](#source-data-temp) · [Troubleshooting](#troubleshooting) · [Scope and limits](#scope-and-limits)
+**Contents:** [Quick start](#quick-start) · [How it works](#how-it-works) · [Q&A page](#qa-page) · [The knowledge model](#the-knowledge-model) · [DB Guide](#db-guide) · [Endpoints](#endpoints) · [Configuration](#configuration) · [Debug log](#debug-log) · [Project structure](#project-structure) · [Local-only files](#local-only-files-temp) · [Troubleshooting](#troubleshooting) · [Scope and limits](#scope-and-limits)
 
 ## Quick start
 
-**Prerequisites:** the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0), PostgreSQL with the `pos_basket` database loaded (see [Source data](#source-data-temp)), Neo4j 5 or later, and an OpenAI API key.
+**Prerequisites:** the [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0), PostgreSQL with the `pos_basket` database loaded (see [Local-only files](#local-only-files-temp)), Neo4j 5 or later, and an OpenAI API key.
 
 1. **Start the databases.** PostgreSQL on `localhost:5432`, and Neo4j. On the team's machines Neo4j runs in **Neo4j Desktop 2** as the local instance `salespoc`: start it with ▶ and wait for **RUNNING**.
 2. **Create the `knowledge-model` database** once. In Neo4j Desktop open **Query**, connect to `salespoc`, select the `system` database and run ``CREATE DATABASE `knowledge-model` IF NOT EXISTS`` (the backticks are needed because of the dash). (Neo4j Community has only one database: set `Neo4j:Database` to `neo4j` instead.)
@@ -310,7 +310,7 @@ Neo4j Poc/
 │   ├── Insights.AiHub/      question + knowledge model context → SQL, rows → answer, catalog context → answer (OpenAI)
 │   ├── Insights.DbGuide/    database catalog (Neo4j db-guide) → answers about tables and joins, DB Guide page (wwwroot/)
 │   └── Insights.Common/     code the services share: the debug log (Diagnostics/)
-└── temp/                the source data and the scripts that load it into PostgreSQL
+└── temp/                local-only data and load scripts, not checked in
 ```
 
 Both services follow the same layout: thin controllers, logic in `Services/`, one options class per settings section, and all dependency-injection registrations in `Extensions/`.
@@ -363,19 +363,19 @@ Both services follow the same layout: thin controllers, logic in `Services/`, on
 |---|---|
 | `Diagnostics/` | The debug log: `AddDebugLog()`, the `DebugLog:Enabled` switch, the in-memory store behind `/logs`, daily log files, and `DebugLogOptions`. Each service's own logs are the categories starting with its application name (`Insights.Analytics`, `Insights.AiHub`). |
 
-**Not checked in** (see [.gitignore](../.gitignore)): the unzipped POS CSV, build output (`bin/`, `obj/`), the log files (`logs/`) and the ratings and OpenAI cost total (`App_Data/`).
+**Not checked in** (see [.gitignore](../.gitignore)): `temp/`, build output (`bin/`, `obj/`), the log files (`logs/`) and the ratings and OpenAI cost total (`App_Data/`).
 
-## Source data (`temp/`)
+## Local-only files (`temp/`)
 
-`temp/` holds the source data and the scripts that load it into PostgreSQL. **Nothing in the app reads it**: the services only talk to the `pos_basket` database and Neo4j.
+`temp/` holds the source data and the scripts that load it into PostgreSQL. It's in [.gitignore](../.gitignore), so it's never checked in, and **nothing in the app reads it**: the services only talk to the `pos_basket` database and Neo4j. Deleting `temp/` doesn't affect the app.
 
 | Path | Contents |
 |---|---|
-| `temp/data/pos_basket_august2.csv.gz` | The POS basket export, gzipped (72 MB; about 300 MB unzipped). GitHub refuses files over 100 MB, so only the zipped file is checked in. |
+| `temp/data/pos_basket_august2.csv` | The POS basket export (about 300 MB), or `pos_basket_august2.csv.gz` zipped (72 MB), which `load.ps1` unzips itself |
 | `temp/data/POSBasket_KnowledgeModel_Review 1.xlsx` | The table owner's answers, which the business rules in `business-rules.json` are based on |
 | `temp/db/pos_basket/` | `load.ps1` and `01-load.sql`, which create the `pos_basket` database and load the CSV into it (see its README) |
 
-To set up `pos_basket` on a new machine, run `temp/db/pos_basket/load.ps1` (see its README). It unzips the CSV itself.
+To set up `pos_basket` on a new machine, get these files from the team, put them under `temp/`, and run `temp/db/pos_basket/load.ps1`.
 
 ## Troubleshooting
 
