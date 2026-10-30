@@ -81,6 +81,9 @@
   --success-fg: #15703f;
   --danger-bg: #fde4e4;
   --danger-fg: #a02f2f;
+  /* Inferred content: what the catalog suggests but the database does not confirm. */
+  --inferred-bg: #fff1e2;
+  --inferred-fg: #9a500c;
   --info-bg: #dbe9fb;
   --info-fg: #1d4f91;
   /* Questions (yours, suggested or asked): a soft tint of the brand green. */
@@ -174,6 +177,8 @@
   --success-fg: #7fd8a6;
   --danger-bg: #44232a;
   --danger-fg: #f0a0a6;
+  --inferred-bg: #3e2510;
+  --inferred-fg: #f0a04b;
   --info-bg: #1b2c47;
   --info-fg: #9cc2f2;
   --q-bg: #1b3328;
@@ -244,7 +249,9 @@
   --fs-md: calc(13px * var(--fs-scale)); /* body and UI text */
   --fs-lg: calc(16px * var(--fs-scale)); /* card, panel and dialog titles */
   --fs-xl: calc(22px * var(--fs-scale)); /* section titles, large values */
-  --fs-2xl: calc(28px * var(--fs-scale)); /* page titles, entity names, key numbers */
+  --fs-2xl: calc(
+    28px * var(--fs-scale)
+  ); /* page titles, entity names, key numbers */
   --fw-regular: 400;
   --fw-semibold: 600;
   --fw-bold: 700;
@@ -252,11 +259,21 @@
   --lh-base: 1.5; /* UI and body */
   --lh-long: 1.65; /* long-form documents */
   --ls-caps: 0.8px; /* uppercase labels */
-  /* Corner radius: badges, controls, boxes inside cards, cards and dialogs. Pills use 999px. */
+  /* Corner radius: chart marks and small swatches, badges, controls, boxes inside cards, cards and
+     dialogs, and fully rounded pills. Circles use 50%. */
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+  --radius-pill: 999px;
+  /* Same in both themes: review status dots, the brand accent, text on the dark brand surfaces
+     (sidebar, sign-in, tips, filled buttons) and the lift under a segmented control's pressed button. */
+  --status-ok: #34c38a;
+  --status-alert: #f0666b;
+  --brand-accent: #ff9b36;
+  --on-brand: #ffffff;
+  --shadow-control: 0 1px 2px #102e2826;
   /* Focus: one green style everywhere. Buttons, links and other controls get a ring; text fields and
      field-like boxes get a green border and soft glow. Colours come from --focus-field-* per theme. */
   --focus-ring: 2px solid var(--focus-field-border);
@@ -292,7 +309,11 @@ a {
 }
 /* Text fields take focus on every click, so they show it as a border and glow rather than a ring.
    :where() keeps this easy to override for fields inside a wrapper. */
-:where(input:not([type='checkbox']):not([type='radio']), textarea, select):focus-visible {
+:where(
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select
+):focus-visible {
   outline: none;
   border-color: var(--focus-field-border);
   box-shadow: var(--focus-field-glow);
@@ -397,7 +418,7 @@ a {
 .nav-link.active {
   background: var(--b-265644);
   color: white;
-  box-shadow: inset 3px 0 0 #ff9b36;
+  box-shadow: inset 3px 0 0 var(--brand-accent);
 }
 .nav-link svg {
   flex: none;
@@ -424,7 +445,7 @@ a {
 .nav-number {
   flex: none;
   width: 20px;
-  color: #ff9b36;
+  color: var(--brand-accent);
   font-size: calc(14px * var(--fs-scale));
   font-weight: var(--fw-bold);
   text-align: center;
@@ -435,7 +456,7 @@ a {
 .nav-soon {
   margin-left: auto;
   padding: 1px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--b-265644);
   color: var(--t-acd1ba);
   font-size: var(--fs-sm);
@@ -714,7 +735,7 @@ a {
   margin: 0;
   padding: 8px 14px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--b-ffffff);
   color: var(--t-245943);
   font-size: var(--fs-md);
@@ -776,7 +797,7 @@ a {
 .po-questions button {
   padding: 7px 12px;
   border: 1px solid var(--q-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--q-bg);
   color: var(--q-fg);
   font-size: var(--fs-sm);
@@ -912,7 +933,7 @@ a {
   gap: 6px;
   padding: 6px 14px;
   border: 1px solid var(--po-accent);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--b-ffffff);
   box-shadow: var(--shadow-card);
   color: var(--po-accent);
@@ -995,17 +1016,17 @@ a {
   display: flex;
   gap: 2px;
   height: 10px;
-  border-radius: 5px;
+  border-radius: var(--radius-xs);
   overflow: hidden;
 }
 .po-review-bar span {
   min-width: 4px;
 }
 .po-review-verified {
-  background: #34c38a;
+  background: var(--status-ok);
 }
 .po-review-needs-attention {
-  background: #f0666b;
+  background: var(--status-alert);
 }
 .po-review-none {
   background: var(--neutral-bg);
@@ -1168,7 +1189,7 @@ a {
   height: 22px;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--neutral-bg);
   cursor: pointer;
 }
@@ -1176,10 +1197,8 @@ a {
   cursor: progress;
 }
 .si-switch::after {
-  transition: left 0.15s ease;
-}
-.si-switch::after {
   content: '';
+  transition: left 0.15s ease;
   position: absolute;
   top: 3px;
   left: 3px;
@@ -1513,7 +1532,7 @@ a {
 .tf-modes button[aria-pressed='true'] {
   background: var(--b-ffffff);
   color: var(--t-172a24);
-  box-shadow: 0 1px 3px #102e2826;
+  box-shadow: var(--shadow-control);
 }
 .tf-group {
   gap: 4px;
@@ -1543,7 +1562,7 @@ a {
 .tf-group-head small {
   margin-left: auto;
   padding: 0 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--neutral-bg);
   font-size: var(--fs-xs);
   letter-spacing: 0;
@@ -1615,10 +1634,10 @@ a {
   border-radius: 50%;
 }
 .rv-dot-verified {
-  background: #34c38a;
+  background: var(--status-ok);
 }
 .rv-dot-needs-attention {
-  background: #f0666b;
+  background: var(--status-alert);
 }
 .rv-dot-none {
   box-shadow: inset 0 0 0 1.5px #85a79b;
@@ -1640,7 +1659,7 @@ a {
   overflow: hidden;
   text-overflow: ellipsis;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--b-e3f3e9);
   color: var(--t-08784e);
   font-size: var(--fs-xs);
@@ -1660,7 +1679,6 @@ a {
   background: var(--b-eaf5ee);
   color: var(--t-172a24);
 }
-
 
 /* Table overview redesign */
 .td-page {
@@ -1747,7 +1765,7 @@ a {
 .td-chip {
   padding: 3px 10px;
   line-height: var(--lh-base);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
 }
@@ -2592,12 +2610,8 @@ a {
 /* The one class for inferred content: text the catalog suggests but the database does not confirm. */
 /* ":root" raises specificity so this wins over component rules such as ".area-card p". */
 :root .inferred {
-  color: #9a500c;
+  color: var(--inferred-fg);
 }
-:root[data-theme='dark'] .inferred {
-  color: #f0a04b;
-}
-
 
 @media (max-width: 700px) {
   .breadcrumb {
@@ -2716,7 +2730,7 @@ a {
   align-items: center;
   gap: 7px;
   padding: 4px 11px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-sm);
   font-weight: var(--fw-bold);
   white-space: nowrap;
@@ -3047,7 +3061,7 @@ a {
   height: 32px;
   padding: 0 12px 0 5px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--b-ffffff);
   color: var(--t-172a24);
   font-size: var(--fs-md);
@@ -3059,8 +3073,8 @@ a {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: #102e28;
-  color: #ffffff;
+  background: var(--b-102e28);
+  color: var(--on-brand);
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
   letter-spacing: 0;
@@ -3097,14 +3111,14 @@ a {
   align-items: center;
   gap: 16px;
   padding: 26px 32px;
-  background: #102e28;
+  background: var(--b-102e28);
 }
 .auth-head h1 {
   margin: 0;
   font-weight: var(--fw-bold);
   font-size: var(--fs-xl);
   line-height: var(--lh-tight);
-  color: #ffffff;
+  color: var(--on-brand);
   letter-spacing: -0.3px;
 }
 .auth-head p {
@@ -3113,7 +3127,7 @@ a {
   font-weight: var(--fw-bold);
   letter-spacing: var(--ls-caps);
   text-transform: uppercase;
-  color: #acd1ba;
+  color: var(--t-acd1ba);
 }
 .auth-form {
   display: flex;
@@ -3155,13 +3169,13 @@ a {
   height: 54px;
   border: 0;
   border-radius: var(--radius-lg);
-  background: #08784e;
-  color: #ffffff;
+  background: var(--b-08784e);
+  color: var(--on-brand);
   font-size: var(--fs-lg);
   font-weight: var(--fw-semibold);
 }
 .auth-submit:hover:not(:disabled) {
-  background: #09613f;
+  background: var(--b-09613f);
 }
 .auth-submit:disabled {
   opacity: 0.7;
@@ -3177,8 +3191,8 @@ a {
   font-weight: var(--fw-semibold);
 }
 :root[data-theme='dark'] .auth-error {
-  background: #44232a;
-  color: #f0a0a6;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
 }
 .auth-hint {
   padding: 14px 18px;
@@ -3206,15 +3220,15 @@ a {
 .auth-stripe span {
   height: 5px;
   border-radius: var(--radius-sm);
-  background: #08784e;
+  background: var(--b-08784e);
   flex: 5;
 }
 .auth-stripe span:nth-child(2) {
-  background: #f18825;
+  background: var(--b-f18825);
   flex: 1;
 }
 .auth-stripe span:nth-child(3) {
-  background: #e74646;
+  background: var(--b-e74646);
   flex: 1;
 }
 
@@ -3261,7 +3275,7 @@ small {
   align-items: center;
   gap: 4px;
   padding: 3px 9px 3px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
   line-height: var(--lh-base);
@@ -3291,12 +3305,8 @@ small {
 }
 /* Inferred keys are orange, like all inferred content. */
 .key-badge.key-badge-inferred {
-  background: #fff1e2;
-  color: #9a500c;
-}
-:root[data-theme='dark'] .key-badge.key-badge-inferred {
-  background: #3e2510;
-  color: #f0a04b;
+  background: var(--inferred-bg);
+  color: var(--inferred-fg);
 }
 /* Tooltip for the badges: fixed-positioned so a table's scroll area cannot clip it. */
 .key-tip {
@@ -3309,7 +3319,7 @@ small {
   padding: 9px 12px;
   border: 1px solid #2c493f;
   border-radius: var(--radius-md);
-  background: #102e28;
+  background: var(--b-102e28);
   color: #d8e8df;
   font-size: var(--fs-sm);
   font-weight: var(--fw-regular);
@@ -3319,7 +3329,7 @@ small {
   pointer-events: none;
 }
 .key-tip strong {
-  color: #ffffff;
+  color: var(--on-brand);
   font-size: var(--fs-sm);
 }
 /* Column pairs in relationship views: FK icon on the referencing side, PK icon on the referenced side. */
@@ -3384,7 +3394,7 @@ small {
 .viz-switch button {
   padding: 3px 10px;
   border: 0;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: none;
   color: var(--t-5f7268);
   font-size: var(--fs-xs);
@@ -3393,7 +3403,7 @@ small {
 .viz-switch button[aria-pressed='true'] {
   background: var(--b-ffffff);
   color: var(--t-172a24);
-  box-shadow: 0 1px 2px #102e2826;
+  box-shadow: var(--shadow-control);
 }
 .viz-figure {
   margin: 0;
@@ -3456,7 +3466,7 @@ small {
   gap: 2px;
   height: 18px;
   overflow: hidden;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
 }
 .viz-share span {
   min-width: 3px;
@@ -3478,7 +3488,7 @@ small {
 .viz-legend i {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 .viz-legend strong {
   font-variant-numeric: tabular-nums;
@@ -3514,13 +3524,13 @@ small {
 .viz-heat td {
   min-width: 28px;
   height: 28px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: color-mix(in oklab, var(--viz-high) var(--level), var(--viz-low));
   color: var(--t-172a24);
   text-align: center;
 }
 .viz-heat td.is-strong {
-  color: #ffffff;
+  color: var(--on-brand);
 }
 :root[data-theme='dark'] .viz-heat td.is-strong {
   color: #0b1626;
@@ -3537,7 +3547,7 @@ small {
 .viz-scale i {
   width: 120px;
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: linear-gradient(90deg, var(--viz-low), var(--viz-high));
 }
 /* Table: a thin bar under each amount, sized against its column's largest value. */
@@ -3661,8 +3671,6 @@ small {
 .ia-thinking {
   margin: 0;
   color: var(--t-5f7268);
-}
-.ia-thinking {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -3865,7 +3873,7 @@ small {
 }
 .ia-chart-track {
   height: 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-xs);
   background: var(--neutral-bg);
   overflow: hidden;
 }
@@ -3876,7 +3884,7 @@ small {
 .ia-chart-bar {
   display: block;
   height: 100%;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
   background: var(--ia-bar);
 }
 .ia-chart-value {
@@ -3911,7 +3919,7 @@ small {
 }
 .ia-confidence-level {
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-xs);
   font-weight: var(--fw-bold);
   letter-spacing: var(--ls-caps);
@@ -3975,7 +3983,7 @@ small {
   margin: 6px 0 0;
   font-size: var(--fs-xl, 1.35rem);
   font-weight: var(--fw-bold);
-  line-height: 1.2;
+  line-height: var(--lh-tight);
 }
 .dbt-body {
   display: grid;
@@ -4013,7 +4021,7 @@ small {
 }
 .dbt-stats dd {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: var(--fs-2xl);
   font-weight: var(--fw-bold);
   font-variant-numeric: tabular-nums;
 }
@@ -4064,7 +4072,7 @@ small {
 }
 .dbt-evidence {
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--success-bg);
   color: var(--success-fg);
   font-size: var(--fs-xs);
@@ -4137,7 +4145,7 @@ small {
   height: 22px;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: none;
   color: var(--danger-fg);
 }
@@ -4160,7 +4168,7 @@ small {
   gap: 6px;
   padding: 8px 14px;
   border: 1px solid var(--q-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--q-bg);
   color: var(--q-fg);
   font-size: var(--fs-md);
@@ -4191,7 +4199,7 @@ small {
   align-items: center;
   padding: 8px 14px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--b-ffffff);
   font-size: var(--fs-md);
   font-weight: var(--fw-semibold);
@@ -4258,14 +4266,16 @@ small {
   min-width: 0;
   padding: 18px 20px;
 }
+/* A narrow card's buttons wrap to their own line rather than squeeze the title. */
 .bw-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
 }
 .bw-title {
-  flex: 1;
+  flex: 1 1 240px;
   min-width: 0;
 }
 /* Drag and drop: the grip moves a card; the card being dragged fades and the one under it is outlined. */
@@ -4366,6 +4376,7 @@ small {
   display: flex;
   flex: none;
   gap: 6px;
+  margin-left: auto;
 }
 .bw-spin {
   animation: bw-spin 0.9s linear infinite;
@@ -4391,17 +4402,6 @@ small {
 .bw-card .ia-chart {
   margin: 0;
 }
-/* A narrow card's buttons move to their own line rather than squeeze the title. */
-.bw-head {
-  flex-wrap: wrap;
-}
-.bw-title {
-  flex-basis: 240px;
-}
-.bw-buttons {
-  margin-left: auto;
-}
-
 /* An insight on its own page: the answer, chart and data on the left, its details on the right. */
 .ins-actions {
   display: flex;
@@ -4790,9 +4790,9 @@ small {
   position: relative;
   width: 32px;
   height: 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--line-strong);
-  transition: background 0.15s;
+  transition: background 0.15s ease;
 }
 .er-track::after {
   content: '';
@@ -4802,8 +4802,8 @@ small {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ffffff;
-  transition: transform 0.15s;
+  background: var(--on-brand);
+  transition: transform 0.15s ease;
 }
 .er-switch input:checked + .er-track {
   background: var(--er-confirmed);
@@ -5071,7 +5071,7 @@ small {
   padding: 1px 7px 1px 5px;
   gap: 3px;
   font-size: var(--fs-xs);
-  line-height: 1.5;
+  line-height: var(--lh-base);
   cursor: default;
 }
 .er-edge-label {
@@ -5087,7 +5087,7 @@ small {
   white-space: nowrap;
   box-shadow: var(--shadow-popover);
   z-index: 2;
-  transition: opacity 0.15s;
+  transition: opacity 0.15s ease;
 }
 .er-edge-label-inferred {
   border-color: #f0c99c;
