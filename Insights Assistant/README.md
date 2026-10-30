@@ -44,9 +44,9 @@ Lets people ask questions about point-of-sale (POS) basket data in plain English
    ```powershell
    dotnet run --project src/Insights.Gateway   # http://localhost:5000
    ```
-   It passes `/api/db-guide/*`, `/api/analytics/*` and `/api/ai/*` on to the three services, but only the routes `Gateway:Allow` in its appsettings.json lists; everything else (raw SQL, logs, reloads, AI Hub's model calls) stays internal. `GET /health` checks all three services. Outside Development it also serves the built UI from `Gateway:UiPath` (`SEH Intelligence Platform/dist`), so the whole platform is one address.
+   It passes `/api/db-guide/*`, `/api/analytics/*` and `/api/ai/*` on to the three services, but only the routes `Gateway:Allow` in its appsettings.json lists; everything else (raw SQL, logs, reloads, AI Hub's SQL and answer calls) stays internal. Two parts it answers itself: `/api/ai/ask` (it asks AI Hub which service a question is for, then asks that service; see [How it works](#how-it-works)) and `/api/workspace`. `GET /health` checks all three services. Outside Development it also serves the built UI from `Gateway:UiPath` (`SEH Intelligence Platform/dist`), so the whole platform is one address.
 
-8. **The workspace** keeps each user's schedules, board widgets and shared insights, and the table reviews. It's part of DB Guide (`src/Insights.DbGuide/Workspace`, files under `src/Insights.DbGuide/App_Data`), under `/workspace`, so it runs when DB Guide does.
+8. **The workspace** keeps each user's schedules, board widgets and shared insights, and the table reviews. It's part of the gateway (`src/Insights.Gateway/Workspace`, files under `src/Insights.Gateway/App_Data`), so it runs when the gateway does and always knows the signed-in user. (Before, it was part of DB Guide; to keep saved work from then, copy `src/Insights.DbGuide/App_Data/admin-*.json`, `reviews.json` and `shares/` to `src/Insights.Gateway/App_Data`.)
 
    Through the gateway at `/api/workspace`: `GET`/`POST /schedules`, `PUT`/`DELETE /schedules/{id}` (`{ name, question, frequency: daily|weekly|monthly|quarterly, time: "HH:mm", startsOn: "yyyy-MM-dd", dayOfWeek, dayOfMonth, enabled, board, answer }`; responses add `nextRunAt`), and `GET /widgets?board=`, `POST /widgets` (`{ board, question, answer, result }`), `DELETE /widgets/{id}`. Schedules are saved and shown but not run yet; widgets keep the answer as it was when added.
 
@@ -60,40 +60,48 @@ Other ways in: **Swagger UI** at http://localhost:5100/swagger and http://localh
 
 | Project | Port | Talks to | Purpose |
 |---|---|---|---|
-| [src/Insights.Analytics](src/Insights.Analytics) | 5100 | Neo4j (knowledge model), PostgreSQL `pos_basket` (data), AI Hub | Loads the knowledge model into Neo4j, picks the part of it each question is about, runs read-only SQL on PostgreSQL, and serves the Q&A page. It's the **single entry point** for clients: it forwards AI requests to AI Hub (`/ai/*`) and answers questions end to end (`/ask`). |
-| [src/Insights.AiHub](src/Insights.AiHub) | 5200 | OpenAI, Analytics (`/context`, and `/ask` for routed questions), DB Guide (`/ask` for routed questions) | The shared AI service: turns English questions into SQL, query results into English answers, and catalog context into answers about a database's structure (`/guide`). Analytics and DB Guide call it; new AI features for other apps or datasets go here. It also tells which service a question is for (`/intent`) and asks that one (`/ask`), so a client needs only one endpoint. |
-| [src/Insights.DbGuide](src/Insights.DbGuide) | 5300 | Neo4j (catalog), AI Hub | Loads a database's metadata export into Neo4j and answers questions about its structure: which table to use, how to join, what a column means. Serves its own page. See [DB Guide](#db-guide). Also keeps the **workspace** under `/workspace`: each user's saved work (schedules, widgets, shared insights) and the table reviews, in files (`App_Data/`), knowing the user from the gateway's `X-User` header. |
+| [src/Insights.Gateway](src/Insights.Gateway) | 5000 | Analytics, AI Hub, DB Guide | The **one entry point** for the SEH Intelligence Platform UI and other clients: sign-in, roles, the routes `Gateway:Allow` lists, the built UI. It answers `/api/ai/ask` itself (AI Hub says which service a question is for, then the gateway asks that service), and keeps the **workspace** (`/api/workspace`): each user's saved work (schedules, widgets, shared insights) and the table reviews, in files (`App_Data/`). |
+| [src/Insights.Analytics](src/Insights.Analytics) | 5100 | Neo4j (knowledge model), PostgreSQL or SQL Server `pos_basket` (data), AI Hub | Loads the knowledge model into Neo4j, picks the part of it each question is about, runs read-only SQL on the data, and serves the Q&A page. It forwards the Q&A page's AI requests to AI Hub (`/ai/*`), sending each question's knowledge model context along, and answers data questions end to end (`/ask`). |
+| [src/Insights.AiHub](src/Insights.AiHub) | 5200 | The model only (OpenAI or Amazon Bedrock) | The shared AI service: turns English questions into SQL, query results into English answers, and catalog context into answers about a database's structure (`/guide`); tells which service a question is for (`/intent`) and suggests what to ask next (`/follow-ups`). It **calls no other service**: each caller sends the context its prompt needs. New AI features for other apps or datasets go here. |
+| [src/Insights.DbGuide](src/Insights.DbGuide) | 5300 | Neo4j (catalog), AI Hub | Loads a database's metadata export into Neo4j and answers questions about its structure: which table to use, how to join, what a column means. Serves its own page. See [DB Guide](#db-guide). |
+| [src/Insights.Common](src/Insights.Common) | – | – | Code the services share: the debug log, the AI Hub client connection, word matching (`Terms`) and the question rules. |
 
 In this README they're called **Analytics** and **AI Hub** for short.
 
 ```
-Client (Q&A page, requests.http, another backend) ──► Analytics only
+UI / other clients ──► Gateway (sign-in, roles, allowed routes)
+                          ├─► /api/analytics/*, /api/db-guide/*, /api/ai/* ──► passed on to the service
+                          ├─► /api/workspace/* ──► answered by the gateway (App_Data/)
+                          └─► /api/ai/ask ──► AI Hub POST /intent (with what each service answers) ──► the model
+                                         └─► Analytics or DB Guide POST /ask, as the intent says
 
 Startup, or knowledge-model.json / business-rules.json / query-examples.json saved
            ──► Analytics ──► replaces the knowledge model in Neo4j (one transaction)
 
-POST /ask  ──► Analytics ──► AI Hub POST /sql ──► Analytics POST /context ──► Neo4j: the question's part of the knowledge model
-                    │                         └─► OpenAI: writes one SELECT
+POST /ask  ──► Analytics ──► Neo4j: the question's part of the knowledge model
+                    ├─► AI Hub POST /sql (question + that context) ──► the model: writes one SELECT
                     ├─► PostgreSQL or SQL Server, read-only ──► rows
-                    └─► AI Hub POST /answer ──► OpenAI: plain-English answer
+                    └─► AI Hub POST /answer ──► the model: plain-English answer
 ```
+
+Calls only go one way: Gateway → Analytics or DB Guide → AI Hub → the model. No service calls back into the one that called it, so a slow step holds one request, not a chain of them.
 
 - **The graph holds meaning, not data.** Neo4j stores what "net sales", "basket" or "bought together" mean and where they live in PostgreSQL. Answers are always computed from PostgreSQL, so they're never out of date and there's nothing to sync.
 - **Focused prompts.** A question's words are matched against the knowledge model's names and synonyms. The AI gets the concepts and metrics it names, the concepts on the shortest relationship path between them (so it sees how they join), their tables and columns, the business rules about them, and up to 5 examples that illustrate the most of them. "Net sales by store" gets Store, Basket, BasketLine and Net sales, not offers or items. A question that names nothing in the knowledge model gets all of it.
-- **Clear boundaries.** AI Hub never connects to a database, and Analytics never calls OpenAI.
+- **Clear boundaries.** AI Hub never connects to a database or another service, and only AI Hub calls the model (OpenAI or Bedrock; see [Choosing OpenAI or Bedrock](#choosing-openai-or-bedrock)).
 - **Two ways to ask.** `/ask` does the whole question in one call. The Q&A page instead calls `/ai/sql`, `/query` and `/ai/answer` one at a time, so it can show progress and let you edit and rerun the query.
 
 ## Q&A page
 
 http://localhost:5100/ is served by Analytics from [src/Insights.Analytics/wwwroot/index.html](src/Insights.Analytics/wwwroot/index.html). It only calls Analytics.
 
-- **Chat:** type a question and the page shows the plain-English answer, a chart when the rows suit one, and **How this was answered**: the AI's description of the query, **Knowledge model used** (the concepts and metrics the AI was given), the generated SQL (editable, with **Run edited query**), the raw rows and **Download CSV**. Status pills at the top right show the **AI service** (OpenAI model and today's cost against the daily budget, or offline), the **Knowledge model** (Neo4j; green when loaded) and the **Data** (PostgreSQL or SQL Server; green when reachable); hover for details.
+- **Chat:** type a question and the page shows the plain-English answer, a chart when the rows suit one, and **How this was answered**: the AI's description of the query, **Knowledge model used** (the concepts and metrics the AI was given), the generated SQL (editable, with **Run edited query**), the raw rows and **Download CSV**. Status pills at the top right show the **AI service** (the model and today's cost against the daily budget, or offline), the **Knowledge model** (Neo4j; green when loaded) and the **Data** (PostgreSQL or SQL Server; green when reachable); hover for details.
 - **Charts:** a **line** for a series over time (dates, hours), with a tab per measure and a crosshair tooltip; a **network** for pairs such as items bought together (hover a node to highlight its links); **bars** for a short list of label/number pairs. When several fit, tabs switch between them.
 - **Follow-ups:** questions such as “and only on Thursday?” build on the last three questions and their queries, and keep their part of the knowledge model. **New chat** clears the chat and starts fresh.
 - **Self-correcting:** if the database rejects the AI's query, the page sends the error back to the AI once and runs its corrected query; the answer says “query corrected after a database error”.
 - **Rating:** 👍 / 👎 under each answer saves a rating (`POST /feedback`). After 👍, **Save as example** adds the question and its query to `query-examples.json`, so the AI reuses it for similar questions.
-- **Explain with AI:** a switch under the question box, on by default and remembered per browser. Off skips the AI's plain-English explanation: the answer is the chart and table (a single value shows as one line), which cuts a question's OpenAI cost by about two thirds. `/ask` takes the same option as `"explain": false`.
-- **Cost line:** each answer shows its step times and OpenAI cost, or “reused, no OpenAI cost” when AI Hub answered from its cache.
+- **Explain with AI:** a switch under the question box, on by default and remembered per browser. Off skips the AI's plain-English explanation: the answer is the chart and table (a single value shows as one line), which cuts a question's model cost by about two thirds. `/ask` takes the same option as `"explain": false`.
+- **Cost line:** each answer shows its step times and model cost, or “reused, no model cost” when AI Hub answered from its cache.
 - **Right column:** the same height as the chat, with five cards, **one open at a time**. **Hide panel** (top right) collapses the column to an icon rail; click an icon to reopen it on that card. The open card and the collapsed state are remembered per browser.
 
 | Card | What it shows |
@@ -101,7 +109,7 @@ http://localhost:5100/ is served by Analytics from [src/Insights.Analytics/wwwro
 | Suggested questions | Example questions for this dataset (from `/dataset`); click one to ask it |
 | Recent questions | The last 30 questions asked in this browser (kept in `localStorage`); click one to ask it again |
 | Knowledge model | What the knowledge model holds (concepts, metrics, rules, examples, tables, columns), how the concepts relate, each concept's meaning, and the **last load** (time and counts, or the error), with **Reload knowledge model** |
-| Data boundary | What is sent to OpenAI, what stays local, what is saved on this machine, and what can change data |
+| Data boundary | What is sent to the model, what stays local, what is saved on this machine, and what can change data |
 | Debug log | Both services' step-by-step logs, merged by time (see [Debug log](#debug-log)) |
 
 ## The knowledge model
@@ -191,9 +199,9 @@ Plus a full-text index, `catalog_text`, over what each table and column means. T
 | `GET /catalog/status` / `POST /catalog/reload` | – | The last load `{ at, succeeded, error, counts }` / load again. **500** "Catalog error" names every problem with the export or `db-guide.json`. |
 | `GET /health` | – | `{ catalog: { ok, detail }, ai: { ok, detail }, model }` |
 | `GET /guide` | – | The page's name and suggested questions |
-| `GET /ai/usage` | – | AI Hub's OpenAI cost totals, passed through |
+| `GET /ai/usage` | – | AI Hub's model cost totals, passed through |
 
-**What goes to OpenAI:** the question and the catalog context (table and column names, types, descriptions, joins, indexes, constraints, triggers and business rules). No data rows. The documentation pages (which include the export's masked sample and profile summaries) are stored in Neo4j and shown on the page, but never sent to OpenAI; column descriptions can still mention a typical value, such as a status's possible values. Each question costs about one US cent with `gpt-5` at low reasoning effort; a repeated question is answered from AI Hub's cache.
+**What goes to the model:** the question and the catalog context (table and column names, types, descriptions, joins, indexes, constraints, triggers and business rules). No data rows. The documentation pages (which include the export's masked sample and profile summaries) are stored in Neo4j and shown on the page, but never sent to the model; column descriptions can still mention a typical value, such as a status's possible values. Each question costs about one US cent with `gpt-5` at low reasoning effort; a repeated question is answered from AI Hub's cache.
 
 ## Endpoints
 
@@ -202,7 +210,7 @@ Plus a full-text index, `catalog_text`, over what each table and column means. T
 | Endpoint | Body | Returns |
 |---|---|---|
 | `GET /schema` | – | The whole knowledge model from Neo4j: `dialect` (`PostgreSQL` or `SQL Server`), `coverage` (`{ from, to }`: the first and last business date in the data, or null), `tables` with `columns`, `concepts` with `attributes`, `relationships`, `metrics`, `rules` and `examples` |
-| `POST /context` | `{ "question": "...", "history": ["earlier question", ...] }` | The same shape, narrowed to the question: what AI Hub puts in its prompt. `matched` lists the concepts and metrics its words named; it's empty when nothing matched and the whole knowledge model is returned. |
+| `POST /context` | `{ "question": "...", "history": ["earlier question", ...] }` | The same shape, narrowed to the question: what Analytics sends with each AI Hub `/sql` call, for its prompt. `matched` lists the concepts and metrics its words named; it's empty when nothing matched and the whole knowledge model is returned. |
 | `GET /knowledge-model/status` | – | The last load: `{ at, succeeded, error, counts }`. **404** before the first load. |
 | `POST /knowledge-model/reload` | – | Loads the three files into Neo4j again and returns the status. Saving a file does this by itself. **500** "Knowledge model error" with every problem when a file is invalid. |
 | `GET /health` | – | `{ knowledge model: { ok, detail }, data: { ok, detail }, coverage }`: whether Neo4j holds a loaded knowledge model and the data's database answers |
@@ -211,10 +219,10 @@ Plus a full-text index, `catalog_text`, over what each table and column means. T
 | `POST /ask` | `{ "question": "...", "history": [{ "question", "sql" }] }` | `{ question, answerable, sql, explanation, result, answer, costUsd, corrected, knowledge model }`: the whole flow in one call. `history` (optional, oldest first) makes it a follow-up. If the database rejects the generated query, the AI corrects it once (`corrected: true`); if that fails too, the 400 response includes the query as `sql`. |
 | `POST /feedback` / `GET /feedback` | `{ "question", "sql", "answer", "rating": "up" \| "down", "comment" }` | Saves a rating to `App_Data/feedback.jsonl` / lists the newest (`?count=`, default 100) |
 | `GET /examples` / `POST /examples` / `DELETE /examples?question=` | `{ "question", "sql" }` | Lists, adds (or replaces, by question) or removes a verified example in `query-examples.json`, for the database in use: on SQL Server the example is saved with `"Dialect": "SQL Server"`, beside the PostgreSQL one. A query the SQL guard refuses can't be saved. |
-| `POST /ai/sql` | as AI Hub `/sql` | Forwarded to AI Hub `/sql` |
+| `POST /ai/sql` | as AI Hub `/sql`, without `context` | Forwarded to AI Hub `/sql`, with the question's knowledge model context (as `/context` returns it) added |
 | `POST /ai/answer` | as AI Hub `/answer` | Forwarded to AI Hub `/answer` |
-| `GET /ai/health` | – | Forwarded to AI Hub `/health`: `{ status, model }` |
-| `GET /ai/usage` | – | Forwarded to AI Hub `/usage`: OpenAI calls, tokens and estimated cost so far (see [OpenAI cost](#openai-cost)) |
+| `GET /ai/health` | – | Forwarded to AI Hub `/health`: `{ status, model, provider }` |
+| `GET /ai/usage` | – | Forwarded to AI Hub `/usage`: model calls, tokens and estimated cost so far (see [Model cost](#model-cost)) |
 | `GET /logs?after=<id>` / `DELETE /logs` | – | Recent log entries from Analytics `{ enabled, lastId, entries, logFile }` / clears them |
 | `GET /ai/logs?after=<id>` / `DELETE /ai/logs` | – | The same for AI Hub, forwarded |
 
@@ -228,19 +236,29 @@ Rejected queries return **400** "Query rejected"; queries the database refuses r
 
 | Endpoint | Body | Returns |
 |---|---|---|
-| `POST /sql` | `{ "question": "...", "history": [...], "failedSql": "...", "error": "..." }` | `{ answerable, sql, explanation, usage, cached, knowledge model }`. It first gets the question's knowledge model context from Analytics `POST /context`. If `answerable` is false, `sql` is empty and `explanation` says why. `history` (optional) makes it a follow-up; `failedSql` and `error` (optional) ask for a corrected query. `knowledge model` names the concepts and metrics the model was given. |
+| `POST /sql` | `{ "question": "...", "context": <Analytics /context response>, "history": [...], "failedSql": "...", "error": "..." }` | `{ answerable, sql, explanation, usage, cached, knowledge model }`. `context` is the question's part of the knowledge model, which the caller (Analytics) sends; **400** without it. If `answerable` is false, `sql` is empty and `explanation` says why. `history` (optional) makes it a follow-up; `failedSql` and `error` (optional) ask for a corrected query. `knowledge model` names the concepts and metrics the model was given. |
 | `POST /answer` | `{ "question": "...", "sql": "...", "results": <Analytics /query response> }` | `{ answer, usage, cached }`, the answer in plain English |
 | `POST /guide` | `{ "question": "...", "context": <DB Guide /context response>, "history": [...] }` | `{ answer, tables, sql, usage, cached }`: an answer about a database's structure from the catalog context the caller sends. Used by DB Guide; AI Hub never reads the catalog itself. |
-| `POST /intent` | `{ "question": "...", "history": [{ "question", "intent" }] }` | `{ intent, reason, board, usage, cached }`: whether the question is about the sales data (`analytics`), about the database's structure (`db-guide`), or neither (`unclear`), and the capability board an answer about the data belongs on (`basket-intelligence`, `fresh-food-forecasting`, `revenue-opportunities` or `none`). One small model call, given each service's own suggested questions (Analytics `GET /dataset`, DB Guide `GET /guide`) as examples. |
-| `POST /ask` | `{ "question": "...", "history": [{ "question", "intent", "answer", "sql" }] }` | `{ question, intent, reason, board, service, result, message, intentUsage, intentCached }`: classifies the question, then asks Analytics or DB Guide (`POST /ask`, at `Analytics:BaseUrl` and `Routing:DbGuideBaseUrl`) and passes its response through in `result`. Each service is sent only its own earlier turns as history (`sql` for Analytics, `answer` for DB Guide). An `unclear` question calls neither: `message` says what to ask instead. A failing service's error is passed on, with the intent in the `X-Intent` header. The one endpoint the UI's Insights Assistant needs (`/api/ai/ask` through the gateway). |
-| `POST /follow-ups` | `{ "question": "...", "intent": "analytics", "answer": "...", "columns": [...] }` | `{ questions, usage, cached }`: up to three questions to ask next, about the sales data or the database. The UI asks for these after showing the answer, so they never delay it. |
-| `GET /usage` | – | OpenAI calls, tokens and estimated cost, in total and today, and the daily budget |
+| `POST /intent` | `{ "question": "...", "history": [{ "question", "intent" }], "analytics": { name, suggestions }, "dbGuide": { name, suggestions } }` | `{ intent, reason, board, chart, usage, cached }`: whether the question is about the sales data (`analytics`), about the database's structure (`db-guide`), or neither (`unclear`), and the capability board an answer about the data belongs on (`basket-intelligence`, `fresh-food-forecasting`, `revenue-opportunities` or `none`). One small model call. `analytics` and `dbGuide` (optional) are what each service says it answers (Analytics `GET /dataset`, DB Guide `GET /guide`), used as examples; the gateway adds them. |
+| `POST /follow-ups` | `{ "question": "...", "intent": "analytics", "answer": "...", "columns": [...], "analytics": {...}, "dbGuide": {...} }` | `{ questions, usage, cached }`: up to three questions to ask next, about the sales data or the database. The UI asks for these after showing the answer, so they never delay it. |
+| `GET /usage` | – | Model calls, tokens and estimated cost, in total and today, and the daily budget |
 | `GET /health` | – | `{ status, model, provider }`. Doesn't call the model. |
 | `GET /logs?after=<id>` / `DELETE /logs` | – | AI Hub's recent log entries / clears them |
 
-AI Hub returns **500** for missing configuration (such as no API key), **502** for OpenAI errors and **503** when it can't load the knowledge model context from Analytics.
+AI Hub returns **500** for missing configuration (such as no API key), **502** for the model's errors, **503** when Bedrock can't be reached and **504** when the model doesn't answer in time.
 
-**What goes to OpenAI:** for `/sql`, the question and its knowledge model context (table and column descriptions, concept attributes, metric formulas, the matching business rules and examples, and the first and last date in the data); for `/answer`, the question, the SQL and the query rows (up to `Answer:MaxResultChars`). The POS data has no customer details.
+**What goes to the model:** for `/sql`, the question and its knowledge model context (table and column descriptions, concept attributes, metric formulas, the matching business rules and examples, and the first and last date in the data); for `/answer`, the question, the SQL and the query rows (up to `Answer:MaxResultChars`). The POS data has no customer details.
+
+### Insights.Gateway (http://localhost:5000)
+
+Everything under `/api` needs a sign-in (see [Quick start](#quick-start), step 8) and a route `Gateway:Allow` lists. Most routes are passed on to a service as they are; these are answered by the gateway itself:
+
+| Endpoint | Body | Returns |
+|---|---|---|
+| `POST /api/ai/ask` | `{ "question": "...", "history": [{ "question", "intent", "answer", "sql" }] }` | `{ question, intent, reason, board, chart, service, result, message, intentUsage, intentCached }`: asks AI Hub `/intent` which service the question is for, then asks Analytics or DB Guide (`POST /ask`) and passes its response through in `result`. Each service is sent only its own earlier turns as history (`sql` for Analytics, `answer` for DB Guide). An `unclear` question calls neither: `message` says what to ask instead. A failing service's error is passed on, with the intent in the `X-Intent` header. The one endpoint the UI's Insights Assistant needs. |
+| `POST /api/ai/intent`, `POST /api/ai/follow-ups` | as AI Hub's, without `analytics` and `dbGuide` | AI Hub's response; the gateway adds what each service answers (kept for 10 minutes) |
+| `/api/workspace/*` | see [Quick start](#quick-start), step 8 | The signed-in user's schedules, widgets and shared insights, and the table reviews |
+| `GET /health` | – | `{ ok, services: { ai, analytics, db-guide } }` |
 
 ## Choosing the database: PostgreSQL or SQL Server
 
@@ -285,14 +303,16 @@ Settings are in each project's `appsettings.json`; `appsettings.Development.json
 | `OpenAI:ReasoningEffort` | AI Hub | `low` | `minimal`, `low`, `medium` or `high`, for reasoning models (gpt-5, o-series) only. Lower is faster and cheaper. Empty uses OpenAI's default (`medium`). |
 | `OpenAI:DailyBudgetUsd` | AI Hub | `5` | Questions are refused (429) once today's OpenAI cost reaches this; `0` means no limit |
 | `Cache:Enabled` / `MaxEntries` | AI Hub | `true` / `500` | Reuse the query for a repeated question while its knowledge model context is the same, and the answer for the same question, query and results, without calling OpenAI. Follow-ups and corrections are never cached. |
-| `OpenAI:Prices` | AI Hub | gpt-5, gpt-5-mini, gpt-5-nano, gpt-4.1, gpt-4o families | US dollars per million input, cached input and output tokens, used to count cost (see [OpenAI cost](#openai-cost)) |
+| `OpenAI:Prices` | AI Hub | gpt-5, gpt-5-mini, gpt-5-nano, gpt-4.1, gpt-4o families | US dollars per million input, cached input and output tokens, used to count cost (see [Model cost](#model-cost)) |
 | `Bedrock:Region` | AI Hub | `us-east-1` | The AWS region the model is enabled in |
 | `Bedrock:ApiKey` / `AccessKeyId` / `SecretAccessKey` / `SessionToken` | AI Hub | *(empty)* | A Bedrock API key, or an IAM key pair. All empty: `AWS_BEARER_TOKEN_BEDROCK`, then the default AWS credentials (`AWS_PROFILE`, `~/.aws`, an instance role) |
 | `Bedrock:Model` / `FallbackModel` | AI Hub | `us.anthropic.claude-sonnet-5` / `us.anthropic.claude-haiku-4-5-20251001-v1:0` (the two our AWS account allows) | A model ID or inference profile ID that supports JSON schema output. The fallback is also used if `Model` isn't found or isn't enabled |
 | `Bedrock:TimeoutSeconds` / `MaxTokens` / `Effort` | AI Hub | `150` / `8192` / `low` | Time limit for the whole call (retries and fallback included; keep it under `AiHub:TimeoutSeconds`), longest reply, and effort (`low` to `max`, empty for the model's default; dropped for a model that rejects it) |
 | `Bedrock:DailyBudgetUsd` / `Prices` | AI Hub | `5` / Claude Sonnet 5 and Haiku 4.5 | As for OpenAI; a price key matches the model ID with or without the `us.` prefix. Check them against [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
-| `Analytics:BaseUrl` | AI Hub | `http://localhost:5100` | Where AI Hub gets each question's knowledge model context |
-| `Answer:MaxResultChars` | AI Hub | `50000` | Longer query results are cut before they're sent to OpenAI |
+| `Answer:MaxResultChars` | AI Hub | `50000` | Longer query results are cut before they're sent to the model |
+| `Gateway:AskTimeoutSeconds` | Gateway | `300` | How long `/api/ai/ask` waits for Analytics or DB Guide to answer |
+| `Workspace:DataPath` / `ShareDays` | Gateway | `App_Data` / `30` | Where the workspace's files are kept, and how many days a shared insight's link works |
+| `ReverseProxy:Clusters:*:Destinations` | Gateway | `http://localhost:5100/`, `5200/`, `5300/` | Where each service runs, for the proxy and for the gateway's own calls |
 | `DebugLog:*` | Both | | See [Debug log](#debug-log) |
 | `Knowledge model:*` (in `knowledge-model.json`) and `Dataset:*` (in `business-rules.json`, `query-examples.json` and `suggested-questions.json`) | Analytics | | See [The knowledge model](#the-knowledge-model) |
 
@@ -303,8 +323,8 @@ Both services log each step of what they do, at Information level:
 - **Queries:** the SQL, rows and time, or why it was rejected.
 - **`/ask`:** each step.
 - **Data:** whether the data's database (PostgreSQL or SQL Server) answers, and the dates it covers.
-- **Calls between the services:** every call from Analytics to AI Hub and back, with status and time.
-- **OpenAI:** every call, with model, time, tokens, finish reason and cost.
+- **Calls between the services:** every call from Analytics or DB Guide to AI Hub, with status and time.
+- **The model:** every OpenAI or Bedrock call, with model, time, tokens, finish or stop reason and cost.
 
 ### Choosing OpenAI or Bedrock
 
@@ -312,9 +332,9 @@ AI Hub calls one model service, chosen by `Llm:Provider` in its `appsettings.jso
 
 Bedrock calls go to the [Converse API](https://docs.aws.amazon.com/bedrock/latest/userguide/conversation-inference.html) with structured output, so `Bedrock:Model` must be a model that supports a JSON schema response (recent Anthropic Claude models do). Enable the model in the Bedrock console for `Bedrock:Region` first, and copy its model ID or inference profile ID from there.
 
-### OpenAI cost
+### Model cost
 
-AI Hub counts the cost of its own OpenAI calls; it doesn't call OpenAI's billing API, which needs an admin key. Each reply carries its token counts (input, cached input, output including reasoning), and AI Hub multiplies them by `OpenAI:Prices`.
+AI Hub counts the cost of its own model calls (OpenAI or Bedrock); it doesn't call a billing API, which needs an admin key. Each reply carries its token counts (input, cached input, output including reasoning), and AI Hub multiplies them by `OpenAI:Prices`.
 
 - **Per answer:** `/ai/sql` and `/ai/answer` return a `usage` object, `/ask` returns `costUsd`, and the Q&A page shows `≈ $0.02 OpenAI` under each answer (hover it for the tokens).
 - **Running total:** `GET /ai/usage`, and the AI service pill at the top of the page. It's saved in `src/Insights.AiHub/App_Data/openai-usage.json`, so it survives restarts; delete the file to start counting again.
@@ -346,26 +366,27 @@ Neo4j Poc/
 ├── Insights.sln
 ├── README.md, requests.http, .gitignore
 ├── src/
+│   ├── Insights.Gateway/    the one entry point: sign-in, roles, allowed routes, /api/ai/ask routing (Ask/), the workspace (Workspace/), the built UI
 │   ├── Insights.Analytics/  knowledge model (Neo4j), read-only SQL (PostgreSQL or SQL Server), /ask, AI forwarding, Q&A page (wwwroot/)
-│   ├── Insights.AiHub/      question + knowledge model context → SQL, rows → answer, catalog context → answer (OpenAI)
+│   ├── Insights.AiHub/      question + knowledge model context → SQL, rows → answer, catalog context → answer, intent (OpenAI or Bedrock)
 │   ├── Insights.DbGuide/    database catalog (Neo4j db-guide) → answers about tables and joins, DB Guide page (wwwroot/)
-│   └── Insights.Common/     code the services share: the debug log (Diagnostics/)
+│   └── Insights.Common/     code the services share: the debug log, the AI Hub connection, Terms, QuestionRules
 └── temp/                local-only data and load scripts, not checked in
 ```
 
-Both services follow the same layout: thin controllers, logic in `Services/`, one options class per settings section, and all dependency-injection registrations in `Extensions/`.
+The services follow the same layout: thin controllers, logic in `Services/`, one options class per settings section, and all dependency-injection registrations in `Extensions/`.
 
 **src/Insights.Analytics**
 
 | Folder | Contents |
 |---|---|
 | `Controllers/` | `SchemaController` (`/schema`, `/context`), `KnowledgeModelController` (`/knowledge-model/status`, `/knowledge-model/reload`, `/dataset`), `HealthController` (`/health`), `QueryController` (`/query`), `AskController` (`/ask`), `FeedbackController` (`/feedback`, `/examples`), `AiHubController` (`/ai/*`), `LogsController` (`/logs`) |
-| `Services/Knowledge model/` | `KnowledgeModelLoader` (checks the files and writes the knowledge model to Neo4j), `KnowledgeModelReader` (the whole knowledge model, or a question's part of it), `KnowledgeModelWatcher` (loads at startup and when a file changes), `Terms` (word matching), `SqlServerExpressions` (the knowledge model's PostgreSQL formulas as T-SQL) |
+| `Services/Knowledge model/` | `KnowledgeModelLoader` (checks the files and writes the knowledge model to Neo4j), `KnowledgeModelReader` (the whole knowledge model, or a question's part of it), `KnowledgeModelWatcher` (loads at startup and when a file changes), `SqlServerExpressions` (the knowledge model's PostgreSQL formulas as T-SQL) |
 | `Services/Query/` | `SqlQueryService` (read-only SQL on the data's database), `SqlGuard` (what may run, per dialect), `SqlValueConverter` (database values to JSON), `DatabaseErrors` (a failed query's error, and `QueryFailedException`) |
 | `Services/Data/` | `PosBasketDatabase` (the PostgreSQL or SQL Server connection, table names and dialect), `DataCoverageService` (whether the database answers, and the dates it covers) |
 | `Services/Dataset/` | `ExampleStore` (`query-examples.json`), `FeedbackStore` (ratings) |
 | `Services/Ask/` | `AskService` (question → SQL → rows → answer) |
-| `Services/AiHub/` | `AiHubClient` (calls AI Hub and waits for the response) |
+| `Services/AiHub/` | `AiHubClient` (the AI Hub endpoints Analytics uses; adds each question's knowledge model context to `/sql`) |
 | `Filters/` | `AiHubErrorFilter`: AI Hub errors, timeouts and failed `/ask` queries as problem responses. `DatabaseErrorHandler`: "Neo4j is not reachable", "PostgreSQL is not reachable" or "SQL Server is not reachable" (503) and "Knowledge model error" (500) with the cause, on any endpoint |
 | `Models/`, `Configuration/`, `Extensions/` | Request and response records, options classes, `AddAnalytics()` |
 | `wwwroot/` | The Q&A page |
@@ -376,34 +397,44 @@ Both services follow the same layout: thin controllers, logic in `Services/`, on
 
 | Folder | Contents |
 |---|---|
-| `Controllers/` | `SqlController` (`/sql`), `AnswerController` (`/answer`), `HealthController` (`/health`), `UsageController` (`/usage`), `LogsController` (`/logs`) |
+| `Controllers/` | `SqlController` (`/sql`), `AnswerController` (`/answer`), `GuideController` (`/guide`), `RoutingController` (`/intent`, `/follow-ups`), `HealthController` (`/health`), `UsageController` (`/usage`), `LogsController` (`/logs`) |
 | `Services/Sql/` | `SqlGenerationService` and `SqlPrompt` (question + knowledge model context → SQL) |
 | `Services/Answer/` | `AnswerService` and `AnswerPrompt` (rows → English) |
 | `Services/Guide/` | `GuideService` and `GuidePrompt` (question + database catalog context → answer and example query, for DB Guide `/guide`) |
-| `Services/Knowledge model/` | `KnowledgeModelClient` (gets each question's context from Analytics `/context`) |
+| `Services/Routing/` | `IntentService` and `IntentPrompt` (which service a question is for), `FollowUpService` (what to ask next) |
 | `Services/Llm/` | `LlmClient` (passes each call to `OpenAIChat` or `BedrockChat` by `Llm:Provider`; each applies its model fallback), `UsageTracker` (cost and daily budget), `ResponseCache` |
-| `Filters/` | `UpstreamErrorFilter`: missing configuration, OpenAI and Analytics errors as 500, 502 and 503 |
-| `Models/`, `Configuration/`, `Extensions/` | Request and response records, options classes, `AddAiHub()`. No CORS: only Analytics calls AI Hub, server to server. |
+| `Filters/` | `UpstreamErrorFilter`: missing configuration and model errors as 500, 502, 503 and 504 |
+| `Models/`, `Configuration/`, `Extensions/` | Request and response records, options classes, `AddAiHub()`. No CORS: only Analytics, DB Guide and the gateway call AI Hub, server to server. |
 
 **src/Insights.DbGuide**
 
 | Folder | Contents |
 |---|---|
 | `Controllers/` | `AskController` (`/ask`), `CatalogController` (`/catalog`, `/catalog/tables/{id}`, `/context`, `/catalog/status`, `/catalog/reload`, `/guide`), `HealthController` (`/health`, `/ai/usage`) |
-| `Services/Catalog/` | `CatalogFiles` (reads and checks the export folder), `CatalogLoader` (writes the catalog to Neo4j), `CatalogReader` (overview, one table, or a question's part of it), `CatalogWatcher` (loads at startup and when a file changes), `Terms` (word matching, as in Analytics) |
+| `Services/Catalog/` | `CatalogFiles` (reads and checks the export folder), `CatalogLoader` (writes the catalog to Neo4j), `CatalogReader` (overview, one table, or a question's part of it), `CatalogWatcher` (loads at startup and when a file changes) |
 | `Services/Ask/`, `Services/AiHub/` | `AskService` (question → catalog context → AI Hub `/guide`), `AiHubClient` |
 | `Filters/` | `ErrorHandler`: "Neo4j is not reachable" (503), "Catalog error" (500) and AI Hub errors as problem responses |
 | `Models/`, `Configuration/`, `Extensions/` | The export's file formats (`CatalogExport`), request and response records, options classes, `AddDbGuide()` |
 | `wwwroot/` | The DB Guide page |
 | `catalog/`, `db-guide.json` | The metadata export and the page's questions and synonyms (see [DB Guide](#db-guide)) |
 
-**src/Insights.Common** (class library, referenced by all three services)
+**src/Insights.Gateway**
+
+| Folder | Contents |
+|---|---|
+| `Program.cs`, `Access.cs`, `ApiAllowList.cs`, `GatewayOptions.cs` | Sign-in, roles, the `Gateway:Allow` check, the proxy and the built UI |
+| `Ask/` | `AskEndpoints` (`/api/ai/ask`, and `/api/ai/intent` and `/follow-ups` with the service profiles added), `ServiceProfiles` (what Analytics and DB Guide answer) |
+| `Workspace/` | `WorkspaceEndpoints` (`/api/workspace`), `WorkspaceStore`, `ShareStore`, `ReviewStore` (JSON files under `App_Data/`), `ScheduleRules` |
+
+**src/Insights.Common** (class library, referenced by all the services)
 
 | Folder | Contents |
 |---|---|
 | `Diagnostics/` | The debug log: `AddDebugLog()`, the `DebugLog:Enabled` switch, the in-memory store behind `/logs`, daily log files, and `DebugLogOptions`. Each service's own logs are the categories starting with its application name (`Insights.Analytics`, `Insights.AiHub`). |
+| `AiHub/` | `AiHubConnection` (one call to AI Hub, logged; `AddAiHubConnection()`), `AiHubException`, `AiHubOptions`: what Analytics' and DB Guide's `AiHubClient` build on |
+| `Terms.cs`, `QuestionRules.cs`, `ServiceHost.cs` | Word matching for the knowledge model and the catalog, the rules a question must meet, and running as a Windows service |
 
-**Not checked in** (see [.gitignore](../.gitignore)): `temp/`, build output (`bin/`, `obj/`), the log files (`logs/`) and the ratings and OpenAI cost total (`App_Data/`).
+**Not checked in** (see [.gitignore](../.gitignore)): `temp/`, build output (`bin/`, `obj/`), the log files (`logs/`) and the ratings, workspace files and model cost total (`App_Data/`).
 
 ## Local-only files (`temp/`)
 
@@ -437,7 +468,8 @@ Open the **Debug log** card or the log files first: failed steps show their real
 | 400 "Query took too long" | The database cancelled it after `Query:TimeoutSeconds`. Narrow the question, or add an index for it. |
 | 429 "Daily model budget reached" | Today's cost reached `OpenAI:DailyBudgetUsd` (or `Bedrock:DailyBudgetUsd`). Raise it in the AI Hub's `appsettings.json` (no restart needed) or wait until tomorrow. |
 | `/ai/*` or `/ask` return 503 "AI Hub unavailable" | AI Hub isn't running, or `AiHub:BaseUrl` is wrong. |
-| `/ai/sql` returns 503 "Analytics service unavailable" | AI Hub can't reach Analytics `/context`: Analytics isn't running, `Analytics:BaseUrl` is wrong, or Neo4j is down (the detail says which). |
+| `/api/ai/ask` returns 503 "Analytics unavailable", "DB Guide unavailable" or "AI Hub unavailable" | That service isn't running, or its address under `ReverseProxy:Clusters` in the gateway's appsettings.json is wrong. |
+| Saved widgets, schedules or reviews are missing after upgrading | The workspace moved from DB Guide to the gateway. Copy `src/Insights.DbGuide/App_Data/admin-*.json`, `reviews.json` and `shares/` to `src/Insights.Gateway/App_Data`. |
 | 502 "Bedrock refused access" | The Bedrock API key or AWS credentials are wrong or expired, or aren't allowed to call `Bedrock:Model` in `Bedrock:Region`. Check them and the model access in the Bedrock console. |
 | 502 "Bedrock credentials not found or not usable" | `Llm:Provider` is `Bedrock` but no credentials were found. Set `Bedrock:ApiKey` with user-secrets for AI Hub, or `AWS_BEARER_TOKEN_BEDROCK`. |
 | 503 "Bedrock unreachable" | AI Hub can't connect to Bedrock at all: network, proxy or firewall, or a wrong `Bedrock:Region`. |

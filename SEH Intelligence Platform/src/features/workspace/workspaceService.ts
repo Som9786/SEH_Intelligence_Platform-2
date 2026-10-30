@@ -3,7 +3,7 @@ import type { AnalyticsResult } from '../ai-assistant/services/assistantService'
 import type { ChartKind } from '../ai-assistant/utils/chartChoice';
 
 /**
- * The signed-in user's saved work, kept by the workspace in Insights.DbGuide (through the gateway at
+ * The signed-in user's saved work, kept by the workspace in Insights.Gateway (at
  * /api/workspace): questions scheduled to run again, and answers kept as widgets on a board.
  */
 

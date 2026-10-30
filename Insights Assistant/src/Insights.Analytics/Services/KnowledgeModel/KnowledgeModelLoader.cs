@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Insights.Analytics.Configuration;
 using Insights.Analytics.Models;
 using Insights.Analytics.Services.Data;
+using Insights.Common;
 using Microsoft.Extensions.Options;
 using Neo4j.Driver;
 using Row = System.Collections.Generic.Dictionary<string, object?>;

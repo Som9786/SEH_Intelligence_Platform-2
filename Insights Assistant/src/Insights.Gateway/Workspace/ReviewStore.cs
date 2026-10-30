@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Insights.DbGuide.Workspace;
+namespace Insights.Gateway.Workspace;
 
 /// A table's review: someone's sign-off on its catalog metadata. Everyone sees the same review, so they are kept in one
 /// shared file (reviews.json under Workspace:DataPath), not in a user's workspace.

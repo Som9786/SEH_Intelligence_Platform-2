@@ -1,3 +1,5 @@
+using Insights.AiHub.Models;
+
 namespace Insights.AiHub.Services.Routing;
 
 /// System prompt and structured-output schema for telling questions about the data from questions about the database.

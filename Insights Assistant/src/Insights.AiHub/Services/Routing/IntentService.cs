@@ -6,7 +6,7 @@ namespace Insights.AiHub.Services.Routing;
 
 /// Question -> its intent: about the sales data (Analytics), about the database's structure (DB Guide), or unclear. One
 /// small model call; a question asked again without history is answered from the cache.
-public sealed class IntentService(LlmClient llm, ServiceProfiles profiles, ResponseCache<IntentResponse> cache, ILogger<IntentService> logger)
+public sealed class IntentService(LlmClient llm, ResponseCache<IntentResponse> cache, ILogger<IntentService> logger)
 {
     /// Earlier turns shown to the model; enough to read a follow-up.
     const int MaxHistory = 3;
@@ -14,8 +14,7 @@ public sealed class IntentService(LlmClient llm, ServiceProfiles profiles, Respo
     public async Task<IntentResponse> ClassifyAsync(RouteRequest request, CancellationToken ct)
     {
         var history = request.History?.TakeLast(MaxHistory).ToList() ?? [];
-        var analytics = await profiles.AnalyticsAsync(ct);
-        var dbGuide = await profiles.DbGuideAsync(ct);
+        var (analytics, dbGuide) = (request.Analytics, request.DbGuide);
 
         // The services' names are in the key, so a different dataset or database classifies afresh.
         var cacheKey = history.Count == 0

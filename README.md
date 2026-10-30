@@ -13,7 +13,7 @@ A web app for exploring a retail business's data. You can ask questions about sa
 - **PostgreSQL** on `localhost:5432`, with the `pos_basket` database loaded. It holds the sales data. The data and the script that loads it aren't in the repo: get the `temp` folder from the team (see the [backend README](Insights%20Assistant/README.md#local-only-files-temp)).
   - **Or SQL Server**, with a copy of `pos_basket`: set `PosBasket:Provider` to `SqlServer` in [Insights.Analytics/appsettings.json](Insights%20Assistant/src/Insights.Analytics/appsettings.json) and restart Analytics. See [Choosing the database](Insights%20Assistant/README.md#choosing-the-database-postgresql-or-sql-server).
 - **Neo4j 5+**, with the `knowledge-model` and `db-guide` databases. On the team's machines this is the Neo4j Desktop instance `salespoc`: start it and wait for **RUNNING**.
-- An **OpenAI API key**.
+- An **AWS Bedrock API key** (the AI Hub's default, `Llm:Provider` = `Bedrock`), or an **OpenAI API key** with `Llm:Provider` set to `OpenAI`.
 
 Run these once, from the `Insights Assistant` folder. They keep the passwords and the key outside the project:
 
@@ -21,6 +21,8 @@ Run these once, from the `Insights Assistant` folder. They keep the passwords an
 dotnet user-secrets set "Neo4j:Password"     "<neo4j password>"    --project src/Insights.Analytics
 dotnet user-secrets set "PosBasket:Password" "<postgres password>" --project src/Insights.Analytics
 dotnet user-secrets set "Neo4j:Password"     "<neo4j password>"    --project src/Insights.DbGuide
+dotnet user-secrets set "Bedrock:ApiKey"     "<bedrock api key>"   --project src/Insights.AiHub
+# or, with Llm:Provider set to OpenAI:
 dotnet user-secrets set "OpenAI:ApiKey"      "<openai key>"        --project src/Insights.AiHub
 ```
 
@@ -52,10 +54,10 @@ Services that are already running are left as they are, so running it again star
 | Address | What |
 |---|---|
 | http://localhost:5174 | The UI (Vite dev server). It passes `/api` on to the gateway. |
-| http://localhost:5000 | **Gateway**: sign-in, access checks, and the only way in to the services below. `/health` shows which services are up. |
+| http://localhost:5000 | **Gateway**: sign-in, access checks, and the only way in to the services below. Sends each question to Analytics or DB Guide, and keeps each user's schedules, board widgets and shared links, and the table reviews (`/api/workspace`). `/health` shows which services are up. |
 | http://localhost:5100 | **Analytics**: answers questions about the sales data with read-only SQL on PostgreSQL, or SQL Server (`PosBasket:Provider`). |
-| http://localhost:5200 | **AI Hub**: the AI calls, and routes each question to Analytics or DB Guide. |
-| http://localhost:5300 | **DB Guide**: answers questions about the database's tables and joins. Also keeps each user's schedules, board widgets and shared links, and the table reviews (under `/workspace`). |
+| http://localhost:5200 | **AI Hub**: the AI calls (OpenAI or Amazon Bedrock). It calls no other service. |
+| http://localhost:5300 | **DB Guide**: answers questions about the database's tables and joins. |
 
 ## Starting them by hand
 
@@ -94,7 +96,7 @@ Each service can run as a Windows service, so it starts with Windows and keeps r
    ```powershell
    [Environment]::SetEnvironmentVariable('Neo4j__Password',     '<neo4j password>',    'Machine')
    [Environment]::SetEnvironmentVariable('PosBasket__Password', '<postgres password>', 'Machine')
-   [Environment]::SetEnvironmentVariable('OpenAI__ApiKey',      '<openai key>',        'Machine')
+   [Environment]::SetEnvironmentVariable('Bedrock__ApiKey',     '<bedrock api key>',   'Machine')   # or OpenAI__ApiKey with Llm:Provider = OpenAI
    ```
    To read the data from SQL Server, also set `PosBasket__Provider` to `SqlServer`. A service runs as Local System, so Windows sign-in reaches SQL Server as the machine account: give that account read access to `pos_basket`, or set `PosBasket__SqlServer__ConnectionString` to one with a SQL login.
 4. **Install and start** them, as an administrator:
@@ -122,5 +124,5 @@ From `SEH Intelligence Platform`:
 
 - **The start script lists a service as down:** check that service's window for the error. Usually PostgreSQL or Neo4j isn't running, or a password or key isn't set.
 - **"Port already in use":** something else is on that port. Run `.\stop-all.ps1`, then start again.
-- **Answers fail with an AI error:** check the OpenAI key on AI Hub.
+- **Answers fail with an AI error:** check the Bedrock key (or the OpenAI key, with `Llm:Provider` = `OpenAI`) on AI Hub. A short-term Bedrock key expires after 12 hours.
 - **The page looks out of date after an update:** do a hard refresh (Ctrl+F5).

@@ -47,7 +47,7 @@ const today = () => {
 };
 
 /**
- * Define (or edit) when a question runs again. Saves through the workspace in Insights.DbGuide; schedules are
+ * Define (or edit) when a question runs again. Saves through the workspace in Insights.Gateway; schedules are
  * kept and listed on Scheduled insights, but not run yet.
  */
 export function ScheduleDialog({

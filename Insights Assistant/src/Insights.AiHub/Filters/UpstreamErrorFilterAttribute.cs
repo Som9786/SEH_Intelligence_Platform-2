@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc.Infrastructure;
 
 namespace Insights.AiHub.Filters;
 
-/// Maps configuration, OpenAI, Bedrock and analytics-service failures to readable problem responses.
+/// Maps configuration, OpenAI and Bedrock failures to readable problem responses.
 public sealed class UpstreamErrorFilterAttribute : ExceptionFilterAttribute
 {
     public override void OnException(ExceptionContext context)
@@ -45,8 +45,6 @@ public sealed class UpstreamErrorFilterAttribute : ExceptionFilterAttribute
                 $"Check Bedrock:Region and the other Bedrock settings. {e.Message}"),
             LlmReplyException e => (StatusCodes.Status502BadGateway, "No usable answer from the model", e.Message),
             BudgetExceededException e => (StatusCodes.Status429TooManyRequests, "Daily model budget reached", e.Message),
-            HttpRequestException e => (StatusCodes.Status503ServiceUnavailable, "Analytics service unavailable",
-                $"Could not load the knowledge model context from the analytics service: {e.Message}"),
             TimeoutException e => (StatusCodes.Status504GatewayTimeout, "Model timeout", e.Message),
             // The OpenAI client's network timeout surfaces as TaskCanceledException; a caller hanging up is not one.
             TaskCanceledException when !context.HttpContext.RequestAborted.IsCancellationRequested =>

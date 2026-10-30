@@ -1,12 +1,12 @@
 using System.Text.RegularExpressions;
 
-namespace Insights.DbGuide.Services.Catalog;
+namespace Insights.Common;
 
-/// Turns table and column names, synonyms and questions into the same normalized words, so "Which products?" finds the
-/// table Products and "order items" the table OrderItems.
-/// Words are split at camel case (OrderItems -> order item), lowercased and made singular the naive way
-/// (products -> product, categories -> category). That only has to be consistent on both sides, not correct English.
-static partial class Terms
+/// Turns names, synonyms and questions into the same normalized words, so "Which stores?" finds the synonym "store" and
+/// "order items" the table OrderItems. Used by Analytics (the knowledge model) and DB Guide (the catalog).
+/// Words are split at camel case (BasketLine -> basket line), lowercased and made singular the naive way
+/// (stores -> store, categories -> category). That only has to be consistent on both sides, not correct English.
+public static partial class Terms
 {
     /// Longest synonym, in words, that a question can match.
     const int MaxWords = 4;

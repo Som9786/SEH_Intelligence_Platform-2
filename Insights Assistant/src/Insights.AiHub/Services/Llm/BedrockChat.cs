@@ -124,7 +124,7 @@ public sealed class BedrockChat(IOptionsMonitor<BedrockOptions> options, UsageTr
             {
                 throw new TimeoutException($"Bedrock did not answer within {o.TimeoutSeconds} seconds (Bedrock:TimeoutSeconds).");
             }
-            // Otherwise it would be reported as the analytics service being down, the other HTTP call AI Hub makes.
+            // DNS, a proxy or firewall: reported as Bedrock being unreachable, with its region.
             catch (HttpRequestException e)
             {
                 throw new BedrockUnreachableException($"Could not reach Bedrock in {o.Region}: {e.Message}", e);

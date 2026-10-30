@@ -1,7 +1,7 @@
 using System.Net;
 using System.Text.Json;
 
-namespace Insights.DbGuide.Services.AiHub;
+namespace Insights.Common.AiHub;
 
 /// The AI Hub answered with an error. Carries its status, title and detail so they reach the caller unchanged.
 public sealed class AiHubException(int statusCode, string title, string detail) : Exception(detail)

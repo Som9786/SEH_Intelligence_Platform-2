@@ -1,11 +1,10 @@
 using System.Text.Json;
 
-namespace Insights.DbGuide.Workspace;
+namespace Insights.Gateway.Workspace;
 
 /// Each user's saved work: questions scheduled to run again, answers kept as widgets on a capability board, shared
-/// insights and table reviews. Stored in files (WorkspaceStore). Schedules are saved and shown, not run yet. Served under
-/// /workspace, which Insights.Gateway reaches at /api/workspace and sends the signed-in user in X-User; DB Guide listens
-/// on localhost only, so nothing else can set it.
+/// insights and table reviews. Stored in files (WorkspaceStore). Schedules are saved and shown, not run yet. Served by
+/// the gateway itself under /api/workspace, after its sign-in and Gateway:Allow checks, so the user is the signed-in one.
 public static class WorkspaceEndpoints
 {
     const int MaxWidgetRows = 500;
@@ -22,12 +21,8 @@ public static class WorkspaceEndpoints
     {
         int ShareDays() => app.Configuration.GetValue("Workspace:ShareDays", 30);
 
-        // Every workspace route needs the user the gateway signed in. DB Guide's own routes don't: AI Hub calls them.
-        var group = app.MapGroup("/workspace").AddEndpointFilter(async (context, next) =>
-            string.IsNullOrWhiteSpace(context.HttpContext.Request.Headers["X-User"])
-                ? Results.Problem("No signed-in user (X-User). Call the workspace through the gateway.",
-                    statusCode: StatusCodes.Status401Unauthorized)
-                : await next(context));
+        // The /api check in Program.cs has already refused anyone not signed in, and routes Gateway:Allow doesn't list.
+        var group = app.MapGroup("/api/workspace");
 
         group.MapGet("/health", (WorkspaceStore store) => Results.Ok(new { status = "ok", dataPath = store.Folder }));
 
@@ -48,7 +43,7 @@ public static class WorkspaceEndpoints
             var now = DateTimeOffset.Now;
             var schedule = Build(Guid.NewGuid().ToString("n"), input, now, now);
             await store.ChangeAsync(UserOf(context), w => { w.Schedules.Add(schedule); return true; }, ct);
-            return Results.Created($"/workspace/schedules/{schedule.Id}", new ScheduleView(schedule, ScheduleRules.NextRun(schedule, now)));
+            return Results.Created($"/api/workspace/schedules/{schedule.Id}", new ScheduleView(schedule, ScheduleRules.NextRun(schedule, now)));
         });
 
         group.MapPut("/schedules/{id}", async (string id, ScheduleInput input, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
@@ -116,7 +111,7 @@ public static class WorkspaceEndpoints
             var widget = new Widget(Guid.NewGuid().ToString("n"), input.Board, title.Length > 160 ? title[..160] : title,
                 input.Question.Trim(), input.Answer, input.Result, DateTimeOffset.Now, input.FetchedAt, input.Details, input.Chart);
             await store.ChangeAsync(UserOf(context), w => { w.Widgets.Add(widget); return true; }, ct);
-            return Results.Created($"/workspace/widgets/{widget.Id}", widget);
+            return Results.Created($"/api/workspace/widgets/{widget.Id}", widget);
         });
 
         // Refresh: the same question answered again on the latest data replaces the widget's answer and rows.
@@ -164,7 +159,7 @@ public static class WorkspaceEndpoints
                 widget.Result, widget.Details is { } details ? details with { Sql = null } : null,
                 widget.FetchedAt ?? widget.CreatedAt, UserOf(context), now, now.AddDays(ShareDays()), widget.Chart);
             await shares.SaveAsync(share, ct);
-            return Results.Created($"/workspace/shares/{share.Id}", share);
+            return Results.Created($"/api/workspace/shares/{share.Id}", share);
         });
 
         // 410 once the link has expired (shares made before links expired count from when they were shared).
@@ -201,7 +196,8 @@ public static class WorkspaceEndpoints
         app.Logger.LogInformation("Workspace files are kept in {Folder}", app.Services.GetRequiredService<WorkspaceStore>().Folder);
     }
 
-    static string UserOf(HttpContext context) => context.Request.Headers["X-User"].ToString();
+    /// The signed-in user name: the sign-in cookie's only claim (see Access).
+    static string UserOf(HttpContext context) => context.User.Identity?.Name ?? "";
     static IResult Invalid(string problem) => Results.Problem(problem, statusCode: StatusCodes.Status400BadRequest);
     static IResult NotFound(string what) => Results.Problem($"No {what} with that id.", statusCode: StatusCodes.Status404NotFound);
 

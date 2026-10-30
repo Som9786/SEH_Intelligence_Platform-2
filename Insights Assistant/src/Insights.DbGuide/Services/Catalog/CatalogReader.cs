@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Insights.DbGuide.Configuration;
 using Insights.DbGuide.Models;
+using Insights.Common;
 using Microsoft.Extensions.Options;
 using Neo4j.Driver;
 using Map = System.Collections.Generic.IDictionary<string, object>;

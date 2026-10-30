@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Insights.DbGuide.Workspace;
+namespace Insights.Gateway.Workspace;
 
 /// Checks a schedule's fields and works out when it would next run.
 public static class ScheduleRules

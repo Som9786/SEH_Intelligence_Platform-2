@@ -1,4 +1,4 @@
-using Insights.Analytics.Services.AiHub;
+using Insights.Common.AiHub;
 using Insights.Analytics.Services.Ask;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;

@@ -4,7 +4,7 @@
   then waits until the gateway says every service is up and opens the app.
 
 .DESCRIPTION
-  PostgreSQL and Neo4j must already be running, and the passwords and OpenAI key set with user-secrets (see README.md).
+  PostgreSQL and Neo4j must already be running, and the passwords and the Bedrock (or OpenAI) key set with user-secrets (see README.md).
   A service whose port is already in use is left as it is, so running this again only starts what's missing.
   Close a window (or press Ctrl+C in it) to stop that service, or run stop-all.ps1 to stop them all.
 

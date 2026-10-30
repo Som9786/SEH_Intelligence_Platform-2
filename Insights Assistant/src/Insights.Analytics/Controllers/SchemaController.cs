@@ -15,7 +15,7 @@ public sealed class SchemaController(KnowledgeModelReader reader) : ControllerBa
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]
     public Task<KnowledgeModelContext> Get(CancellationToken ct) => reader.GetAllAsync(ct);
 
-    /// The part of the knowledge model a question is about, for the AI Hub's prompt: the concepts and metrics its words name,
+    /// The part of the knowledge model a question is about, as Analytics sends it with each AI Hub /sql call: the concepts and metrics its words name,
     /// the concepts that join them, and the rules and examples about them. History (earlier questions) keeps a follow-up's
     /// concepts. A question that names nothing in the knowledge model gets all of it.
     [HttpPost("context")]

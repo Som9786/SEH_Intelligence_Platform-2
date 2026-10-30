@@ -1,3 +1,4 @@
+using Insights.Common.AiHub;
 using Insights.DbGuide.Configuration;
 using Insights.DbGuide.Services.AiHub;
 using Insights.DbGuide.Services.Catalog;

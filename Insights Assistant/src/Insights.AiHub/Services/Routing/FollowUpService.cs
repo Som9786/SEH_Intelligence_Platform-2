@@ -6,7 +6,7 @@ namespace Insights.AiHub.Services.Routing;
 
 /// Question + the answer shown -> up to three questions to ask next, of the kinds Analytics and DB Guide can answer. Asked
 /// after the answer is shown, so it never delays it. The same question and answer are answered from the cache.
-public sealed class FollowUpService(LlmClient llm, ServiceProfiles profiles, ResponseCache<FollowUpResponse> cache, ILogger<FollowUpService> logger)
+public sealed class FollowUpService(LlmClient llm, ResponseCache<FollowUpResponse> cache, ILogger<FollowUpService> logger)
 {
     public const int MaxQuestions = 3;
     /// Enough of the answer to know what it said; the rest only costs tokens.
@@ -26,8 +26,7 @@ public sealed class FollowUpService(LlmClient llm, ServiceProfiles profiles, Res
             return cached with { Usage = null, Cached = true };
         }
 
-        var analytics = await profiles.AnalyticsAsync(ct);
-        var dbGuide = await profiles.DbGuideAsync(ct);
+        var (analytics, dbGuide) = (request.Analytics, request.DbGuide);
         List<LlmMessage> messages =
         [
             LlmMessage.System(System(analytics, dbGuide)),

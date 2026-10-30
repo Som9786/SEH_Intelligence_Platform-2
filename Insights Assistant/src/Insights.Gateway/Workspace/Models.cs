@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace Insights.DbGuide.Workspace;
+namespace Insights.Gateway.Workspace;
 
 /// How often a schedule repeats.
 public static class Frequencies

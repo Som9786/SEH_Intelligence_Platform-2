@@ -3,14 +3,12 @@ using Insights.Common;
 using Insights.Common.Diagnostics;
 using Insights.DbGuide.Configuration;
 using Insights.DbGuide.Extensions;
-using Insights.DbGuide.Workspace;
 
 var builder = ServiceHost.CreateBuilder(args);
 // The page's name, suggested questions and synonyms. Reloaded when it changes, and the synonyms reloaded into Neo4j.
 builder.Configuration.AddJsonFile(GuideOptions.FileName, optional: false, reloadOnChange: true);
 builder.AddDebugLog();
 builder.Services.AddDbGuide(builder.Configuration);
-builder.Services.AddWorkspace();
 // Empty fields are left out, which keeps the catalog context sent to the AI small.
 builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull);
 builder.Services.AddProblemDetails();
@@ -30,7 +28,5 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 // /ask, /context, /catalog, /catalog/files, /guide, /health and /ai/usage (see Controllers).
 app.MapControllers();
-// Each user's schedules, widgets and shared insights, and the table reviews, under /workspace (see Workspace/).
-app.MapWorkspace();
 
 app.Run();

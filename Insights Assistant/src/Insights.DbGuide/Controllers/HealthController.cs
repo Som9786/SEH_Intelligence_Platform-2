@@ -1,4 +1,5 @@
 using Insights.DbGuide.Models;
+using Insights.Common.AiHub;
 using Insights.DbGuide.Services.AiHub;
 using Insights.DbGuide.Services.Catalog;
 using Microsoft.AspNetCore.Mvc;

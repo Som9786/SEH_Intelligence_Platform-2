@@ -1,19 +1,20 @@
 using System.Text.Json;
 using Insights.AiHub.Models;
 using Insights.AiHub.Services.Llm;
-using Insights.AiHub.Services.KnowledgeModel;
 
 namespace Insights.AiHub.Services.Sql;
 
 /// Question in English -> one read-only query for the analytics service's /query endpoint, in its database's dialect
-/// (PostgreSQL or SQL Server, from the context), written from the part of the knowledge model the question is about.
+/// (PostgreSQL or SQL Server, from the context), written from the part of the knowledge model the question is about,
+/// which the caller sends.
 /// Earlier turns of the conversation go along as chat history, and a query the database rejected goes back with its error
 /// so the model can correct it. A plain question (no history, no correction) asked again with the same knowledge model
 /// context is answered from the cache without calling the model; the context names the dialect, so switching databases
 /// writes queries afresh.
-public sealed class SqlGenerationService(
-    KnowledgeModelClient knowledgeModel, LlmClient llm, ResponseCache<SqlResponse> cache, ILogger<SqlGenerationService> logger)
+public sealed class SqlGenerationService(LlmClient llm, ResponseCache<SqlResponse> cache, ILogger<SqlGenerationService> logger)
 {
+    static readonly JsonSerializerOptions Indented = new() { WriteIndented = true };
+
     /// Conversation turns sent with a follow-up; older ones are dropped to keep the prompt small.
     const int MaxHistory = 3;
 
@@ -24,8 +25,8 @@ public sealed class SqlGenerationService(
         var fixing = !string.IsNullOrWhiteSpace(request.FailedSql);
         logger.LogInformation("SQL step 1/2: building the prompt for \"{Question}\"{History}{Fix}", question,
             history.Count > 0 ? $" with {history.Count} earlier questions" : "", fixing ? ", to correct a query the database rejected" : "");
-        var context = await knowledgeModel.GetContextAsync(question, history.Select(h => h.Question).ToList(), ct);
-        var used = KnowledgeModelClient.Names(context);
+        var context = JsonSerializer.Serialize(request.Context, Indented);
+        var used = Names(request.Context!.Value);
         var dialect = SqlPrompt.Dialect(context);
 
         // The context is in the key, so a changed knowledge model (or new days of data) writes the query afresh.
@@ -64,6 +65,15 @@ public sealed class SqlGenerationService(
             cache.Set(cacheKey, response);
         return response;
     }
+
+    /// The concepts and metrics in a context, to show which part of the knowledge model answered a question.
+    static List<string> Names(JsonElement context) =>
+        new[] { "concepts", "metrics" }
+            .Where(p => context.TryGetProperty(p, out var list) && list.ValueKind == JsonValueKind.Array)
+            .SelectMany(p => context.GetProperty(p).EnumerateArray())
+            .Select(e => e.TryGetProperty("name", out var n) ? n.GetString() : null)
+            .OfType<string>()
+            .ToList();
 
     /// The question after the conversation's earlier questions and their queries, oldest first.
     static string WithEarlier(List<ConversationTurn> history, string question)

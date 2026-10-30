@@ -6,6 +6,7 @@ using Insights.Analytics.Services.Data;
 using Insights.Analytics.Services.Dataset;
 using Insights.Analytics.Services.KnowledgeModel;
 using Insights.Analytics.Services.Query;
+using Insights.Common.AiHub;
 using Microsoft.Extensions.Options;
 using Neo4j.Driver;
 
@@ -21,7 +22,6 @@ public static class ServiceCollectionExtensions
         services.Configure<KnowledgeModelOptions>(configuration.GetSection(KnowledgeModelOptions.SectionName));
         services.Configure<DatasetOptions>(configuration.GetSection(DatasetOptions.SectionName));
         services.Configure<QueryOptions>(configuration.GetSection(QueryOptions.SectionName));
-        services.Configure<AiHubOptions>(configuration.GetSection(AiHubOptions.SectionName));
 
         services.AddSingleton<IDriver>(sp =>
         {
@@ -45,12 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SqlQueryService>();
 
         // The AI Hub, called server to server for /ai/* and /ask.
-        services.AddHttpClient(AiHubClient.HttpClientName, (sp, http) =>
-        {
-            var o = sp.GetRequiredService<IOptions<AiHubOptions>>().Value;
-            http.BaseAddress = new Uri(o.BaseUrl.TrimEnd('/') + "/");
-            http.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
-        });
+        services.AddAiHubConnection(configuration);
         services.AddSingleton<AiHubClient>();
         services.AddSingleton<AskService>();
 

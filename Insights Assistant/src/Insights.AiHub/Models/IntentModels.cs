@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Insights.AiHub.Models;
 
 /// The kinds of question POST /intent tells apart.
@@ -30,8 +28,15 @@ public static class Charts
     public const string None = "none";
 }
 
-/// Body of POST /intent and POST /ask. History holds the conversation's earlier turns, oldest first.
-public sealed record RouteRequest(string Question, IReadOnlyList<RouteTurn>? History = null);
+/// A service's own description of what it answers: its name and suggested questions (Analytics' GET /dataset, DB Guide's
+/// GET /guide). Used as examples when classifying a question or suggesting the next one.
+public sealed record ServiceProfile(string Name, IReadOnlyList<string> Suggestions);
+
+/// Body of POST /intent. History holds the conversation's earlier turns, oldest first. Analytics and DbGuide are what
+/// each service says it answers, sent by the caller (the gateway) so the AI Hub never calls them; without them the
+/// question is classified from the built-in descriptions alone.
+public sealed record RouteRequest(string Question, IReadOnlyList<RouteTurn>? History = null,
+    ServiceProfile? Analytics = null, ServiceProfile? DbGuide = null);
 
 /// One earlier turn: its question, the intent it was given, and what answered it: Sql from Analytics, Answer from DB Guide.
 /// Each service is sent only its own earlier turns, as its follow-up history.
@@ -45,17 +50,10 @@ public sealed record IntentResponse(
     string Intent, string Reason, string Board = Boards.None, LlmUsage? Usage = null, bool Cached = false,
     string Chart = Charts.None);
 
-/// Response of POST /ask. Service is the service that answered ("analytics" or "db-guide") and Result its own POST /ask
-/// response, passed through as it is. For an unclear question both are null and Message says what to ask instead. Board
-/// is the capability board the answer can be added to, and Chart the chart the question asks for ("none" unless it is
-/// about the data; see IntentResponse).
-public sealed record RoutedAnswer(
-    string Question, string Intent, string Reason, string Board, string? Service, JsonElement? Result, string? Message,
-    LlmUsage? IntentUsage, bool IntentCached, string Chart = Charts.None);
-
 /// Body of POST /follow-ups: the question, the intent it was given, and the answer shown (the answer text, plus the
-/// result's column names for Analytics).
-public sealed record FollowUpRequest(string Question, string? Intent, string? Answer, IReadOnlyList<string>? Columns = null);
+/// result's column names for Analytics). Analytics and DbGuide are as for POST /intent.
+public sealed record FollowUpRequest(string Question, string? Intent, string? Answer, IReadOnlyList<string>? Columns = null,
+    ServiceProfile? Analytics = null, ServiceProfile? DbGuide = null);
 
 /// Response of POST /follow-ups: up to three questions to ask next.
 public sealed record FollowUpResponse(IReadOnlyList<string> Questions, LlmUsage? Usage = null, bool Cached = false);

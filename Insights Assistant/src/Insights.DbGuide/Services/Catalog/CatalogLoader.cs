@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Insights.DbGuide.Configuration;
 using Insights.DbGuide.Models;
+using Insights.Common;
 using Microsoft.Extensions.Options;
 using Neo4j.Driver;
 using Row = System.Collections.Generic.Dictionary<string, object?>;

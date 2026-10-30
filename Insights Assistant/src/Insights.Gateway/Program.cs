@@ -2,31 +2,26 @@ using System.Security.Claims;
 using System.Threading.RateLimiting;
 using Insights.Common;
 using Insights.Gateway;
+using Insights.Gateway.Ask;
+using Insights.Gateway.Workspace;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Options;
 using Yarp.ReverseProxy.Configuration;
-using Yarp.ReverseProxy.Transforms;
 
 // The one entry point for the SEH Intelligence Platform: the built UI at the site root, sign-in at /api/auth, and
-// /api/db-guide, /api/analytics and /api/ai passed on to DB Guide, Analytics and AI Hub (and /api/workspace to DB Guide's
-// /workspace), for signed-in users, for the
+// /api/db-guide, /api/analytics and /api/ai passed on to DB Guide, Analytics and AI Hub, for signed-in users, for the
 // routes Gateway:Allow lists only, and only when one of the user's roles has the functionality the route is for.
+// Two parts are answered here: /api/ai/ask (the gateway asks the AI Hub which service a question is for, then asks that
+// service; see Ask/) and /api/workspace, each user's saved work (see Workspace/).
 var builder = ServiceHost.CreateBuilder(args);
 builder.Services.Configure<GatewayOptions>(builder.Configuration.GetSection(GatewayOptions.SectionName));
-builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"))
-    // Tells the service who is signed in. Any X-User the browser sent is dropped first, so it can't be faked.
-    .AddTransforms(transforms => transforms.AddRequestTransform(context =>
-    {
-        context.ProxyRequest.Headers.Remove("X-User");
-        var options = context.HttpContext.RequestServices.GetRequiredService<IOptionsMonitor<GatewayOptions>>().CurrentValue;
-        if (Access.Current(options, context.HttpContext.User) is { } user)
-            context.ProxyRequest.Headers.TryAddWithoutValidation("X-User", user.Username);
-        return ValueTask.CompletedTask;
-    }));
+builder.Services.AddReverseProxy().LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
 builder.Services.AddHttpClient("health", c => c.Timeout = TimeSpan.FromSeconds(5));
+builder.Services.AddAsk(builder.Configuration);
+builder.Services.AddWorkspace();
 builder.Services.AddProblemDetails();
 
 // The UI and the API share one address, so the sign-in is a cookie the browser sends with every /api call; the page's
@@ -151,6 +146,9 @@ app.MapGet("/health", async (IProxyConfigProvider proxy, IHttpClientFactory clie
     });
 });
 
+// Answered here, after the /api checks above. More specific than the /api/ai/{**rest} proxy route, so they win over it.
+app.MapAsk();
+app.MapWorkspace();
 app.MapReverseProxy();
 // Any other /api path (such as /api/auth/unknown) is a 404 here, never the UI's index.html.
 app.Map("/api/{**_}", () => Results.Problem("Not found.", statusCode: StatusCodes.Status404NotFound));

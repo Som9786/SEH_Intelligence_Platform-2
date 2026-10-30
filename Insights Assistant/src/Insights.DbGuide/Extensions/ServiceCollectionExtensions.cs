@@ -1,4 +1,5 @@
 using Insights.DbGuide.Configuration;
+using Insights.Common.AiHub;
 using Insights.DbGuide.Filters;
 using Insights.DbGuide.Services.AiHub;
 using Insights.DbGuide.Services.Ask;
@@ -16,7 +17,6 @@ public static class ServiceCollectionExtensions
         services.Configure<Neo4jOptions>(configuration.GetSection(Neo4jOptions.SectionName));
         services.Configure<CatalogOptions>(configuration.GetSection(CatalogOptions.SectionName));
         services.Configure<GuideOptions>(configuration.GetSection(GuideOptions.SectionName));
-        services.Configure<AiHubOptions>(configuration.GetSection(AiHubOptions.SectionName));
 
         services.AddSingleton<IDriver>(sp =>
         {
@@ -36,12 +36,7 @@ public static class ServiceCollectionExtensions
         services.AddHostedService<CatalogWatcher>();
 
         // The AI Hub, called server to server for /ask.
-        services.AddHttpClient(AiHubClient.HttpClientName, (sp, http) =>
-        {
-            var o = sp.GetRequiredService<IOptions<AiHubOptions>>().Value;
-            http.BaseAddress = new Uri(o.BaseUrl.TrimEnd('/') + "/");
-            http.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
-        });
+        services.AddAiHubConnection(configuration);
         services.AddSingleton<AiHubClient>();
         services.AddSingleton<AskService>();
 
