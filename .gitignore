@@ -15,8 +15,8 @@ Insights Assistant/**/bin/
 Insights Assistant/**/obj/
 Insights Assistant/**/logs/
 Insights Assistant/**/App_Data/
-# Source data copied in for loading (the POS CSV, the client's spreadsheets): never checked in.
-Insights Assistant/temp/
+# The POS CSV unzipped: the repository holds it gzipped (pos_basket_august2.csv.gz), as GitHub refuses files over 100 MB.
+Insights Assistant/temp/data/*.csv
 .vs/
 *.user
 

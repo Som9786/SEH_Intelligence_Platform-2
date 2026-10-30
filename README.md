@@ -10,7 +10,7 @@ A web app for exploring a retail business's data. You can ask questions about sa
 ## Prerequisites
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) and [Node.js 20.19+ or 22+](https://nodejs.org/) (with npm).
-- **PostgreSQL** on `localhost:5432`, with the `pos_basket` database loaded. It holds the sales data.
+- **PostgreSQL** on `localhost:5432`, with the `pos_basket` database loaded. It holds the sales data. To create it, run [Insights Assistant/temp/db/pos_basket/load.ps1](Insights%20Assistant/temp/db/pos_basket/README.md); the data is in the repo, zipped.
 - **Neo4j 5+**, with the `knowledge-model` and `db-guide` databases. On the team's machines this is the Neo4j Desktop instance `salespoc`: start it and wait for **RUNNING**.
 - An **OpenAI API key**.
 
