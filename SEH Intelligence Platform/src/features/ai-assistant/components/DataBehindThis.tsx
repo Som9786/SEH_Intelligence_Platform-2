@@ -140,20 +140,22 @@ function Pending({
 }
 
 /**
- * What an Analytics answer is based on. Also shown at the foot of an insight's page, which passes
- * onPage to leave out the result, the data used and the query it already shows.
+ * What an Analytics answer is based on. Also shown at the foot of an insight's page ("page"),
+ * which leaves out the result, the data used and the query it already shows, and of a shared
+ * report ("report"), which also leaves out table names and the query's rules.
  */
 export function AnalyticsData({
   question,
   reason,
   result,
-  onPage = false,
+  view = 'flyout',
 }: {
   question: string;
   reason: ReactNode;
   result: AnalyticsResult;
-  onPage?: boolean;
+  view?: 'flyout' | 'page' | 'report';
 }) {
+  const onPage = view !== 'flyout';
   const context = useQuery({
     queryKey: ['assistant', 'context', 'analytics', question],
     queryFn: () => loadAnalyticsContext(question),
@@ -195,7 +197,9 @@ export function AnalyticsData({
       {data && (
         <>
           <Section title="Sources used">
-            <Chips items={data.tables.map((t) => t.name)} />
+            {view !== 'report' && (
+              <Chips items={data.tables.map((t) => t.name)} />
+            )}
             {data.tables.map((t) => (
               <p className="dbt-text" key={t.name}>
                 {t.description}
@@ -229,7 +233,7 @@ export function AnalyticsData({
           </dl>
         </Section>
       )}
-      {data && data.rules.length > 0 && (
+      {data && data.rules.length > 0 && view !== 'report' && (
         <details className="ia-sql dbt-details">
           <summary>Rules the query follows ({data.rules.length})</summary>
           <ol className="dbt-rules">
@@ -247,7 +251,7 @@ export function AnalyticsData({
       <p className="dbt-note">
         Live data
         {result.fetchedAt &&
-          `, fetched from the database ${formatWhen(result.fetchedAt)}`}
+          `, synced from the database ${formatWhen(result.fetchedAt)}`}
         . The numbers come from the query run on PostgreSQL; the wording is
         written by OpenAI from those rows.
         {result.corrected && ' The first query failed and was corrected.'}

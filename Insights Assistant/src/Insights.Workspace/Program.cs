@@ -28,6 +28,7 @@ app.Use(async (context, next) =>
 });
 
 static string UserOf(HttpContext context) => context.Request.Headers["X-User"].ToString();
+int ShareDays() => app.Configuration.GetValue("Workspace:ShareDays", 30);
 static IResult Invalid(string problem) => Results.Problem(problem, statusCode: StatusCodes.Status400BadRequest);
 static IResult NotFound(string what) => Results.Problem($"No {what} with that id.", statusCode: StatusCodes.Status404NotFound);
 
@@ -152,20 +153,32 @@ app.MapGet("/widgets/{id}", async (string id, HttpContext context, WorkspaceStor
 
 // ---------- Shared insights (anyone signed in can open one by its link) ----------
 
-// Shares a copy of one of the signed-in user's widgets as it is now; who shared it is the signed-in user.
+// Shares a copy of one of the signed-in user's widgets as it is now, without its query; who shared it is the signed-in
+// user. The link works for Workspace:ShareDays days (30 unless set).
 app.MapPost("/shares", async (ShareInput input, HttpContext context, WorkspaceStore store, ShareStore shares, CancellationToken ct) =>
 {
     var widget = (await store.ReadAsync(UserOf(context), ct)).Widgets.Find(w => w.Id == input.WidgetId);
     if (widget is null)
         return NotFound("widget");
+    var now = DateTimeOffset.Now;
     var share = new SharedInsight(Guid.NewGuid().ToString("n"), widget.Board, widget.Title, widget.Question, widget.Answer,
-        widget.Result, widget.Details, widget.FetchedAt ?? widget.CreatedAt, UserOf(context), DateTimeOffset.Now);
+        widget.Result, widget.Details is { } details ? details with { Sql = null } : null,
+        widget.FetchedAt ?? widget.CreatedAt, UserOf(context), now, now.AddDays(ShareDays()));
     await shares.SaveAsync(share, ct);
     return Results.Created($"/shares/{share.Id}", share);
 });
 
+// 410 once the link has expired (shares made before links expired count from when they were shared).
 app.MapGet("/shares/{id}", async (string id, ShareStore shares, CancellationToken ct) =>
-    await shares.FindAsync(id, ct) is { } share ? Results.Ok(share) : NotFound("shared insight"));
+{
+    if (await shares.FindAsync(id, ct) is not { } share)
+        return NotFound("shared insight");
+    var expires = share.ExpiresAt ?? share.SharedAt.AddDays(ShareDays());
+    return expires <= DateTimeOffset.Now
+        ? Results.Problem($"This shared link expired on {expires:ddd d MMM yyyy}. Ask {share.SharedBy} to share it again.",
+            statusCode: StatusCodes.Status410Gone)
+        : Results.Ok(share with { ExpiresAt = expires, Details = share.Details is { } d ? d with { Sql = null } : null });
+});
 
 // ---------- Table reviews (shared by everyone; the reviewer is the signed-in user) ----------
 

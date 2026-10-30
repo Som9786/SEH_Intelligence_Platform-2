@@ -4,7 +4,6 @@ import {
   LayoutGrid,
   MessageSquare,
   Network,
-  Share2,
   ShoppingBasket,
   Sprout,
   TableProperties,
@@ -16,10 +15,7 @@ import {
   FreshFoodForecastingPage,
   RevenueOpportunitiesPage,
 } from '../../features/coming-soon/pages/ComingSoonPages';
-import {
-  SharedInsightPage,
-  WidgetInsightPage,
-} from '../../features/insights/pages/InsightPages';
+import { WidgetInsightPage } from '../../features/insights/pages/InsightPages';
 import { ScheduledInsightsPage } from '../../features/scheduled-insights/pages/ScheduledInsightsPage';
 import { PlatformOverviewPage } from '../../features/platform-overview/pages/PlatformOverviewPage';
 import { DocumentationPage } from '../../features/documentation/pages/DocumentationPage';
@@ -109,15 +105,6 @@ export const routes = [
     parent: '/basket-intelligence',
     icon: ShoppingBasket,
     element: WidgetInsightPage,
-  },
-  // A shared insight's link: anyone signed in ("*") can open it.
-  {
-    path: '/shared-insight',
-    label: 'Shared insight',
-    feature: '*',
-    section: null,
-    icon: Share2,
-    element: SharedInsightPage,
   },
   // Opened from DB Catalog, so the sidebar keeps DB Catalog selected on these.
   {

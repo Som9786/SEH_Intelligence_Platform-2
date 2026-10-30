@@ -1,19 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
-import { Check, Copy, SearchX, Share2 } from 'lucide-react';
+import { SearchX, Share2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router';
-import {
-  formatWhen,
-  getShare,
-  getWidget,
-} from '../../workspace/workspaceService';
+import { getShare, getWidget } from '../../workspace/workspaceService';
 import { InsightView } from '../components/InsightView';
+import { ReportFrame, SharedReport } from '../components/SharedReport';
 import { ShareDialog } from '../components/ShareDialog';
 
-/** Loading, failed and not-found states for an insight read by the id in the link. */
+function InAppFrame({ children }: { children: ReactNode }) {
+  return <div className="page-content">{children}</div>;
+}
+
+/**
+ * Loading, failed, expired and not-found states for an insight read by the id in the link: in the
+ * app's page, or framed as a report (framed) for a shared link.
+ */
 function Pending({
   query,
   missing,
+  framed = false,
 }: {
   query: {
     isPending: boolean;
@@ -22,18 +27,20 @@ function Pending({
     refetch: () => unknown;
   };
   missing: ReactNode;
+  framed?: boolean;
 }) {
+  const Frame = framed ? ReportFrame : InAppFrame;
   if (query.isPending)
     return (
-      <div className="page-content">
+      <Frame>
         <div className="state-panel" role="status">
           <span className="spinner" aria-hidden="true" />
           <p>Loading the insight…</p>
         </div>
-      </div>
+      </Frame>
     );
   return (
-    <div className="page-content">
+    <Frame>
       <div className="state-panel" role="alert">
         <SearchX size={28} aria-hidden="true" />
         <h2>This insight can't be shown</h2>
@@ -53,7 +60,7 @@ function Pending({
           </button>
         )}
       </div>
-    </div>
+    </Frame>
   );
 }
 
@@ -102,7 +109,10 @@ export function WidgetInsightPage() {
   );
 }
 
-/** An insight someone shared (?id=<share id>): the copy made when they shared it. */
+/**
+ * An insight someone shared (?id=<share id>): the copy made when they shared it, as a report on a
+ * page of its own (no sidebar or top bar). Signing in is still needed; the link expires.
+ */
 export function SharedInsightPage() {
   const id = useSearchParams()[0].get('id') ?? '';
   const share = useQuery({
@@ -112,55 +122,17 @@ export function SharedInsightPage() {
     retry: false,
     staleTime: Infinity,
   });
-  const [copied, setCopied] = useState(false);
   useEffect(() => {
     if (share.data) document.title = `${share.data.title} · SEH Intelligence`;
   }, [share.data]);
-  useEffect(() => {
-    if (!copied) return;
-    const timer = window.setTimeout(() => setCopied(false), 2000);
-    return () => window.clearTimeout(timer);
-  }, [copied]);
 
   if (!share.data)
     return (
       <Pending
+        framed
         query={{ ...share, isPending: share.isPending && Boolean(id) }}
         missing="Check the link; it may be incomplete."
       />
     );
-  const data = share.data;
-  return (
-    <InsightView
-      insight={data}
-      notice={
-        <p className="ins-notice">
-          <Share2 size={14} aria-hidden="true" />
-          <span>
-            Shared by <strong>{data.sharedBy}</strong> on{' '}
-            {formatWhen(data.sharedAt)}. This is the insight as it was then.
-          </span>
-        </p>
-      }
-      actions={
-        <button
-          type="button"
-          className="td-action td-action-primary"
-          onClick={() =>
-            void navigator.clipboard
-              .writeText(window.location.href)
-              .then(() => setCopied(true))
-              .catch(() => undefined)
-          }
-        >
-          {copied ? (
-            <Check size={16} aria-hidden="true" />
-          ) : (
-            <Copy size={16} aria-hidden="true" />
-          )}
-          {copied ? 'Copied' : 'Copy link'}
-        </button>
-      }
-    />
-  );
+  return <SharedReport share={share.data} />;
 }

@@ -48,6 +48,19 @@ export function toCsv(result: NonNullable<AnalyticsResult['result']>): string {
     .join('\r\n');
 }
 
+/** Saves the insight's rows as a CSV file named after its title. */
+export function downloadCsv(insight: Insight) {
+  if (!insight.result) return;
+  const url = URL.createObjectURL(
+    new Blob([toCsv(insight.result)], { type: 'text/csv;charset=utf-8' }),
+  );
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = csvFileName(insight.title);
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 /** "baskets-by-day-of-week.csv" from the insight's title. */
 export function csvFileName(title: string): string {
   const name = title
@@ -65,7 +78,7 @@ export function shareSummary(insight: Insight, url: string): string {
     insight.title,
     insight.answer ? plainText(insight.answer) : null,
     [
-      insight.fetchedAt && `Data fetched ${formatWhen(insight.fetchedAt)}`,
+      insight.fetchedAt && `Data synced ${formatWhen(insight.fetchedAt)}`,
       insight.result &&
         `${rows} ${rows === 1 ? 'row' : 'rows'}${insight.result.truncated ? ' (more were cut off)' : ''}`,
     ]

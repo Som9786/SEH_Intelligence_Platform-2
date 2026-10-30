@@ -17,24 +17,7 @@ import {
   BOARD_LABEL,
   formatWhen,
 } from '../../workspace/workspaceService';
-import {
-  asAnalyticsResult,
-  csvFileName,
-  toCsv,
-  type Insight,
-} from '../utils/insight';
-
-function downloadCsv(insight: Insight) {
-  if (!insight.result) return;
-  const url = URL.createObjectURL(
-    new Blob([toCsv(insight.result)], { type: 'text/csv;charset=utf-8' }),
-  );
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = csvFileName(insight.title);
-  link.click();
-  URL.revokeObjectURL(url);
-}
+import { asAnalyticsResult, downloadCsv, type Insight } from '../utils/insight';
 
 function Panel({
   title,
@@ -59,18 +42,15 @@ function Panel({
 /**
  * An insight on a page of its own: the answer and how far to trust it, the chart and every row,
  * on the side how it was reached, the data it used and the query that was run, and at the foot
- * the data behind it. Board widgets open here in a new tab; shared links show the same page.
+ * the data behind it. Board widgets open here in a new tab; a shared link opens SharedReport.
  */
 export function InsightView({
   insight,
   actions,
-  notice,
 }: {
   insight: Insight;
   /** Buttons beside the title (Share, Copy link…). */
   actions: ReactNode;
-  /** A line above the content, such as who shared it. */
-  notice?: ReactNode;
 }) {
   const { can } = useAuth();
   const asResult = useMemo(() => asAnalyticsResult(insight), [insight]);
@@ -92,7 +72,6 @@ export function InsightView({
         description="The answer, the data behind it and how it was reached."
         badge={<div className="ins-actions">{actions}</div>}
       />
-      {notice}
       {insight.fetchedAt && (
         <dl className="bw-status ins-meta">
           <div>
@@ -195,7 +174,7 @@ export function InsightView({
             question={insight.question}
             reason={null}
             result={asResult}
-            onPage
+            view="page"
           />
         </section>
       )}

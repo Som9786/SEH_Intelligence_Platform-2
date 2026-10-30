@@ -75,8 +75,8 @@ function ScheduleStatus({ view }: { view: ScheduleView }) {
 }
 
 /**
- * How fresh a widget's data is: when its rows were last read from the database (and how long ago),
- * and when it was added. Refresh reads them again.
+ * How fresh a widget's data is: when its rows were last read from the database, and how long ago.
+ * Refresh reads them again.
  */
 function DataStatus({ widget }: { widget: Widget }) {
   // Widgets saved before the fetch time was recorded: the data was read just before adding.
@@ -86,19 +86,11 @@ function DataStatus({ widget }: { widget: Widget }) {
       <div>
         <dt>
           <Database size={13} aria-hidden="true" />
-          Data fetched
+          Data synced
         </dt>
         <dd>
           <time dateTime={fetched}>{formatWhen(fetched)}</time>{' '}
           <span className="bw-age">({ageOf(fetched)})</span>
-        </dd>
-      </div>
-      <div>
-        <dt>Added</dt>
-        <dd>
-          <time dateTime={widget.createdAt}>
-            {formatWhen(widget.createdAt)}
-          </time>
         </dd>
       </div>
     </dl>

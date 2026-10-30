@@ -21,9 +21,10 @@ const FOCUSABLE =
   'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
- * Shares a widget: makes a copy of it as it is now (answer, chart, every row, how it was reached)
- * and gives its link, to copy, email or send with the system share sheet. Anyone signed in can
- * open the link; refreshing or removing the widget later doesn't change what it shows.
+ * Shares a widget: makes a copy of it as it is now (answer, chart, every row, how it was reached,
+ * without the query) and gives its link, to copy, email or send with the system share sheet. It
+ * opens as a report for anyone signed in until it expires; refreshing or removing the widget later
+ * doesn't change what it shows.
  */
 export function ShareDialog({
   widget,
@@ -185,11 +186,11 @@ export function ShareDialog({
                   )}
                   <li>
                     {widget.details
-                      ? 'How it was reached, the data it used and the query that was run'
+                      ? 'How it was reached and the data behind it (not the query or table names)'
                       : 'How it was reached: not kept for this widget yet (refresh it to record it)'}
                   </li>
                   <li>
-                    Data fetched{' '}
+                    Data synced{' '}
                     {formatWhen(share.data.fetchedAt ?? widget.createdAt)}
                   </li>
                 </ul>
@@ -245,9 +246,11 @@ export function ShareDialog({
                 </p>
               )}
               <p className="rv-note">
-                Anyone signed in to the platform can open this link. It shows
-                the insight as it is now; refreshing or removing the widget
-                later doesn't change it.
+                Anyone signed in to the platform can open this link
+                {share.data.expiresAt &&
+                  ` until ${formatWhen(share.data.expiresAt)}`}
+                . It shows the insight as it is now; refreshing or removing the
+                widget later doesn't change it.
               </p>
             </>
           )}

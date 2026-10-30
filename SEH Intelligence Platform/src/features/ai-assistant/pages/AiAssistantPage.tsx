@@ -14,26 +14,30 @@ import { loadThread, saveThread, type Exchange } from '../services/threadStore';
 /** Earlier answers sent with each question, so follow-ups are understood. */
 const MAX_HISTORY = 6;
 
-/** Shown in turn while an answer is on its way, instead of what the services are doing. */
+/**
+ * Shown in turn while an answer is on its way: plain words that fit any question, about the data
+ * or the database, since which it is isn't known until the answer comes back.
+ */
 const THINKING_LINES = [
-  'Checking every basket…',
-  'Counting Spam Musubis… 🍙',
-  'Comparing stores across the islands…',
-  'Spotting what customers buy together…',
-  'Almost there, the numbers are lining up…',
+  'Reading your question…',
+  'Finding the right information…',
+  'Checking the details…',
+  'Putting it together…',
+  'Writing your answer…',
 ];
-const THINKING_MS = 3500;
+const THINKING_MS = 2000;
 
-/** The spinner and a friendly line that changes every few seconds; screen readers hear it once. */
+/**
+ * The spinner and a line that moves on every couple of seconds, then stays on the last one so a
+ * slow answer never looks like it started over. Screen readers hear it once.
+ */
 function Thinking() {
   const [line, setLine] = useState(0);
   useEffect(() => {
-    const timer = window.setInterval(
-      () => setLine((i) => (i + 1) % THINKING_LINES.length),
-      THINKING_MS,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
+    if (line >= THINKING_LINES.length - 1) return;
+    const timer = window.setTimeout(() => setLine(line + 1), THINKING_MS);
+    return () => window.clearTimeout(timer);
+  }, [line]);
   return (
     <p className="ia-thinking" role="status" aria-label="Finding your answer">
       <span className="spinner" aria-hidden="true" />

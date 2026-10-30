@@ -7,6 +7,7 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import { RequireAuth } from './features/auth/components/RequireAuth';
 import { RequireFeature } from './features/auth/components/RequireFeature';
 import { LoginPage } from './features/auth/pages/LoginPage';
+import { SharedInsightPage } from './features/insights/pages/InsightPages';
 import { useAuth } from './features/auth/useAuth';
 
 /** Unknown paths go to the user's own landing page. */
@@ -40,6 +41,8 @@ export function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route element={<RequireAuth />}>
+              {/* A shared link opens as a report: signed in, but without the sidebar and top bar. */}
+              <Route path="/shared-insight" element={<SharedInsightPage />} />
               <Route element={<AppShell />}>
                 {routes.map(({ path, feature, element: Page }) => (
                   <Route

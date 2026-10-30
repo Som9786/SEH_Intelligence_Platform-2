@@ -90,6 +90,8 @@ export interface SharedInsight {
   fetchedAt: string | null;
   sharedBy: string;
   sharedAt: string;
+  /** After this the link no longer opens (410). */
+  expiresAt: string | null;
 }
 
 /** What a widget keeps of an Analytics reply's working. */

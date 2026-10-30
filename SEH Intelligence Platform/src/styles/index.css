@@ -4497,6 +4497,126 @@ small {
   word-break: break-word;
 }
 
+/* A shared insight as a report: a slim bar with the platform's name, then one readable column. */
+.rp-page {
+  min-height: 100vh;
+  background: var(--b-f5f7f4);
+}
+.rp-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px max(16px, calc((100vw - 960px) / 2));
+  border-bottom: 1px solid var(--line);
+  background: var(--b-ffffff);
+}
+.rp-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--t-172a24);
+  font-weight: var(--fw-bold);
+}
+.rp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.rp-doc {
+  display: grid;
+  gap: 18px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 28px 16px 48px;
+}
+/* The section's own heading says it; the steps' "How I reached this" label would repeat it. */
+.rp-section section[aria-label='How I reached this'] > .ia-label {
+  display: none;
+}
+.rp-title h1 {
+  margin: 0 0 6px;
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.5px;
+}
+.rp-question {
+  margin: 0 0 6px;
+  color: var(--t-5f7268);
+}
+.rp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 10px 0 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.rp-meta div {
+  display: flex;
+  gap: 6px;
+}
+.rp-meta dt {
+  font-weight: var(--fw-semibold);
+}
+.rp-meta dt::after {
+  content: ':';
+}
+.rp-meta dd {
+  margin: 0;
+}
+.rp-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--b-ffffff);
+}
+.rp-section h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
+.rp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.rp-footer {
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+.rp-page .state-panel {
+  margin-top: 40px;
+}
+/* On paper: no bar or buttons, sections kept whole where they fit. */
+@media print {
+  .rp-bar,
+  .rp-screen-only,
+  .rp-page .viz-switch {
+    display: none !important;
+  }
+  .rp-page {
+    background: #fff;
+  }
+  .rp-doc {
+    max-width: none;
+    padding: 0;
+  }
+  .rp-section {
+    break-inside: avoid;
+    border-color: #ccc;
+  }
+}
+
 /* Share dialog: the link with its copy button, what's shared, and other ways to send it. */
 .sh-modal .rv-body {
   display: grid;
