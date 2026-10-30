@@ -275,6 +275,16 @@
   --brand-accent: #ff9b36;
   --on-brand: #ffffff;
   --shadow-control: 0 1px 2px #102e2826;
+  /* SQL blocks: a dark panel in both themes, coloured like an editor. */
+  --code-bg: #1f2a26;
+  --code-head: #2a3732;
+  --code-text: #e3ebe7;
+  --code-muted: #9fb0a8;
+  --code-keyword: #ff8fb8;
+  --code-function: #7fd1f0;
+  --code-name: #c6aaff;
+  --code-string: #a5e0a0;
+  --code-number: #ffb57a;
   /* Focus: one green style everywhere. Buttons, links and other controls get a ring; text fields and
      field-like boxes get a green border and soft glow. Colours come from --focus-field-* per theme. */
   --focus-ring: 2px solid var(--focus-field-border);
@@ -1380,7 +1390,8 @@ a {
   font-size: var(--fs-lg);
   margin-top: 22px;
 }
-.table-markdown ul {
+.table-markdown ul,
+.table-markdown ol {
   padding-left: 22px;
 }
 .table-markdown table {
@@ -3739,9 +3750,21 @@ small {
 .ia-markdown ol {
   margin: 0 0 10px;
 }
+/* The base styles (Tailwind's preflight) remove list markers; answers and documents need them back. */
 .ia-markdown ul,
 .ia-markdown ol {
   padding-left: 22px;
+}
+.ia-markdown ul,
+.table-markdown ul {
+  list-style: disc;
+}
+.ia-markdown ol,
+.table-markdown ol {
+  list-style: decimal;
+}
+.ia-markdown li::marker {
+  color: var(--t-5f7268);
 }
 .ia-markdown li + li {
   margin-top: 4px;
@@ -3835,9 +3858,8 @@ small {
 .ia-sql[open] summary svg {
   transform: rotate(90deg);
 }
-.ia-sql .ia-code {
+.ia-sql .sql-block {
   margin-top: 8px;
-  white-space: pre-wrap;
 }
 .ia-error {
   display: flex;
@@ -3882,14 +3904,70 @@ small {
   font-size: var(--fs-lg);
   line-height: var(--lh-long);
 }
-.ia-code {
-  margin: 0;
-  padding: 12px 14px;
-  overflow-x: auto;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--b-f6faf8);
+/* A SQL query (SqlCode): a "SQL" bar with a copy button over the coloured query. */
+.sql-block {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--code-bg);
+  color: var(--code-text);
+}
+.sql-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 6px 14px;
+  background: var(--code-head);
+}
+.sql-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.sql-copy {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--code-muted);
+  cursor: pointer;
+}
+.sql-copy:hover {
+  background: var(--code-bg);
+  color: var(--code-text);
+}
+.sql-code {
+  margin: 0;
+  padding: 12px 14px 14px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sql-keyword {
+  color: var(--code-keyword);
+}
+.sql-function {
+  color: var(--code-function);
+}
+.sql-name {
+  color: var(--code-name);
+}
+.sql-string {
+  color: var(--code-string);
+}
+.sql-number {
+  color: var(--code-number);
+}
+.sql-comment {
+  color: var(--code-muted);
+  font-style: italic;
 }
 .ia-chart {
   margin: 4px 0 0;
@@ -4532,12 +4610,8 @@ small {
 .ins-behind {
   margin-top: 18px;
 }
-.ins-code {
+.ins-code .sql-code {
   max-height: 420px;
-  margin: 0;
-  overflow: auto;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
 /* A shared insight as a report: a slim bar with the platform's name, then one readable column. */

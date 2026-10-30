@@ -31,4 +31,6 @@ public sealed class QueryExample
 {
     public string Question { get; set; } = "";
     public string Sql { get; set; } = "";
+    /// "SQL Server" for a query written for SQL Server; omitted for PostgreSQL, which the knowledge model is written in.
+    public string? Dialect { get; set; }
 }

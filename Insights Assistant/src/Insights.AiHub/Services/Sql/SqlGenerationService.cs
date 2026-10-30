@@ -6,10 +6,12 @@ using OpenAI.Chat;
 
 namespace Insights.AiHub.Services.Sql;
 
-/// Question in English -> one read-only PostgreSQL query for the analytics service's /query endpoint, written from the
-/// part of the knowledge model the question is about. Earlier turns of the conversation go along as chat history, and a query
-/// PostgreSQL rejected goes back with its error so the model can correct it. A plain question (no history, no
-/// correction) asked again with the same knowledge model context is answered from the cache without calling OpenAI.
+/// Question in English -> one read-only query for the analytics service's /query endpoint, in its database's dialect
+/// (PostgreSQL or SQL Server, from the context), written from the part of the knowledge model the question is about.
+/// Earlier turns of the conversation go along as chat history, and a query the database rejected goes back with its error
+/// so the model can correct it. A plain question (no history, no correction) asked again with the same knowledge model
+/// context is answered from the cache without calling OpenAI; the context names the dialect, so switching databases
+/// writes queries afresh.
 public sealed class SqlGenerationService(
     KnowledgeModelClient knowledgeModel, LlmClient llm, ResponseCache<SqlResponse> cache, ILogger<SqlGenerationService> logger)
 {
@@ -22,9 +24,10 @@ public sealed class SqlGenerationService(
         var history = request.History?.TakeLast(MaxHistory).ToList() ?? [];
         var fixing = !string.IsNullOrWhiteSpace(request.FailedSql);
         logger.LogInformation("SQL step 1/2: building the prompt for \"{Question}\"{History}{Fix}", question,
-            history.Count > 0 ? $" with {history.Count} earlier questions" : "", fixing ? ", to correct a query PostgreSQL rejected" : "");
+            history.Count > 0 ? $" with {history.Count} earlier questions" : "", fixing ? ", to correct a query the database rejected" : "");
         var context = await knowledgeModel.GetContextAsync(question, history.Select(h => h.Question).ToList(), ct);
         var used = KnowledgeModelClient.Names(context);
+        var dialect = SqlPrompt.Dialect(context);
 
         // The context is in the key, so a changed knowledge model (or new days of data) writes the query afresh.
         var cacheKey = history.Count == 0 && !fixing ? ResponseCache<SqlResponse>.KeyOf(context, ResponseCache<SqlResponse>.Normalize(question)) : null;
@@ -42,7 +45,7 @@ public sealed class SqlGenerationService(
         {
             messages.Add(new AssistantChatMessage(Reply(true, request.FailedSql!, "")));
             messages.Add(new UserChatMessage($"""
-                PostgreSQL rejected that query with this error:
+                {dialect} rejected that query with this error:
                 {request.Error}
 
                 Write a corrected query for the same question, following the same rules.
@@ -54,7 +57,7 @@ public sealed class SqlGenerationService(
                 "sql_query", BinaryData.FromString(SqlPrompt.ResponseSchema), jsonSchemaIsStrict: true),
         };
 
-        logger.LogInformation("SQL step 2/2: asking the model for a query (knowledge model context {Chars} characters)", context.Length);
+        logger.LogInformation("SQL step 2/2: asking the model for a {Dialect} query (knowledge model context {Chars} characters)", dialect, context.Length);
         var reply = await llm.CompleteAsync(messages, options, ct);
         var response = JsonSerializer.Deserialize<SqlResponse>(reply.Text, JsonSerializerOptions.Web) is { } r
             ? r with { Usage = reply.Usage, KnowledgeModel = used } : null;

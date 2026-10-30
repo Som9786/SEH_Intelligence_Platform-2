@@ -1,14 +1,14 @@
 # Insights: POS Basket Analytics POC
 
-Lets people ask questions about point-of-sale (POS) basket data in plain English. **Neo4j holds only the knowledge model**: what each business term means, where it lives in PostgreSQL, how things join, the agreed metric formulas, the business rules and verified examples. **The data itself always comes from PostgreSQL.** For each question, the part of the knowledge model it's about goes to an AI model, which writes one read-only SQL query; the query runs on PostgreSQL, and the AI explains the rows.
+Lets people ask questions about point-of-sale (POS) basket data in plain English. **Neo4j holds only the knowledge model**: what each business term means, where it lives in PostgreSQL, how things join, the agreed metric formulas, the business rules and verified examples. **The data itself always comes from PostgreSQL**, or from a copy of it in SQL Server (see [Choosing the database](#choosing-the-database-postgresql-or-sql-server)). For each question, the part of the knowledge model it's about goes to an AI model, which writes one read-only SQL query in that database's dialect; the query runs there, and the AI explains the rows.
 
 | Data | Where | What |
 |---|---|---|
-| POS baskets (one week today: 2026-08-16 to 2026-08-22) | PostgreSQL `pos_basket`, table `public.pos_basket_line` | One row per scanned line. Read live for every question; never copied. |
+| POS baskets (one week today: 2026-08-16 to 2026-08-22) | PostgreSQL `pos_basket`, table `public.pos_basket_line`; or SQL Server `pos_basket`, table `dbo.pos_basket_line` (`PosBasket:Provider`) | One row per scanned line. Read live for every question. |
 | Knowledge model | Neo4j database `knowledge-model` | Tables, columns, concepts (Store, Basket, BasketLine, Item, Offer), relationships, metrics, synonyms, business rules and examples. Loaded from three JSON files. |
 | Database catalog for [DB Guide](#db-guide) | Neo4j database `db-guide` | The `SEH_Validation_Retail` SQL Server database's tables, columns, joins, indexes, rules and documentation, from its metadata export. DB Guide answers questions about the database's structure from it. |
 
-**Contents:** [Quick start](#quick-start) · [How it works](#how-it-works) · [Q&A page](#qa-page) · [The knowledge model](#the-knowledge-model) · [DB Guide](#db-guide) · [Endpoints](#endpoints) · [Configuration](#configuration) · [Debug log](#debug-log) · [Project structure](#project-structure) · [Local-only files](#local-only-files-temp) · [Troubleshooting](#troubleshooting) · [Scope and limits](#scope-and-limits)
+**Contents:** [Quick start](#quick-start) · [How it works](#how-it-works) · [Q&A page](#qa-page) · [The knowledge model](#the-knowledge-model) · [DB Guide](#db-guide) · [Endpoints](#endpoints) · [Choosing the database](#choosing-the-database-postgresql-or-sql-server) · [Configuration](#configuration) · [Debug log](#debug-log) · [Project structure](#project-structure) · [Local-only files](#local-only-files-temp) · [Troubleshooting](#troubleshooting) · [Scope and limits](#scope-and-limits)
 
 ## Quick start
 
@@ -41,10 +41,8 @@ Lets people ask questions about point-of-sale (POS) basket data in plain English
    ```
    It passes `/api/db-guide/*`, `/api/analytics/*` and `/api/ai/*` on to the three services, but only the routes `Gateway:Allow` in its appsettings.json lists; everything else (raw SQL, logs, reloads, AI Hub's model calls) stays internal. `GET /health` checks all three services. Outside Development it also serves the built UI from `Gateway:UiPath` (`SEH Intelligence Platform/dist`), so the whole platform is one address.
 
-8. **Run the workspace**, which keeps each user's schedules and board widgets (in files under `src/Insights.Workspace/App_Data`):
-   ```powershell
-   dotnet run --project src/Insights.Workspace   # http://localhost:5400
-   ```
+8. **The workspace** keeps each user's schedules, board widgets and shared insights, and the table reviews. It's part of DB Guide (`src/Insights.DbGuide/Workspace`, files under `src/Insights.DbGuide/App_Data`), under `/workspace`, so it runs when DB Guide does.
+
    Through the gateway at `/api/workspace`: `GET`/`POST /schedules`, `PUT`/`DELETE /schedules/{id}` (`{ name, question, frequency: daily|weekly|monthly|quarterly, time: "HH:mm", startsOn: "yyyy-MM-dd", dayOfWeek, dayOfMonth, enabled, board, answer }`; responses add `nextRunAt`), and `GET /widgets?board=`, `POST /widgets` (`{ board, question, answer, result }`), `DELETE /widgets/{id}`. Schedules are saved and shown but not run yet; widgets keep the answer as it was when added.
 
    **Sign-in and roles.** Every `/api` call needs a sign-in: `POST /api/auth/sign-in` with `{ "username", "password" }` sets an HttpOnly cookie (8 hours, renewed while in use), `GET /api/auth/me` returns the user with their roles and functionalities, and `POST /api/auth/sign-out` ends it. The users are in `Gateway:Users` (for now one, `Admin`, with a plain-text password in appsettings.json: change it, and move it to user-secrets or an environment variable such as `Gateway__Users__0__Password` before going live). `Gateway:Roles` lists the functionalities (the UI's pages: `db-catalog`, `insights-assistant`, ...) each role can use; each `Gateway:Allow` rule names the functionalities that may call it (`*` for anyone signed in). The gateway answers 401 when not signed in, 404 for a route that isn't listed, and 403 when the user's roles don't include it; the UI shows only the user's pages. Changes to these settings apply without a restart.
@@ -59,8 +57,7 @@ Other ways in: **Swagger UI** at http://localhost:5100/swagger and http://localh
 |---|---|---|---|
 | [src/Insights.Analytics](src/Insights.Analytics) | 5100 | Neo4j (knowledge model), PostgreSQL `pos_basket` (data), AI Hub | Loads the knowledge model into Neo4j, picks the part of it each question is about, runs read-only SQL on PostgreSQL, and serves the Q&A page. It's the **single entry point** for clients: it forwards AI requests to AI Hub (`/ai/*`) and answers questions end to end (`/ask`). |
 | [src/Insights.AiHub](src/Insights.AiHub) | 5200 | OpenAI, Analytics (`/context`, and `/ask` for routed questions), DB Guide (`/ask` for routed questions) | The shared AI service: turns English questions into SQL, query results into English answers, and catalog context into answers about a database's structure (`/guide`). Analytics and DB Guide call it; new AI features for other apps or datasets go here. It also tells which service a question is for (`/intent`) and asks that one (`/ask`), so a client needs only one endpoint. |
-| [src/Insights.Workspace](src/Insights.Workspace) | 5400 | Files (`App_Data/<user>.json`) | Each user's saved work: questions scheduled to run again (saved and listed; not run yet) and answers kept as widgets on a capability board. Knows the user from the gateway's `X-User` header. |
-| [src/Insights.DbGuide](src/Insights.DbGuide) | 5300 | Neo4j (catalog), AI Hub | Loads a database's metadata export into Neo4j and answers questions about its structure: which table to use, how to join, what a column means. Serves its own page. See [DB Guide](#db-guide). |
+| [src/Insights.DbGuide](src/Insights.DbGuide) | 5300 | Neo4j (catalog), AI Hub | Loads a database's metadata export into Neo4j and answers questions about its structure: which table to use, how to join, what a column means. Serves its own page. See [DB Guide](#db-guide). Also keeps the **workspace** under `/workspace`: each user's saved work (schedules, widgets, shared insights) and the table reviews, in files (`App_Data/`), knowing the user from the gateway's `X-User` header. |
 
 In this README they're called **Analytics** and **AI Hub** for short.
 
@@ -72,7 +69,7 @@ Startup, or knowledge-model.json / business-rules.json / query-examples.json sav
 
 POST /ask  ──► Analytics ──► AI Hub POST /sql ──► Analytics POST /context ──► Neo4j: the question's part of the knowledge model
                     │                         └─► OpenAI: writes one SELECT
-                    ├─► PostgreSQL, read-only transaction ──► rows
+                    ├─► PostgreSQL or SQL Server, read-only ──► rows
                     └─► AI Hub POST /answer ──► OpenAI: plain-English answer
 ```
 
@@ -85,10 +82,10 @@ POST /ask  ──► Analytics ──► AI Hub POST /sql ──► Analytics PO
 
 http://localhost:5100/ is served by Analytics from [src/Insights.Analytics/wwwroot/index.html](src/Insights.Analytics/wwwroot/index.html). It only calls Analytics.
 
-- **Chat:** type a question and the page shows the plain-English answer, a chart when the rows suit one, and **How this was answered**: the AI's description of the query, **Knowledge model used** (the concepts and metrics the AI was given), the generated SQL (editable, with **Run edited query**), the raw rows and **Download CSV**. Status pills at the top right show the **AI service** (OpenAI model and today's cost against the daily budget, or offline), the **Knowledge model** (Neo4j; green when loaded) and the **Data** (PostgreSQL; green when reachable); hover for details.
+- **Chat:** type a question and the page shows the plain-English answer, a chart when the rows suit one, and **How this was answered**: the AI's description of the query, **Knowledge model used** (the concepts and metrics the AI was given), the generated SQL (editable, with **Run edited query**), the raw rows and **Download CSV**. Status pills at the top right show the **AI service** (OpenAI model and today's cost against the daily budget, or offline), the **Knowledge model** (Neo4j; green when loaded) and the **Data** (PostgreSQL or SQL Server; green when reachable); hover for details.
 - **Charts:** a **line** for a series over time (dates, hours), with a tab per measure and a crosshair tooltip; a **network** for pairs such as items bought together (hover a node to highlight its links); **bars** for a short list of label/number pairs. When several fit, tabs switch between them.
 - **Follow-ups:** questions such as “and only on Thursday?” build on the last three questions and their queries, and keep their part of the knowledge model. **New chat** clears the chat and starts fresh.
-- **Self-correcting:** if PostgreSQL rejects the AI's query, the page sends the error back to the AI once and runs its corrected query; the answer says “query corrected after a PostgreSQL error”.
+- **Self-correcting:** if the database rejects the AI's query, the page sends the error back to the AI once and runs its corrected query; the answer says “query corrected after a database error”.
 - **Rating:** 👍 / 👎 under each answer saves a rating (`POST /feedback`). After 👍, **Save as example** adds the question and its query to `query-examples.json`, so the AI reuses it for similar questions.
 - **Explain with AI:** a switch under the question box, on by default and remembered per browser. Off skips the AI's plain-English explanation: the answer is the chart and table (a single value shows as one line), which cuts a question's OpenAI cost by about two thirds. `/ask` takes the same option as `"explain": false`.
 - **Cost line:** each answer shows its step times and OpenAI cost, or “reused, no OpenAI cost” when AI Hub answered from its cache.
@@ -199,16 +196,16 @@ Plus a full-text index, `catalog_text`, over what each table and column means. T
 
 | Endpoint | Body | Returns |
 |---|---|---|
-| `GET /schema` | – | The whole knowledge model from Neo4j: `dialect`, `coverage` (`{ from, to }`: the first and last business date in PostgreSQL, or null), `tables` with `columns`, `concepts` with `attributes`, `relationships`, `metrics`, `rules` and `examples` |
+| `GET /schema` | – | The whole knowledge model from Neo4j: `dialect` (`PostgreSQL` or `SQL Server`), `coverage` (`{ from, to }`: the first and last business date in the data, or null), `tables` with `columns`, `concepts` with `attributes`, `relationships`, `metrics`, `rules` and `examples` |
 | `POST /context` | `{ "question": "...", "history": ["earlier question", ...] }` | The same shape, narrowed to the question: what AI Hub puts in its prompt. `matched` lists the concepts and metrics its words named; it's empty when nothing matched and the whole knowledge model is returned. |
 | `GET /knowledge-model/status` | – | The last load: `{ at, succeeded, error, counts }`. **404** before the first load. |
 | `POST /knowledge-model/reload` | – | Loads the three files into Neo4j again and returns the status. Saving a file does this by itself. **500** "Knowledge model error" with every problem when a file is invalid. |
-| `GET /health` | – | `{ knowledge model: { ok, detail }, data: { ok, detail }, coverage }`: whether Neo4j holds a loaded knowledge model and PostgreSQL answers |
+| `GET /health` | – | `{ knowledge model: { ok, detail }, data: { ok, detail }, coverage }`: whether Neo4j holds a loaded knowledge model and the data's database answers |
 | `GET /dataset` | – | Dataset name and suggested questions |
 | `POST /query` | `{ "sql": "..." }` | `{ columns, rows, truncated }`. Rows are capped at `Query:MaxRows` (default 1000). |
-| `POST /ask` | `{ "question": "...", "history": [{ "question", "sql" }] }` | `{ question, answerable, sql, explanation, result, answer, costUsd, corrected, knowledge model }`: the whole flow in one call. `history` (optional, oldest first) makes it a follow-up. If PostgreSQL rejects the generated query, the AI corrects it once (`corrected: true`); if that fails too, the 400 response includes the query as `sql`. |
+| `POST /ask` | `{ "question": "...", "history": [{ "question", "sql" }] }` | `{ question, answerable, sql, explanation, result, answer, costUsd, corrected, knowledge model }`: the whole flow in one call. `history` (optional, oldest first) makes it a follow-up. If the database rejects the generated query, the AI corrects it once (`corrected: true`); if that fails too, the 400 response includes the query as `sql`. |
 | `POST /feedback` / `GET /feedback` | `{ "question", "sql", "answer", "rating": "up" \| "down", "comment" }` | Saves a rating to `App_Data/feedback.jsonl` / lists the newest (`?count=`, default 100) |
-| `GET /examples` / `POST /examples` / `DELETE /examples?question=` | `{ "question", "sql" }` | Lists, adds (or replaces, by question) or removes a verified example in `query-examples.json`. A query the SQL guard refuses can't be saved. |
+| `GET /examples` / `POST /examples` / `DELETE /examples?question=` | `{ "question", "sql" }` | Lists, adds (or replaces, by question) or removes a verified example in `query-examples.json`, for the database in use: on SQL Server the example is saved with `"Dialect": "SQL Server"`, beside the PostgreSQL one. A query the SQL guard refuses can't be saved. |
 | `POST /ai/sql` | as AI Hub `/sql` | Forwarded to AI Hub `/sql` |
 | `POST /ai/answer` | as AI Hub `/answer` | Forwarded to AI Hub `/answer` |
 | `GET /ai/health` | – | Forwarded to AI Hub `/health`: `{ status, model }` |
@@ -217,10 +214,10 @@ Plus a full-text index, `catalog_text`, over what each table and column means. T
 | `GET /ai/logs?after=<id>` / `DELETE /ai/logs` | – | The same for AI Hub, forwarded |
 
 **`/query` is read-only, in two layers:**
-1. **The SQL guard** ([SqlGuard.cs](src/Insights.Analytics/Services/Query/SqlGuard.cs)) refuses, before anything reaches PostgreSQL: more than one statement; anything but `SELECT` or `WITH … SELECT`; words that change data, schema, settings or transactions or lock rows (`INSERT`, `UPDATE`, `DELETE`, `CREATE`, `DROP`, `COPY`, `SET`, `SELECT … INTO`, `FOR UPDATE`, `EXPLAIN` and more, also inside a CTE); system catalogs and `pg_*` functions (`pg_read_file`, `pg_sleep`, …); functions that reach files or other servers, change settings or run SQL from a string (`lo_*`, `dblink`, `query_to_xml`, `set_config`, `nextval`, …); and any table after `FROM` or `JOIN` that isn't in the knowledge model (CTE names and functions such as `generate_series` are fine). It reads the SQL after removing comments and string literals (including `E'…'` and `$$…$$` strings), so they can't hide anything, and a word such as `'DELETE'` inside a value isn't a false alarm.
-2. **PostgreSQL itself:** the query runs in a `READ ONLY` transaction with `statement_timeout` = `Query:TimeoutSeconds`, and is always rolled back.
+1. **The SQL guard** ([SqlGuard.cs](src/Insights.Analytics/Services/Query/SqlGuard.cs)) refuses, before anything reaches the database: more than one statement; anything but `SELECT` or `WITH … SELECT`; words that change data, schema, settings or transactions or lock rows (`INSERT`, `UPDATE`, `DELETE`, `CREATE`, `DROP`, `COPY`, `SET`, `SELECT … INTO`, `FOR UPDATE`, `EXPLAIN` and more, also inside a CTE); system catalogs and `pg_*` functions (`pg_read_file`, `pg_sleep`, …); functions that reach files or other servers, change settings or run SQL from a string (`lo_*`, `dblink`, `query_to_xml`, `set_config`, `nextval`, …); and any table after `FROM` or `JOIN` that isn't in the knowledge model (CTE names and functions such as `generate_series` are fine). It reads the SQL after removing comments and string literals (including `E'…'` and `$$…$$` strings), so they can't hide anything, and a word such as `'DELETE'` inside a value isn't a false alarm. On SQL Server it reads the SQL as SQL Server does (`[bracketed]` names; no `E'…'` or `$$` strings) and also refuses `EXEC`, `WAITFOR`, `DECLARE`, `DBCC`, `OPENROWSET`/`OPENQUERY`, `::fn()`, `sys.*`, `INFORMATION_SCHEMA`, the system databases, `xp_*`/`sp_*` procedures, and `#temp` tables or `@variables` after `FROM`.
+2. **The database itself:** on PostgreSQL the query runs in a `READ ONLY` transaction with `statement_timeout` = `Query:TimeoutSeconds`. SQL Server has no read-only transaction: there the query runs with a command timeout of `Query:TimeoutSeconds`, and only the guard and the login's rights keep it read-only, so beyond a local POC use a login that is only in `db_datareader`. Either way the transaction is always rolled back.
 
-Rejected queries return **400** "Query rejected"; queries PostgreSQL refuses return **400** with its error and hint (a query cancelled by the time limit says so), so the caller can show it or ask the AI again. **503** "PostgreSQL is not reachable" or "Neo4j is not reachable" names the database and the cause. AI Hub errors pass through with AI Hub's own status and message; if AI Hub can't be reached, `/ai/*` and `/ask` return **503**, and **504** if it takes longer than `AiHub:TimeoutSeconds`.
+Rejected queries return **400** "Query rejected"; queries the database refuses return **400** with its error (and PostgreSQL's hint; a query cancelled by the time limit says so), so the caller can show it or ask the AI again. **503** "PostgreSQL is not reachable", "SQL Server is not reachable" or "Neo4j is not reachable" names the database and the cause. AI Hub errors pass through with AI Hub's own status and message; if AI Hub can't be reached, `/ai/*` and `/ask` return **503**, and **504** if it takes longer than `AiHub:TimeoutSeconds`.
 
 ### Insights.AiHub (http://localhost:5200)
 
@@ -240,6 +237,29 @@ AI Hub returns **500** for missing configuration (such as no API key), **502** f
 
 **What goes to OpenAI:** for `/sql`, the question and its knowledge model context (table and column descriptions, concept attributes, metric formulas, the matching business rules and examples, and the first and last date in the data); for `/answer`, the question, the SQL and the query rows (up to `Answer:MaxResultChars`). The POS data has no customer details.
 
+## Choosing the database: PostgreSQL or SQL Server
+
+The POS data can be answered from PostgreSQL (the default) or from a copy of it in SQL Server. Switch in [src/Insights.Analytics/appsettings.json](src/Insights.Analytics/appsettings.json), then restart Analytics:
+
+```json
+"PosBasket": {
+  "Provider": "SqlServer",
+  ...
+  "SqlServer": {
+    "ConnectionString": "Server=localhost;Database=pos_basket;Integrated Security=true;TrustServerCertificate=true",
+    "Schema": "dbo"
+  }
+}
+```
+
+`"Provider": "PostgreSQL"` switches back. The environment variable `PosBasket__Provider` does the same without editing the file (for a Windows service, for example). **Health** and the **Coverage** line under *Data behind this* name the database in use.
+
+- **The SQL Server copy:** `Insights Assistant/temp/db/pos_basket_sqlserver` (local only, see [Local-only files](#local-only-files-temp)) creates the `pos_basket` database and copies every row from PostgreSQL with the same columns, key and indexes, then checks that line, basket and store counts and the net amount match. Run it again to refresh the copy.
+- **One knowledge model for both.** `knowledge-model.json` and `business-rules.json` stay written for PostgreSQL. On SQL Server, Analytics sends the AI the tables as `dbo.…`, SQL Server column types (`bit`, `uniqueidentifier`, …), and the formulas and rules translated to T-SQL (`FILTER (WHERE …)` → `CASE WHEN`, `extract(…)` → `DATEPART`, `to_char(…, 'FMDay')` → `DATENAME`, `::int` → `CAST`, `is_ebt` → `is_ebt = 1`; [SqlServerExpressions.cs](src/Insights.Analytics/Services/KnowledgeModel/SqlServerExpressions.cs)). AI Hub then asks for T-SQL (`TOP` rather than `LIMIT`, no `GROUP BY 1`, …).
+- **Examples per database.** Each example in `query-examples.json` has a checked SQL Server version (`"Dialect": "SQL Server"`); the AI gets the version for the database in use, or the PostgreSQL one when there's no other. **Save as example** saves for the database in use.
+- **Same answers.** The SQL Server versions of the examples and every metric return the same numbers as PostgreSQL.
+- **On a machine with little free memory,** SQL Server keeps itself small and queries wait for memory. The copy adds a columnstore index (aggregates in about 1 s rather than over a minute), an index on `transaction_end_date`, and one CPU per query in that database (`MAXDOP 1`).
+
 ## Configuration
 
 Settings are in each project's `appsettings.json`; `appsettings.Development.json` overrides them when developing (`dotnet run` uses the Development environment). Keep passwords and keys in user-secrets or environment variables (see [Quick start](#quick-start)), never in that file.
@@ -247,8 +267,11 @@ Settings are in each project's `appsettings.json`; `appsettings.Development.json
 | Setting | Used by | Default | Notes |
 |---|---|---|---|
 | `Neo4j:Uri` / `User` / `Database` | Analytics | `neo4j://127.0.0.1:7687` / `neo4j` / `knowledge-model` | Where the knowledge model is loaded. A load replaces only nodes labelled `KnowledgeModel`. Use `127.0.0.1`, not `localhost` (see [Troubleshooting](#troubleshooting)). |
-| `PosBasket:Host` / `Port` / `Database` / `User` | Analytics | `localhost` / `5432` / `pos_basket` / `postgres` | The PostgreSQL database every answer is read from. Password: `PosBasket:Password`. For anything beyond a local POC, use a user that can only `SELECT` from the knowledge model's tables. |
-| `Query:MaxRows` / `TimeoutSeconds` | Analytics | `1000` / `30` | Limits for `/query`; the timeout is PostgreSQL's `statement_timeout` |
+| `PosBasket:Provider` | Analytics | `PostgreSQL` | Which database every answer is read from: `PostgreSQL` or `SqlServer`. Restart Analytics after changing it. See [Choosing the database](#choosing-the-database-postgresql-or-sql-server). |
+| `PosBasket:Host` / `Port` / `Database` / `User` | Analytics | `localhost` / `5432` / `pos_basket` / `postgres` | The PostgreSQL database. Password: `PosBasket:Password`. For anything beyond a local POC, use a user that can only `SELECT` from the knowledge model's tables. |
+| `PosBasket:SqlServer:ConnectionString` | Analytics | `Server=localhost;Database=pos_basket;Integrated Security=true;TrustServerCertificate=true` | The SQL Server database, when `Provider` is `SqlServer`. Windows sign-in by default; with a SQL login, keep the connection string (it has the password) in user-secrets or `PosBasket__SqlServer__ConnectionString`. |
+| `PosBasket:SqlServer:Schema` | Analytics | `dbo` | The schema the knowledge model's tables are in on SQL Server: `public.pos_basket_line` is read as `dbo.pos_basket_line`. |
+| `Query:MaxRows` / `TimeoutSeconds` | Analytics | `1000` / `30` | Limits for `/query`; the timeout is PostgreSQL's `statement_timeout`, or SQL Server's command timeout |
 | `AiHub:BaseUrl` / `TimeoutSeconds` | Analytics | `http://localhost:5200` / `180` | Where `/ai/*` and `/ask` go, and how long to wait for each call |
 | `OpenAI:Model` | AI Hub | *(empty)* | The model to use. When empty, `FallbackModel` is used. |
 | `OpenAI:FallbackModel` | AI Hub | `gpt-5` | Also used if `Model` returns "model not found" (404) |
@@ -268,7 +291,7 @@ Both services log each step of what they do, at Information level:
 - **Knowledge model:** each load with its counts, and for each question which concepts and metrics it named and what the AI was given.
 - **Queries:** the SQL, rows and time, or why it was rejected.
 - **`/ask`:** each step.
-- **Data:** whether PostgreSQL answers, and the dates it covers.
+- **Data:** whether the data's database (PostgreSQL or SQL Server) answers, and the dates it covers.
 - **Calls between the services:** every call from Analytics to AI Hub and back, with status and time.
 - **OpenAI:** every call, with model, time, tokens, finish reason and cost.
 
@@ -306,7 +329,7 @@ Neo4j Poc/
 ├── Insights.sln
 ├── README.md, requests.http, .gitignore
 ├── src/
-│   ├── Insights.Analytics/  knowledge model (Neo4j), read-only SQL (PostgreSQL), /ask, AI forwarding, Q&A page (wwwroot/)
+│   ├── Insights.Analytics/  knowledge model (Neo4j), read-only SQL (PostgreSQL or SQL Server), /ask, AI forwarding, Q&A page (wwwroot/)
 │   ├── Insights.AiHub/      question + knowledge model context → SQL, rows → answer, catalog context → answer (OpenAI)
 │   ├── Insights.DbGuide/    database catalog (Neo4j db-guide) → answers about tables and joins, DB Guide page (wwwroot/)
 │   └── Insights.Common/     code the services share: the debug log (Diagnostics/)
@@ -320,13 +343,13 @@ Both services follow the same layout: thin controllers, logic in `Services/`, on
 | Folder | Contents |
 |---|---|
 | `Controllers/` | `SchemaController` (`/schema`, `/context`), `KnowledgeModelController` (`/knowledge-model/status`, `/knowledge-model/reload`, `/dataset`), `HealthController` (`/health`), `QueryController` (`/query`), `AskController` (`/ask`), `FeedbackController` (`/feedback`, `/examples`), `AiHubController` (`/ai/*`), `LogsController` (`/logs`) |
-| `Services/Knowledge model/` | `KnowledgeModelLoader` (checks the files and writes the knowledge model to Neo4j), `KnowledgeModelReader` (the whole knowledge model, or a question's part of it), `KnowledgeModelWatcher` (loads at startup and when a file changes), `Terms` (word matching) |
-| `Services/Query/` | `SqlQueryService` (read-only SQL on PostgreSQL), `SqlGuard` (what may run), `SqlValueConverter` (PostgreSQL values to JSON), `PostgresErrors` |
-| `Services/Data/` | `PosBasketDatabase` (the PostgreSQL connection pool), `DataCoverageService` (whether PostgreSQL answers, and the dates it covers) |
+| `Services/Knowledge model/` | `KnowledgeModelLoader` (checks the files and writes the knowledge model to Neo4j), `KnowledgeModelReader` (the whole knowledge model, or a question's part of it), `KnowledgeModelWatcher` (loads at startup and when a file changes), `Terms` (word matching), `SqlServerExpressions` (the knowledge model's PostgreSQL formulas as T-SQL) |
+| `Services/Query/` | `SqlQueryService` (read-only SQL on the data's database), `SqlGuard` (what may run, per dialect), `SqlValueConverter` (database values to JSON), `DatabaseErrors` (a failed query's error, and `QueryFailedException`) |
+| `Services/Data/` | `PosBasketDatabase` (the PostgreSQL or SQL Server connection, table names and dialect), `DataCoverageService` (whether the database answers, and the dates it covers) |
 | `Services/Dataset/` | `ExampleStore` (`query-examples.json`), `FeedbackStore` (ratings) |
 | `Services/Ask/` | `AskService` (question → SQL → rows → answer) |
 | `Services/AiHub/` | `AiHubClient` (calls AI Hub and waits for the response) |
-| `Filters/` | `AiHubErrorFilter`: AI Hub errors, timeouts and failed `/ask` queries as problem responses. `DatabaseErrorHandler`: "Neo4j is not reachable", "PostgreSQL is not reachable" (503) and "Knowledge model error" (500) with the cause, on any endpoint |
+| `Filters/` | `AiHubErrorFilter`: AI Hub errors, timeouts and failed `/ask` queries as problem responses. `DatabaseErrorHandler`: "Neo4j is not reachable", "PostgreSQL is not reachable" or "SQL Server is not reachable" (503) and "Knowledge model error" (500) with the cause, on any endpoint |
 | `Models/`, `Configuration/`, `Extensions/` | Request and response records, options classes, `AddAnalytics()` |
 | `wwwroot/` | The Q&A page |
 | `knowledge-model.json`, `business-rules.json`, `query-examples.json` | The knowledge model (see [The knowledge model](#the-knowledge-model)) |
@@ -367,13 +390,14 @@ Both services follow the same layout: thin controllers, logic in `Services/`, on
 
 ## Local-only files (`temp/`)
 
-`temp/` holds the source data and the scripts that load it into PostgreSQL. It's in [.gitignore](../.gitignore), so it's never checked in, and **nothing in the app reads it**: the services only talk to the `pos_basket` database and Neo4j. Deleting `temp/` doesn't affect the app.
+`temp/` holds the source data and the scripts that load it into PostgreSQL and copy it to SQL Server. It's in [.gitignore](../.gitignore), so it's never checked in, and **nothing in the app reads it**: the services only talk to the `pos_basket` database and Neo4j. Deleting `temp/` doesn't affect the app.
 
 | Path | Contents |
 |---|---|
 | `temp/data/pos_basket_august2.csv` | The POS basket export (about 300 MB), or `pos_basket_august2.csv.gz` zipped (72 MB), which `load.ps1` unzips itself |
 | `temp/data/POSBasket_KnowledgeModel_Review 1.xlsx` | The table owner's answers, which the business rules in `business-rules.json` are based on |
 | `temp/db/pos_basket/` | `load.ps1` and `01-load.sql`, which create the `pos_basket` database and load the CSV into it (see its README) |
+| `temp/db/pos_basket_sqlserver/` | A small .NET tool that creates `pos_basket` in SQL Server and copies the table from PostgreSQL, checking both match (`dotnet run -c Release`; see its README) |
 
 To set up `pos_basket` on a new machine, get these files from the team, put them under `temp/`, and run `temp/db/pos_basket/load.ps1`.
 
@@ -384,6 +408,8 @@ Open the **Debug log** card or the log files first: failed steps show their real
 | Symptom | Cause and fix |
 |---|---|
 | 503 "PostgreSQL is not reachable", or the **Data** pill is red | PostgreSQL isn't running, or `PosBasket:*` or its password is wrong; the cause is in the message. |
+| 503 "SQL Server is not reachable" | `PosBasket:Provider` is `SqlServer` and SQL Server isn't running, or `PosBasket:SqlServer:ConnectionString` is wrong, or the `pos_basket` copy hasn't been made yet. |
+| SQL Server answers are slow or time out | Check that the copy has its indexes (the copy tool adds them). On a machine with little free memory, SQL Server waits for memory: close other programs or set a fixed `min server memory`. |
 | 503 "Neo4j is not reachable" on `/schema`, `/context` or questions | Neo4j isn't running or `Neo4j:Uri` is wrong; the cause is in the message. Start the `salespoc` instance in Neo4j Desktop. |
 | `Database does not exist. Database name: 'knowledge-model'` | Create it once: ``CREATE DATABASE `knowledge-model` IF NOT EXISTS`` on the `system` database (see [Quick start](#quick-start)), or set `Neo4j:Database` to an existing one. |
 | `Failed after retried … Make sure that your database is online` | The Neo4j driver's generic message. The real cause follows "Cause:" in the error or the log: often Neo4j isn't running (`No connection could be made…`). |
@@ -391,7 +417,7 @@ Open the **Debug log** card or the log files first: failed steps show their real
 | 500 "Knowledge model error", or the **Knowledge model** card shows a failed load | A file has a problem; the message names each one (for example a rule that applies to a name that isn't a concept or metric). Fix and save the file; it reloads by itself. |
 | The AI uses the wrong column or misses a rule | Check **Knowledge model used** under the answer. If the right concept or metric isn't there, add the question's word to its `Synonyms`; if a rule is missing, add the concept or metric to its `AppliesTo`. |
 | 400 "Query rejected" | The SQL guard refused the query; the message says why. The AI is told the reason and corrects its query once. |
-| 400 "Query took too long" | PostgreSQL cancelled it after `Query:TimeoutSeconds`. Narrow the question, or add an index for it in PostgreSQL. |
+| 400 "Query took too long" | The database cancelled it after `Query:TimeoutSeconds`. Narrow the question, or add an index for it. |
 | 429 "Daily OpenAI budget reached" | Today's OpenAI cost reached `OpenAI:DailyBudgetUsd`. Raise it in the AI Hub's `appsettings.json` (no restart needed) or wait until tomorrow. |
 | `/ai/*` or `/ask` return 503 "AI Hub unavailable" | AI Hub isn't running, or `AiHub:BaseUrl` is wrong. |
 | `/ai/sql` returns 503 "Analytics service unavailable" | AI Hub can't reach Analytics `/context`: Analytics isn't running, `Analytics:BaseUrl` is wrong, or Neo4j is down (the detail says which). |
@@ -400,11 +426,11 @@ Open the **Debug log** card or the log files first: failed steps show their real
 
 ## Scope and limits
 
-- **Always current data:** every answer reads PostgreSQL as it is at that moment; there's no copy to sync. The dates the AI sees as "the latest day" are read from PostgreSQL every 10 minutes.
+- **Always current data:** every answer reads the database as it is at that moment. The dates the AI sees as "the latest day" are read from it every 10 minutes. The SQL Server copy is a snapshot: it has new PostgreSQL data only after the copy tool runs again.
 - **Bought together is computed per question:** there's no precomputed pairs table, so the AI pairs items in SQL for each question. With one item named (“bought with SPAM Musubi”) that takes seconds; listing the top pairs across all items is slower. For two years of data, add a nightly pairs table in PostgreSQL and describe it in `knowledge-model.json`.
 - **Larger data needs PostgreSQL tuning, not app changes:** for two years of data, partition `pos_basket_line` by business date, add an index on `transaction_end_date` (the date coverage check reads its minimum and maximum), and add summary tables (daily and weekly totals) to the knowledge model so the AI reads those first.
-- **Only the knowledge model's tables can be queried,** and only with a single `SELECT`. PostgreSQL is only ever read; Neo4j is only changed by a knowledge model load.
-- **Read-only database user:** the guard and the read-only transaction keep questions from changing data, but for anything beyond a local POC also connect Analytics to PostgreSQL with a user that can only `SELECT` from the knowledge model's tables, and to Neo4j with a user limited to the `knowledge model` database.
+- **Only the knowledge model's tables can be queried,** and only with a single `SELECT`. The data's database is only ever read; Neo4j is only changed by a knowledge model load.
+- **Read-only database user:** the guard and the read-only transaction keep questions from changing data, but for anything beyond a local POC also connect Analytics to PostgreSQL with a user that can only `SELECT` from the knowledge model's tables (on SQL Server, a login only in `db_datareader`, which matters more there since it has no read-only transaction), and to Neo4j with a user limited to the `knowledge model` database.
 - **No authentication:** both services listen on `localhost` only and have no login. Add authentication before exposing them anywhere else. Swagger UI is only on in Development.
 - **`BAG FEE` is sold as an ordinary item** (`line_type` `REGULAR`), so it shows up in item rankings and as a frequent “bought with” partner. Add a business rule to leave it out if it shouldn't count.
 - **Not forecasting:** nothing here predicts future sales yet. Forecasts would be computed by a separate service into PostgreSQL tables and described in `knowledge-model.json`, so questions about them work like any other.

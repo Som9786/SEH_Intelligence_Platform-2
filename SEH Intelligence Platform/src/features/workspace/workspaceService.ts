@@ -2,7 +2,7 @@ import { apiJson } from '../../platform/api/apiClient';
 import type { AnalyticsResult } from '../ai-assistant/services/assistantService';
 
 /**
- * The signed-in user's saved work, kept by Insights.Workspace (through the gateway at
+ * The signed-in user's saved work, kept by the workspace in Insights.DbGuide (through the gateway at
  * /api/workspace): questions scheduled to run again, and answers kept as widgets on a board.
  */
 

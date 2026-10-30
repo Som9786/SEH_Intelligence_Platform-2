@@ -13,7 +13,7 @@ namespace Insights.Analytics.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    /// Registers the options, the Neo4j driver (knowledge model), the PostgreSQL connection (data), and the knowledge model, query and AI services.
+    /// Registers the options, the Neo4j driver (knowledge model), the data's database (PostgreSQL or SQL Server), and the knowledge model, query and AI services.
     public static IServiceCollection AddAnalytics(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<Neo4jOptions>(configuration.GetSection(Neo4jOptions.SectionName));
@@ -32,7 +32,7 @@ public static class ServiceCollectionExtensions
         });
         services.AddSingleton<PosBasketDatabase>();
 
-        // Neo4j or PostgreSQL down, or broken knowledge model files -> a problem response with the cause rather than a generic 500.
+        // Neo4j or the data's database down, or broken knowledge model files -> a problem response with the cause rather than a generic 500.
         services.AddExceptionHandler<DatabaseErrorHandler>();
 
         // The knowledge model in Neo4j: loaded from the files at startup and on every change, and read for each question.
@@ -41,7 +41,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<KnowledgeModelReader>();
         services.AddHostedService<KnowledgeModelWatcher>();
 
-        // Read-only SQL on PostgreSQL.
+        // Read-only SQL on the data's database.
         services.AddSingleton<SqlQueryService>();
 
         // The AI Hub, called server to server for /ai/* and /ask.

@@ -13,6 +13,7 @@ import { coverageOf, joinsOf } from '../utils/answerDetails';
 import { ResultChart } from './ResultVisual';
 import { ResultTable } from './ResultTable';
 import { SideFlyout } from '../../../shared/components/SideFlyout';
+import { SqlCode } from '../../../shared/components/SqlCode';
 
 type Source = { question: string; reason: string } & (
   | { intent: 'analytics'; result: AnalyticsResult }
@@ -245,15 +246,16 @@ export function AnalyticsData({
       )}
       {result.sql && !onPage && (
         <Section title="Query that was run">
-          <pre className="ia-code">{result.sql}</pre>
+          <SqlCode sql={result.sql} />
         </Section>
       )}
       <p className="dbt-note">
         Live data
         {result.fetchedAt &&
           `, synced from the database ${formatWhen(result.fetchedAt)}`}
-        . The numbers come from the query run on PostgreSQL; the wording is
-        written by OpenAI from those rows.
+        . The numbers come from the query run on{' '}
+        {data?.dialect ?? 'the database'}; the wording is written by OpenAI from
+        those rows.
         {result.corrected && ' The first query failed and was corrected.'}
         {result.costUsd === 0
           ? ' Reused an earlier answer, no OpenAI cost.'
@@ -371,7 +373,7 @@ function DbGuideData({
       )}
       {result.sql && (
         <Section title="Example query (not run)">
-          <pre className="ia-code">{result.sql}</pre>
+          <SqlCode sql={result.sql} />
         </Section>
       )}
       <p className="dbt-note">

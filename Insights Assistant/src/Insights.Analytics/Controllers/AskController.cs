@@ -11,7 +11,7 @@ namespace Insights.Analytics.Controllers;
 [AiHubErrorFilter]
 public sealed class AskController(AskService askService) : ControllerBase
 {
-    /// Question in English -> SQL (AI Hub, from the knowledge model) -> rows (PostgreSQL, read-only) -> plain-English answer
+    /// Question in English -> SQL (AI Hub, from the knowledge model) -> rows (PostgreSQL or SQL Server, read-only) -> plain-English answer
     /// (AI Hub), in one call. Optional history (earlier questions and their queries) makes it a follow-up. If the
     /// generated query fails, the AI corrects it once; if that fails too, the 400 problem response includes the last query as "sql".
     [HttpPost]

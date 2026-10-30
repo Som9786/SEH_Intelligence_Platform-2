@@ -13,10 +13,12 @@ namespace Insights.Analytics.Services.KnowledgeModel;
 /// relationship path between them (so the AI sees how to join them), their tables and columns, the business rules
 /// about any of them, and the verified examples that illustrate the most of them.
 /// A question that names nothing gets the whole knowledge model.
+/// The context's dialect is the data's database (PostgreSQL or SQL Server), and its tables carry their names in that
+/// database; the formulas, rules and examples stay as written (PostgreSQL, unless an example says otherwise).
 public sealed class KnowledgeModelReader(
-    IDriver driver, IOptions<Neo4jOptions> neo4j, KnowledgeModelLoader loader, DataCoverageService coverage, ILogger<KnowledgeModelReader> logger)
+    IDriver driver, IOptions<Neo4jOptions> neo4j, KnowledgeModelLoader loader, DataCoverageService coverage, PosBasketDatabase database,
+    ILogger<KnowledgeModelReader> logger)
 {
-    const string Dialect = "PostgreSQL";
     /// Examples in a focused context, most relevant first.
     const int MaxExamples = 5;
 
@@ -83,13 +85,18 @@ public sealed class KnowledgeModelReader(
         ORDER BY r.position
         """;
 
-    // Ranked by how many of the question's concepts and metrics each example illustrates.
+    // Ranked by how many of the question's concepts and metrics each example illustrates. Examples in the data's dialect
+    // ($dialect: null for PostgreSQL, "SQL Server"), and on SQL Server also the PostgreSQL ones with no SQL Server version.
     const string SelectExamples = """
         MATCH (e:Example)
+        WHERE CASE WHEN $dialect IS NULL THEN e.dialect IS NULL
+              ELSE e.dialect = $dialect OR (e.dialect IS NULL AND NOT EXISTS {
+                  MATCH (other:Example {dialect: $dialect}) WHERE toLower(other.question) = toLower(e.question) })
+              END
         OPTIONAL MATCH (e)-[:ILLUSTRATES]->(n) WHERE n.name IN $matched
         WITH e, count(n) AS score
         WHERE $all OR score > 0
-        RETURN e.question AS question, e.sql AS sql
+        RETURN e.question AS question, e.sql AS sql, e.dialect AS dialect
         ORDER BY score DESC, e.position
         LIMIT $limit
         """;
@@ -132,28 +139,42 @@ public sealed class KnowledgeModelReader(
             }
             // Nothing named, or no question: everything.
             var all = matched.Count == 0;
-            var parameters = new { all, concepts, metrics, matched, included = concepts.Concat(metrics).ToList(), limit = all ? 1000 : MaxExamples };
+            var parameters = new
+            {
+                all, concepts, metrics, matched, included = concepts.Concat(metrics).ToList(), limit = all ? 1000 : MaxExamples,
+                dialect = database.Provider == DataProvider.SqlServer ? database.Dialect : null,
+            };
 
-            var conceptInfos = (await Query(SelectConcepts, parameters)).Select(r => new ConceptInfo(
-                r["name"].As<string>(), r["description"].As<string>(), r["table"].As<string>(), r["key"].As<string>(),
+            var conceptRecords = await Query(SelectConcepts, parameters);
+            var tables = conceptRecords.Select(r => r["table"].As<string>()).Distinct().ToList();
+            var tableRecords = await Query(SelectTables, new { tables });
+            // On SQL Server: tables by their name there (dbo.pos_basket_line), also inside rules and examples, and the
+            // formulas and rules in T-SQL, since the AI copies them as given.
+            var booleans = tableRecords.SelectMany(r => Maps(r["columns"]))
+                .Where(c => Text(c, "type").Equals("boolean", StringComparison.OrdinalIgnoreCase)).Select(c => Text(c, "name")).ToHashSet();
+            string Local(string text) => database.WithTableNames(text, tables);
+            string Sql(string text) =>
+                database.Provider == DataProvider.SqlServer ? SqlServerExpressions.Translate(Local(text), booleans) : text;
+
+            var conceptInfos = conceptRecords.Select(r => new ConceptInfo(
+                r["name"].As<string>(), r["description"].As<string>(), database.TableName(r["table"].As<string>()), Sql(r["key"].As<string>()),
                 Maps(r["attributes"]).Select(a => new AttributeInfo(
-                    Text(a, "name"), Text(a, "expression"), Text(a, "description"))).ToList())).ToList();
-            var tables = conceptInfos.Select(c => c.Table).Distinct().ToList();
-            var tableInfos = (await Query(SelectTables, new { tables })).Select(r => new TableInfo(
-                r["name"].As<string>(), r["description"].As<string>(),
+                    Text(a, "name"), Sql(Text(a, "expression")), Sql(Text(a, "description")))).ToList())).ToList();
+            var tableInfos = tableRecords.Select(r => new TableInfo(
+                database.TableName(r["name"].As<string>()), r["description"].As<string>(),
                 Maps(r["columns"]).Select(c => new ColumnInfo(
-                    Text(c, "name"), Text(c, "type"), Text(c, "description"),
+                    Text(c, "name"), database.ColumnType(Text(c, "type")), Text(c, "description"),
                     c.TryGetValue("values", out var v) && v is IEnumerable<object> values ? values.Select(x => x.ToString()!).ToList() : null))
                     .ToList())).ToList();
             var relationships = (await Query(SelectRelationships, parameters)).Select(r => new RelationshipInfo(
-                r["name"].As<string>(), r["from"].As<string>(), r["to"].As<string>(), r["join"].As<string>())).ToList();
+                r["name"].As<string>(), r["from"].As<string>(), r["to"].As<string>(), Sql(r["join"].As<string>()))).ToList();
             var metricInfos = (await Query(SelectMetrics, parameters)).Select(r => new MetricInfo(
-                r["name"].As<string>(), r["description"].As<string>(), r["expression"].As<string>())).ToList();
-            var rules = (await Query(SelectRules, parameters)).Select(r => r["text"].As<string>()).ToList();
+                r["name"].As<string>(), r["description"].As<string>(), Sql(r["expression"].As<string>()))).ToList();
+            var rules = (await Query(SelectRules, parameters)).Select(r => Sql(r["text"].As<string>())).ToList();
             var examples = (await Query(SelectExamples, parameters)).Select(r => new ExampleQuery(
-                r["question"].As<string>(), r["sql"].As<string>())).ToList();
+                r["question"].As<string>(), Local(r["sql"].As<string>()), r["dialect"].As<string?>())).ToList();
 
-            return new KnowledgeModelContext(Dialect, data.Coverage, matched, tableInfos, conceptInfos, relationships, metricInfos, rules, examples);
+            return new KnowledgeModelContext(database.Dialect, data.Coverage, matched, tableInfos, conceptInfos, relationships, metricInfos, rules, examples);
         });
 
         if (context.Concepts.Count == 0)

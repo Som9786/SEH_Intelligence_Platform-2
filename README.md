@@ -5,12 +5,13 @@ A web app for exploring a retail business's data. You can ask questions about sa
 | Folder | What it is |
 |---|---|
 | [SEH Intelligence Platform/](SEH%20Intelligence%20Platform) | The UI: React, TypeScript and Vite. |
-| [Insights Assistant/](Insights%20Assistant) | The backend: five .NET 9 services. See its [README](Insights%20Assistant/README.md) for how they work, their endpoints and settings. |
+| [Insights Assistant/](Insights%20Assistant) | The backend: four .NET 9 services. See its [README](Insights%20Assistant/README.md) for how they work, their endpoints and settings. |
 
 ## Prerequisites
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) and [Node.js 20.19+ or 22+](https://nodejs.org/) (with npm).
 - **PostgreSQL** on `localhost:5432`, with the `pos_basket` database loaded. It holds the sales data. The data and the script that loads it aren't in the repo: get the `temp` folder from the team (see the [backend README](Insights%20Assistant/README.md#local-only-files-temp)).
+  - **Or SQL Server**, with a copy of `pos_basket`: set `PosBasket:Provider` to `SqlServer` in [Insights.Analytics/appsettings.json](Insights%20Assistant/src/Insights.Analytics/appsettings.json) and restart Analytics. See [Choosing the database](Insights%20Assistant/README.md#choosing-the-database-postgresql-or-sql-server).
 - **Neo4j 5+**, with the `knowledge-model` and `db-guide` databases. On the team's machines this is the Neo4j Desktop instance `salespoc`: start it and wait for **RUNNING**.
 - An **OpenAI API key**.
 
@@ -52,10 +53,9 @@ Services that are already running are left as they are, so running it again star
 |---|---|
 | http://localhost:5174 | The UI (Vite dev server). It passes `/api` on to the gateway. |
 | http://localhost:5000 | **Gateway**: sign-in, access checks, and the only way in to the services below. `/health` shows which services are up. |
-| http://localhost:5100 | **Analytics**: answers questions about the sales data with read-only SQL on PostgreSQL. |
+| http://localhost:5100 | **Analytics**: answers questions about the sales data with read-only SQL on PostgreSQL, or SQL Server (`PosBasket:Provider`). |
 | http://localhost:5200 | **AI Hub**: the AI calls, and routes each question to Analytics or DB Guide. |
-| http://localhost:5300 | **DB Guide**: answers questions about the database's tables and joins. |
-| http://localhost:5400 | **Workspace**: each user's schedules, board widgets and shared links. |
+| http://localhost:5300 | **DB Guide**: answers questions about the database's tables and joins. Also keeps each user's schedules, board widgets and shared links, and the table reviews (under `/workspace`). |
 
 ## Starting them by hand
 
@@ -66,7 +66,6 @@ cd "Insights Assistant"
 dotnet run --project src/Insights.Analytics
 dotnet run --project src/Insights.AiHub
 dotnet run --project src/Insights.DbGuide
-dotnet run --project src/Insights.Workspace
 dotnet run --project src/Insights.Gateway
 
 cd "SEH Intelligence Platform"
@@ -81,7 +80,7 @@ Each service can run as a Windows service, so it starts with Windows and keeps r
 1. **Publish** each service into its own folder, and build the UI. The machine then needs only the [.NET 9 ASP.NET Core Runtime](https://dotnet.microsoft.com/download/dotnet/9.0), not the SDK.
    ```powershell
    cd "Insights Assistant"
-   foreach ($s in 'Gateway', 'Analytics', 'AiHub', 'DbGuide', 'Workspace') {
+   foreach ($s in 'Gateway', 'Analytics', 'AiHub', 'DbGuide') {
        dotnet publish "src/Insights.$s" -c Release -o "C:\SEH\$s"
    }
    cd "..\SEH Intelligence Platform"; npm run build   # then copy dist to C:\SEH\ui
@@ -97,9 +96,10 @@ Each service can run as a Windows service, so it starts with Windows and keeps r
    [Environment]::SetEnvironmentVariable('PosBasket__Password', '<postgres password>', 'Machine')
    [Environment]::SetEnvironmentVariable('OpenAI__ApiKey',      '<openai key>',        'Machine')
    ```
+   To read the data from SQL Server, also set `PosBasket__Provider` to `SqlServer`. A service runs as Local System, so Windows sign-in reaches SQL Server as the machine account: give that account read access to `pos_basket`, or set `PosBasket__SqlServer__ConnectionString` to one with a SQL login.
 4. **Install and start** them, as an administrator:
    ```powershell
-   foreach ($s in 'Analytics', 'AiHub', 'DbGuide', 'Workspace', 'Gateway') {
+   foreach ($s in 'Analytics', 'AiHub', 'DbGuide', 'Gateway') {
        sc.exe create "SEH-$s" binPath= "C:\SEH\$s\Insights.$s.exe" start= auto
        sc.exe start "SEH-$s"
    }

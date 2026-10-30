@@ -10,7 +10,7 @@ namespace Insights.AiHub.Controllers;
 [UpstreamErrorFilter]
 public sealed class SqlController(SqlGenerationService sqlService) : ControllerBase
 {
-    /// Question in English -> one read-only PostgreSQL query for the analytics service's /query endpoint.
+    /// Question in English -> one read-only query (PostgreSQL or SQL Server, whichever holds the data) for the analytics service's /query endpoint.
     /// Optional history makes it a follow-up; failedSql and error ask for a corrected query.
     [HttpPost]
     [ProducesResponseType<SqlResponse>(StatusCodes.Status200OK)]

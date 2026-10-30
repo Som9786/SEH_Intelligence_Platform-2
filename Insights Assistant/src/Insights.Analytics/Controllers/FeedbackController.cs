@@ -37,13 +37,14 @@ public sealed class FeedbackController(FeedbackStore feedback, ExampleStore exam
     {
         if (string.IsNullOrWhiteSpace(request.Question) || string.IsNullOrWhiteSpace(request.Sql))
             return Problem("'question' and 'sql' are required.", statusCode: StatusCodes.Status400BadRequest);
-        if (SqlGuard.RejectionReason(request.Sql, queries.Tables) is { } reason)
+        if (SqlGuard.RejectionReason(request.Sql, queries.Tables, queries.Dialect) is { } reason)
             return Problem(reason, statusCode: StatusCodes.Status400BadRequest, title: "Query rejected");
-        return Ok(examples.Save(request.Question, request.Sql));
+        return Ok(examples.Save(request.Question, request.Sql, queries.Dialect));
     }
 
-    /// Removes the example with ?question=.
+    /// Removes the example with ?question= written for the data's database (PostgreSQL or SQL Server).
     [HttpDelete("examples")]
     public IActionResult RemoveExample([FromQuery] string question) =>
-        examples.Remove(question) ? NoContent() : Problem($"No example has the question \"{question}\".", statusCode: StatusCodes.Status404NotFound);
+        examples.Remove(question, queries.Dialect) ? NoContent()
+            : Problem($"No example has the question \"{question}\".", statusCode: StatusCodes.Status404NotFound);
 }

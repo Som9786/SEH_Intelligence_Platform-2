@@ -1,6 +1,6 @@
 namespace Insights.Analytics.Configuration;
 
-/// What the data means and where it lives (knowledge-model.json): the PostgreSQL tables and columns, the business concepts
+/// What the data means and where it lives (knowledge-model.json): the tables and columns (named as in PostgreSQL), the business concepts
 /// stored in them, how concepts relate, the agreed metric formulas, and the words people use for each.
 /// Loaded into Neo4j at startup and whenever the file changes; read through IOptionsMonitor.
 public sealed class KnowledgeModelOptions

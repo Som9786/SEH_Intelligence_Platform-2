@@ -30,6 +30,17 @@ static class GuidePrompt
         - Earlier questions may come before this one; read a follow-up such as "and its supplier?" in their light.
         - Keep the answer short and practical, in Markdown: the direct answer first, then bullets. No headings, no tables
           of more than a few rows, and no SQL in the answer itself.
+        - Always put table and column names in backticks, in the answer and in bullets.
+        - When the answer is a list of tables (which tables hold X, where is Y kept), write one "- " bullet per table:
+          the table in bold backticks, a dash, then what makes it qualify in a few words, naming the columns it rests
+          on, for example:
+          - **`sales.Customers`** – personal data in `FullName`, `Email` and `PanNumber`
+          Every bullet is a table that qualifies. Leave out tables that don't: no bullet, note or sentence saying a
+          table doesn't qualify. Facts about a column (its sensitivity, its meaning) come from the catalog, not from
+          guessing at its name.
+        - Say each thing once: no "Notes" or summary that repeats tables or columns already named. Add a note only for
+          something new, such as a join that isn't enforced, in one short bullet.
+        - End with the answer. Don't offer more help or ask whether the user wants more detail.
         - sql: when a query helps (joins, finding rows), one example SELECT in the database's own dialect (for SQL
           Server: TOP rather than LIMIT, square brackets only when needed), with short table aliases and only columns
           that exist. Otherwise an empty string.

@@ -11,7 +11,8 @@ using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Transforms;
 
 // The one entry point for the SEH Intelligence Platform: the built UI at the site root, sign-in at /api/auth, and
-// /api/db-guide, /api/analytics, /api/ai and /api/workspace passed on to DB Guide, Analytics, AI Hub and Workspace, for signed-in users, for the
+// /api/db-guide, /api/analytics and /api/ai passed on to DB Guide, Analytics and AI Hub (and /api/workspace to DB Guide's
+// /workspace), for signed-in users, for the
 // routes Gateway:Allow lists only, and only when one of the user's roles has the functionality the route is for.
 var builder = ServiceHost.CreateBuilder(args);
 builder.Services.Configure<GatewayOptions>(builder.Configuration.GetSection(GatewayOptions.SectionName));

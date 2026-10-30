@@ -1,40 +1,65 @@
+using System.Data.Common;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Insights.Analytics.Configuration;
 using Insights.Analytics.Models;
 using Insights.Analytics.Services.Data;
 using Microsoft.Extensions.Options;
-using Npgsql;
 
 namespace Insights.Analytics.Services.Query;
 
-/// Runs caller-supplied SQL on PostgreSQL strictly read-only: SqlGuard checks the text first, then the query runs in a
-/// READ ONLY transaction (so PostgreSQL itself refuses any write) with a statement_timeout, and is always rolled back.
+/// Runs caller-supplied SQL strictly read-only: SqlGuard checks the text first, then the query runs in a transaction that
+/// is always rolled back. On PostgreSQL the transaction is READ ONLY (so PostgreSQL itself refuses any write) with a
+/// statement_timeout; SQL Server has no read-only transaction, so there the guard and the login's rights keep it read-only.
+/// A query the database refuses or fails comes back as QueryFailedException.
 public sealed partial class SqlQueryService(
     PosBasketDatabase database, IOptionsMonitor<KnowledgeModelOptions> knowledgeModel, IOptions<QueryOptions> options, ILogger<SqlQueryService> logger)
 {
-    /// The tables questions may read: the knowledge model's.
-    public IReadOnlyList<string> Tables => knowledgeModel.CurrentValue.Tables.Select(t => t.Name).ToList();
+    /// The tables questions may read: the knowledge model's, named as they are in this database.
+    public IReadOnlyList<string> Tables => knowledgeModel.CurrentValue.Tables.Select(t => database.TableName(t.Name)).ToList();
+
+    public SqlDialect Dialect => database.Provider == DataProvider.SqlServer ? SqlDialect.SqlServer : SqlDialect.PostgreSQL;
 
     public async Task<QueryResult> RunReadOnlyAsync(string sql, CancellationToken ct)
     {
-        logger.LogInformation("Query received: {Sql}", OneLine(sql));
-        if (SqlGuard.RejectionReason(sql, Tables) is { } reason)
+        logger.LogInformation("Query received ({Dialect}): {Sql}", database.Dialect, OneLine(sql));
+        if (SqlGuard.RejectionReason(sql, Tables, Dialect) is { } reason)
         {
             logger.LogWarning("Query rejected: {Reason}", reason);
             throw new QueryRejectedException(reason);
         }
+        try
+        {
+            return await RunAsync(sql, ct);
+        }
+        catch (DbException e) when (DatabaseErrors.Describe(e, options.Value.TimeoutSeconds) is { } error)
+        {
+            throw new QueryFailedException(error.Title, error.Detail, e);
+        }
+    }
 
+    async Task<QueryResult> RunAsync(string sql, CancellationToken ct)
+    {
         var o = options.Value;
         var timer = Stopwatch.StartNew();
         await using var conn = await database.OpenAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
-        await using (var setup = new NpgsqlCommand($"SET TRANSACTION READ ONLY; SET LOCAL statement_timeout = {o.TimeoutSeconds * 1000}", conn, tx))
+        if (database.Provider == DataProvider.PostgreSQL)
+        {
+            await using var setup = conn.CreateCommand();
+            setup.Transaction = tx;
+            setup.CommandText = $"SET TRANSACTION READ ONLY; SET LOCAL statement_timeout = {o.TimeoutSeconds * 1000}";
             await setup.ExecuteNonQueryAsync(ct);
+        }
 
         // The guard allows one trailing semicolon; without it, the text is exactly one statement.
-        await using var cmd = new NpgsqlCommand(sql.TrimEnd().TrimEnd(';'), conn, tx) { CommandTimeout = o.TimeoutSeconds + 5 };
+        await using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = sql.TrimEnd().TrimEnd(';');
+        // PostgreSQL's statement_timeout ends the query; SQL Server's is the command timeout itself.
+        cmd.CommandTimeout = database.Provider == DataProvider.PostgreSQL ? o.TimeoutSeconds + 5 : o.TimeoutSeconds;
         QueryResult result;
+        var truncated = false;
         var reader = await cmd.ExecuteReaderAsync(ct);
         try
         {
@@ -43,12 +68,14 @@ public sealed partial class SqlQueryService(
             for (var i = 0; i < reader.FieldCount; i++)
             {
                 var name = reader.GetName(i);
+                // SQL Server leaves an expression without an alias unnamed.
+                if (name.Length == 0)
+                    name = $"column_{i + 1}";
                 for (var n = 2; columns.Contains(name); n++)
                     name = $"{reader.GetName(i)}_{n}";
                 columns.Add(name);
             }
             var rows = new List<Dictionary<string, object?>>();
-            var truncated = false;
             while (await reader.ReadAsync(ct))
             {
                 if (rows.Count == o.MaxRows)
@@ -62,7 +89,7 @@ public sealed partial class SqlQueryService(
                 rows.Add(row);
             }
             result = new QueryResult(columns, rows, truncated);
-            // Closing the reader would otherwise read every remaining row; cancel the query so PostgreSQL stops sending them.
+            // Closing the reader would otherwise read every remaining row; cancel the query so the database stops sending them.
             if (truncated)
                 cmd.Cancel();
         }
@@ -72,7 +99,7 @@ public sealed partial class SqlQueryService(
             {
                 await reader.DisposeAsync();
             }
-            catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.QueryCanceled)
+            catch (DbException) when (truncated)
             {
                 // The cancel above, as expected.
             }

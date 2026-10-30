@@ -19,7 +19,7 @@ import { ScheduleDialog } from '../components/ScheduleDialog';
 
 /**
  * Scheduled insights: the questions the user scheduled from Insights Assistant, saved by
- * Insights.Workspace. They can be paused, edited and deleted; running them is coming soon.
+ * the workspace in Insights.DbGuide. They can be paused, edited and deleted; running them is coming soon.
  */
 export function ScheduledInsightsPage() {
   const queryClient = useQueryClient();

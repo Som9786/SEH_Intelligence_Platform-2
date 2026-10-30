@@ -15,7 +15,7 @@ namespace Insights.Analytics.Services.KnowledgeModel;
 /// (Rule)-[:APPLIES_TO]->(Concept|Metric) and (Example)-[:ILLUSTRATES]->(Concept|Metric).
 /// Every node also has the label Knowledge model, and a load replaces only those nodes, in one transaction: a question reads
 /// either the old knowledge model or the new one, never half of each, and anything else in the database is left alone.
-/// The graph never holds sales data; that stays in PostgreSQL.
+/// The graph never holds sales data; that stays in PostgreSQL or SQL Server.
 public sealed partial class KnowledgeModelLoader(
     IDriver driver, IOptions<Neo4jOptions> neo4j, IOptionsMonitor<KnowledgeModelOptions> knowledgeModel, IOptionsMonitor<DatasetOptions> dataset,
     DataCoverageService coverage, ILogger<KnowledgeModelLoader> logger)
@@ -102,7 +102,7 @@ public sealed partial class KnowledgeModelLoader(
 
     const string CreateExamples = """
         UNWIND $rows AS e
-        CREATE (x:KnowledgeModel:Example {question: e.question, sql: e.sql, position: e.position})
+        CREATE (x:KnowledgeModel:Example {question: e.question, sql: e.sql, dialect: e.dialect, position: e.position})
         WITH x, e
         UNWIND e.targets AS name
         OPTIONAL MATCH (c:Concept {name: name})
@@ -308,7 +308,7 @@ public sealed partial class KnowledgeModelLoader(
         var examples = d.Examples.Where(e => !string.IsNullOrWhiteSpace(e.Question) && !string.IsNullOrWhiteSpace(e.Sql)).ToList();
         var exampleRows = examples.Select((e, i) => new Row
         {
-            ["question"] = e.Question.Trim(), ["sql"] = e.Sql.Trim(), ["position"] = i,
+            ["question"] = e.Question.Trim(), ["sql"] = e.Sql.Trim(), ["dialect"] = e.Dialect, ["position"] = i,
             ["targets"] = Terms.Phrases(e.Question).Where(terms.ContainsKey).SelectMany(p => terms[p]).Distinct().Cast<object?>().ToList(),
         }).ToList();
 

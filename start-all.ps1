@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Starts the whole SEH Intelligence Platform: the five Insights Assistant services and the UI, each in its own window,
+  Starts the whole SEH Intelligence Platform: the four Insights Assistant services and the UI, each in its own window,
   then waits until the gateway says every service is up and opens the app.
 
 .DESCRIPTION
@@ -32,7 +32,6 @@ $services = @(
     @{ Name = 'Analytics'; Project = 'Insights.Analytics'; Port = 5100 },
     @{ Name = 'AI Hub'; Project = 'Insights.AiHub'; Port = 5200 },
     @{ Name = 'DB Guide'; Project = 'Insights.DbGuide'; Port = 5300 },
-    @{ Name = 'Workspace'; Project = 'Insights.Workspace'; Port = 5400 },
     @{ Name = 'Gateway'; Project = 'Insights.Gateway'; Port = 5000 }
 )
 $uiPort = 5174

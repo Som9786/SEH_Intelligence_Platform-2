@@ -2,7 +2,7 @@ namespace Insights.AiHub.Models;
 
 /// Body of POST /sql. History holds earlier questions in the same conversation and their queries, oldest first,
 /// so a follow-up such as "and for store 123?" can build on them. FailedSql and Error ask for a corrected query
-/// after PostgreSQL rejected one written for this question.
+/// after the database rejected one written for this question.
 public sealed record SqlRequest(string Question, IReadOnlyList<ConversationTurn>? History = null, string? FailedSql = null, string? Error = null);
 
 /// One earlier question and the query that answered it.

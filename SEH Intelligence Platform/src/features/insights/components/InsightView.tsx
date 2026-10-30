@@ -12,6 +12,7 @@ import { analyticsDetails } from '../../ai-assistant/utils/answerDetails';
 import { visualOf } from '../../ai-assistant/utils/visualOf';
 import { useAuth } from '../../auth/useAuth';
 import { PageHeading } from '../../../shared/components/PageHeading';
+import { SqlCode } from '../../../shared/components/SqlCode';
 import {
   ageOf,
   BOARD_LABEL,
@@ -159,7 +160,7 @@ export function InsightView({
           )}
           {insight.details?.sql && (
             <Panel title="Query that was run">
-              <pre className="ia-code ins-code">{insight.details.sql}</pre>
+              <SqlCode sql={insight.details.sql} className="ins-code" />
             </Panel>
           )}
         </aside>

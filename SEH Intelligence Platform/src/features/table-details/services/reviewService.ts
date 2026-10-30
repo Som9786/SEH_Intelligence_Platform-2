@@ -2,7 +2,7 @@ import { ApiError, apiJson } from '../../../platform/api/apiClient';
 import type { ReviewDraft, ReviewStatus, TableReview } from '../types/review';
 
 /**
- * The only thing the UI knows about reviews. Reviews are kept by Insights.Workspace (through the
+ * The only thing the UI knows about reviews. Reviews are kept by the workspace in Insights.DbGuide (through the
  * gateway at /api/workspace/reviews) in one file shared by everyone, so they survive a refresh and
  * every user sees the same review. The reviewer is the signed-in user, set by the server.
  */

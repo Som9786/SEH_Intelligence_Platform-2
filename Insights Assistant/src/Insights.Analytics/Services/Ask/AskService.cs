@@ -1,18 +1,14 @@
 using System.Diagnostics;
 using System.Text.Json;
-using Insights.Analytics.Configuration;
 using Insights.Analytics.Models;
 using Insights.Analytics.Services.AiHub;
 using Insights.Analytics.Services.Query;
-using Microsoft.Extensions.Options;
-using Npgsql;
-
 namespace Insights.Analytics.Services.Ask;
 
 /// Answers a question end to end: the AI Hub writes SQL from the part of the knowledge model the question is about, this
-/// service runs it read-only on PostgreSQL, and the AI Hub explains the rows.
-/// When PostgreSQL rejects the query, the AI Hub gets the error back once and writes a corrected query.
-public sealed class AskService(AiHubClient ai, SqlQueryService queryService, IOptions<QueryOptions> options, ILogger<AskService> logger)
+/// service runs it read-only on the data's database (PostgreSQL or SQL Server), and the AI Hub explains the rows.
+/// When the database rejects the query, the AI Hub gets the error back once and writes a corrected query.
+public sealed class AskService(AiHubClient ai, SqlQueryService queryService, ILogger<AskService> logger)
 {
     public async Task<AskResponse> AskAsync(AskRequest request, CancellationToken ct)
     {
@@ -28,7 +24,7 @@ public sealed class AskService(AiHubClient ai, SqlQueryService queryService, IOp
             return new(question, false, "", generated.Explanation, null, null, Cost(usages, generated.Cached), KnowledgeModel: generated.KnowledgeModel);
         }
 
-        logger.LogInformation("Ask step 2/3: running the generated query on PostgreSQL");
+        logger.LogInformation("Ask step 2/3: running the generated query");
         QueryResult result;
         var corrected = false;
         try
@@ -68,7 +64,7 @@ public sealed class AskService(AiHubClient ai, SqlQueryService queryService, IOp
     List<ConversationTurn> SafeHistory(IReadOnlyList<ConversationTurn>? history)
     {
         var turns = history ?? [];
-        var safe = turns.Where(t => SqlGuard.RejectionReason(t.Sql, queryService.Tables) is null).ToList();
+        var safe = turns.Where(t => SqlGuard.RejectionReason(t.Sql, queryService.Tables, queryService.Dialect) is null).ToList();
         if (safe.Count < turns.Count)
             logger.LogWarning("Ask: left out {Count} earlier turns whose query the guard refuses", turns.Count - safe.Count);
         return safe;
@@ -85,11 +81,10 @@ public sealed class AskService(AiHubClient ai, SqlQueryService queryService, IOp
             logger.LogWarning("Ask: the generated query was rejected: {Message}", e.Message);
             throw new AskQueryException("Query rejected", e.Message, generated.Sql, generated.Explanation);
         }
-        catch (PostgresException e)
+        catch (QueryFailedException e)
         {
-            var (title, detail) = PostgresErrors.Describe(e, options.Value.TimeoutSeconds);
-            logger.LogWarning("Ask: the generated query failed in PostgreSQL ({Title}): {Detail}", title, detail);
-            throw new AskQueryException(title, detail, generated.Sql, generated.Explanation);
+            logger.LogWarning("Ask: the generated query failed in the database ({Title}): {Detail}", e.Title, e.Message);
+            throw new AskQueryException(e.Title, e.Message, generated.Sql, generated.Explanation);
         }
     }
 

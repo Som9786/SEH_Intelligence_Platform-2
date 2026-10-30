@@ -6,7 +6,7 @@
 
 ### ---------- Insights.Analytics ----------
 
-### Whether Neo4j holds a loaded knowledge model and PostgreSQL answers, with the business dates the data covers
+### Whether Neo4j holds a loaded knowledge model and the data's database (PostgreSQL or SQL Server) answers, with the business dates the data covers
 GET {{analytics}}/health
 
 ### The whole knowledge model from Neo4j: tables and columns, concepts, relationships, metrics, business rules, examples
@@ -35,7 +35,7 @@ GET {{analytics}}/knowledge-model/status
 ### Load the knowledge model files into Neo4j again
 POST {{analytics}}/knowledge-model/reload
 
-### Run a read-only SQL query on PostgreSQL
+### Run a read-only SQL query on the data's database, in its dialect (PosBasket:Provider: PostgreSQL or SQL Server)
 POST {{analytics}}/query
 Content-Type: application/json
 
@@ -128,9 +128,9 @@ Content-Type: application/json
 
 { "question": "Which 5 stores had the highest net sales?", "intent": "analytics", "answer": "Store 12 had the highest net sales.", "columns": ["store", "net_sales"] }
 
-### ---------- Insights.Workspace (each user's schedules and board widgets; normally reached through the gateway) ----------
+### ---------- Workspace, part of DB Guide (each user's schedules and board widgets; normally reached through the gateway) ----------
 
-@workspace = http://localhost:5400
+@workspace = http://localhost:5300/workspace
 
 ### The user's schedules, with when each would next run
 GET {{workspace}}/schedules

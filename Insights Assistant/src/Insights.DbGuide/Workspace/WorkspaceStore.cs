@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Insights.Workspace;
+namespace Insights.DbGuide.Workspace;
 
 /// Keeps each user's schedules and widgets in a JSON file of their own under Workspace:DataPath. Every change reads the
 /// file, applies the change and writes it back whole (to a temporary file first, so a crash never leaves half a file).

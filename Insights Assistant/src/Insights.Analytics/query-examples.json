@@ -5,6 +5,9 @@
   //
   // Edit this file freely: changes apply without a restart.
   // The Q&A page's "Save as example" button adds to this file too (it rewrites the file and keeps this header).
+  //
+  // Examples with "Dialect": "SQL Server" are T-SQL, for when PosBasket:Provider is SqlServer; the rest are PostgreSQL.
+  // The AI gets the version in the data's dialect, and the PostgreSQL one when there is no other.
   "Dataset": {
     "Examples": [
       {
@@ -42,6 +45,51 @@
       {
         "Question": "Which offers were used in the most baskets?",
         "Sql": "SELECT max(promo_desc) AS offer, count(DISTINCT idtuuid) AS baskets FROM public.pos_basket_line WHERE line_type = 'PROMO' GROUP BY promo_item_id ORDER BY baskets DESC LIMIT 100"
+      },
+      {
+        "Question": "Which 5 stores had the highest net sales?",
+        "Sql": "SELECT TOP 5 str_num AS store, round(sum(amount), 2) AS net_sales FROM dbo.pos_basket_line GROUP BY str_num ORDER BY net_sales DESC",
+        "Dialect": "SQL Server"
+      },
+      {
+        "Question": "Which items are most often bought with SPAM Musubi?",
+        "Sql": "WITH lines AS (SELECT DISTINCT idtuuid, coalesce(true_item_id, single_item_id) AS item_id FROM dbo.pos_basket_line WHERE line_type = 'REGULAR' AND amount > 0 AND coalesce(true_item_id, single_item_id) NOT LIKE 'dept%'), names AS (SELECT coalesce(true_item_id, single_item_id) AS item_id, max(coalesce(true_item_desc, single_item_desc)) AS name FROM dbo.pos_basket_line GROUP BY coalesce(true_item_id, single_item_id)), target AS (SELECT item_id FROM names WHERE name LIKE 'spam musubi'), target_baskets AS (SELECT DISTINCT l.idtuuid FROM lines l JOIN target t ON t.item_id = l.item_id), item_baskets AS (SELECT item_id, count(*) AS baskets FROM lines GROUP BY item_id), total AS (SELECT count(DISTINCT idtuuid) AS baskets FROM dbo.pos_basket_line) SELECT TOP 10 max(n.name) AS bought_with, count(*) AS baskets, round(CAST(count(*) AS decimal(38, 6)) * (SELECT baskets FROM total) / ((SELECT count(*) FROM target_baskets) * max(ib.baskets)), 2) AS lift FROM lines l JOIN target_baskets tb ON tb.idtuuid = l.idtuuid JOIN item_baskets ib ON ib.item_id = l.item_id JOIN names n ON n.item_id = l.item_id WHERE l.item_id NOT IN (SELECT item_id FROM target) GROUP BY l.item_id ORDER BY baskets DESC",
+        "Dialect": "SQL Server"
+      },
+      {
+        "Question": "What is the average basket value by hour of day?",
+        "Sql": "WITH baskets AS (SELECT idtuuid, DATEPART(hour, max(transaction_end_time)) AS hour_of_day, sum(amount) AS basket_value FROM dbo.pos_basket_line GROUP BY idtuuid) SELECT hour_of_day, round(avg(basket_value), 2) AS avg_basket_value, count(*) AS baskets FROM baskets GROUP BY hour_of_day ORDER BY hour_of_day",
+        "Dialect": "SQL Server"
+      },
+      {
+        "Question": "What were gross sales, total discounts and net sales each day?",
+        "Sql": "SELECT transaction_end_date AS business_date, round(sum(CASE WHEN line_type IN ('REGULAR', 'DEPARTMENT SALE', '7-DIGIT ITEM') THEN amount END), 2) AS gross_sales, round(sum(CASE WHEN line_type IN ('PROMO', 'REWARDS', 'COUPON') THEN amount END), 2) AS discounts, round(sum(amount), 2) AS net_sales FROM dbo.pos_basket_line GROUP BY transaction_end_date ORDER BY business_date",
+        "Dialect": "SQL Server"
+      },
+      {
+        "Question": "Which 10 items sold the most units?",
+        "Sql": "SELECT TOP 10 max(coalesce(true_item_desc, single_item_desc)) AS item, sum(qty) AS units_sold FROM dbo.pos_basket_line WHERE line_type = 'REGULAR' AND coalesce(true_item_id, single_item_id) NOT LIKE 'dept%' GROUP BY coalesce(true_item_id, single_item_id) ORDER BY units_sold DESC",
+        "Dialect": "SQL Server"
+      },
+      {
+        "Question": "Which day of the week had the most baskets?",
+        "Sql": "SELECT DATENAME(weekday, transaction_end_date) AS day_of_week, count(DISTINCT idtuuid) AS baskets FROM dbo.pos_basket_line GROUP BY DATENAME(weekday, transaction_end_date) ORDER BY baskets DESC",
+        "Dialect": "SQL Server"
+      },
+      {
+        "Question": "Which offers gave the most discount?",
+        "Sql": "SELECT TOP 10 max(promo_desc) AS offer, round(-sum(amount), 2) AS discount, count(DISTINCT idtuuid) AS baskets FROM dbo.pos_basket_line WHERE line_type = 'PROMO' GROUP BY promo_item_id ORDER BY discount DESC",
+        "Dialect": "SQL Server"
+      },
+      {
+        "Question": "What share of baskets were paid with EBT at each store?",
+        "Sql": "SELECT TOP 100 str_num AS store, count(DISTINCT idtuuid) AS baskets, count(DISTINCT CASE WHEN is_ebt = 1 THEN idtuuid END) AS ebt_baskets, round(100.0 * count(DISTINCT CASE WHEN is_ebt = 1 THEN idtuuid END) / count(DISTINCT idtuuid), 2) AS ebt_share_pct FROM dbo.pos_basket_line GROUP BY str_num ORDER BY ebt_share_pct DESC",
+        "Dialect": "SQL Server"
+      },
+      {
+        "Question": "Which offers were used in the most baskets?",
+        "Sql": "SELECT TOP 100 max(promo_desc) AS offer, count(DISTINCT idtuuid) AS baskets FROM dbo.pos_basket_line WHERE line_type = 'PROMO' GROUP BY promo_item_id ORDER BY baskets DESC",
+        "Dialect": "SQL Server"
       }
     ]
   }

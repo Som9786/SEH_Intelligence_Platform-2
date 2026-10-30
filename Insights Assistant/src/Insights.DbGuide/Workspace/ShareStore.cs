@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-namespace Insights.Workspace;
+namespace Insights.DbGuide.Workspace;
 
 /// Keeps shared insights, one file each (shares/<id>.json under Workspace:DataPath), since anyone signed in can open
 /// one and each carries its rows. Written like a workspace: temporary file first. A share never changes once written.

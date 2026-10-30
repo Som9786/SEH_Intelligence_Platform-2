@@ -1,0 +1,219 @@
+using System.Text.Json;
+
+namespace Insights.DbGuide.Workspace;
+
+/// Each user's saved work: questions scheduled to run again, answers kept as widgets on a capability board, shared
+/// insights and table reviews. Stored in files (WorkspaceStore). Schedules are saved and shown, not run yet. Served under
+/// /workspace, which Insights.Gateway reaches at /api/workspace and sends the signed-in user in X-User; DB Guide listens
+/// on localhost only, so nothing else can set it.
+public static class WorkspaceEndpoints
+{
+    const int MaxWidgetRows = 500;
+
+    public static IServiceCollection AddWorkspace(this IServiceCollection services)
+    {
+        services.AddSingleton<WorkspaceStore>();
+        services.AddSingleton<ReviewStore>();
+        services.AddSingleton<ShareStore>();
+        return services;
+    }
+
+    public static void MapWorkspace(this WebApplication app)
+    {
+        int ShareDays() => app.Configuration.GetValue("Workspace:ShareDays", 30);
+
+        // Every workspace route needs the user the gateway signed in. DB Guide's own routes don't: AI Hub calls them.
+        var group = app.MapGroup("/workspace").AddEndpointFilter(async (context, next) =>
+            string.IsNullOrWhiteSpace(context.HttpContext.Request.Headers["X-User"])
+                ? Results.Problem("No signed-in user (X-User). Call the workspace through the gateway.",
+                    statusCode: StatusCodes.Status401Unauthorized)
+                : await next(context));
+
+        group.MapGet("/health", (WorkspaceStore store) => Results.Ok(new { status = "ok", dataPath = store.Folder }));
+
+        // ---------- Schedules ----------
+
+        group.MapGet("/schedules", async (HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+        {
+            var workspace = await store.ReadAsync(UserOf(context), ct);
+            var now = DateTimeOffset.Now;
+            return Results.Ok(workspace.Schedules.OrderByDescending(s => s.CreatedAt)
+                .Select(s => new ScheduleView(s, ScheduleRules.NextRun(s, now))));
+        });
+
+        group.MapPost("/schedules", async (ScheduleInput input, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+        {
+            if (ScheduleRules.Problem(input) is { } problem)
+                return Invalid(problem);
+            var now = DateTimeOffset.Now;
+            var schedule = Build(Guid.NewGuid().ToString("n"), input, now, now);
+            await store.ChangeAsync(UserOf(context), w => { w.Schedules.Add(schedule); return true; }, ct);
+            return Results.Created($"/workspace/schedules/{schedule.Id}", new ScheduleView(schedule, ScheduleRules.NextRun(schedule, now)));
+        });
+
+        group.MapPut("/schedules/{id}", async (string id, ScheduleInput input, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+        {
+            if (ScheduleRules.Problem(input) is { } problem)
+                return Invalid(problem);
+            var now = DateTimeOffset.Now;
+            var updated = await store.ChangeAsync(UserOf(context), w =>
+            {
+                var index = w.Schedules.FindIndex(s => s.Id == id);
+                if (index < 0)
+                    return null;
+                // The board and the answer shown when it was scheduled stay unless the edit sends new ones.
+                var old = w.Schedules[index];
+                w.Schedules[index] = Build(id, input with { Board = input.Board ?? old.Board, Answer = input.Answer ?? old.Answer },
+                    old.CreatedAt, now);
+                return w.Schedules[index];
+            }, ct);
+            return updated is null ? NotFound("schedule") : Results.Ok(new ScheduleView(updated, ScheduleRules.NextRun(updated, now)));
+        });
+
+        group.MapDelete("/schedules/{id}", async (string id, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+            await store.ChangeAsync(UserOf(context), w => w.Schedules.RemoveAll(s => s.Id == id), ct) > 0
+                ? Results.NoContent()
+                : NotFound("schedule"));
+
+        // ---------- Widgets ----------
+
+        group.MapGet("/widgets", async (string? board, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+        {
+            var workspace = await store.ReadAsync(UserOf(context), ct);
+            // As the user arranged them; widgets added since (not in the order, -1) first, newest first.
+            int Position(Widget w) => workspace.WidgetOrder.TryGetValue(w.Board, out var ids) ? ids.IndexOf(w.Id) : -1;
+            return Results.Ok(workspace.Widgets.Where(w => board is null || w.Board == board)
+                .OrderBy(Position).ThenByDescending(w => w.CreatedAt));
+        });
+
+        // Drag and drop on a board: keeps the order its widgets are shown in. Ids not on the board are ignored.
+        group.MapPut("/widgets/order", async (WidgetOrderInput input, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+        {
+            if (input.Board is null || !Boards.All.Contains(input.Board))
+                return Invalid($"'board' must be one of {string.Join(", ", Boards.All)}.");
+            if (input.Ids is null || input.Ids.Length > 1000)
+                return Invalid("'ids' is required, up to 1000 widget ids.");
+            await store.ChangeAsync(UserOf(context), w =>
+            {
+                var onBoard = w.Widgets.Where(x => x.Board == input.Board).Select(x => x.Id).ToHashSet();
+                w.WidgetOrder[input.Board] = input.Ids.Where(onBoard.Contains).Distinct().ToList();
+                return true;
+            }, ct);
+            return Results.NoContent();
+        });
+
+        group.MapPost("/widgets", async (WidgetInput input, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+        {
+            if (input.Board is null || !Boards.All.Contains(input.Board))
+                return Invalid($"'board' must be one of {string.Join(", ", Boards.All)}.");
+            if (string.IsNullOrWhiteSpace(input.Question) || input.Question.Length > 1000)
+                return Invalid("'question' is required, up to 1000 characters.");
+            if (ResultProblem(input.Result) is { } problem)
+                return Invalid(problem);
+            var title = string.IsNullOrWhiteSpace(input.Title) ? input.Question.Trim() : input.Title.Trim();
+            var widget = new Widget(Guid.NewGuid().ToString("n"), input.Board, title.Length > 160 ? title[..160] : title,
+                input.Question.Trim(), input.Answer, input.Result, DateTimeOffset.Now, input.FetchedAt, input.Details);
+            await store.ChangeAsync(UserOf(context), w => { w.Widgets.Add(widget); return true; }, ct);
+            return Results.Created($"/workspace/widgets/{widget.Id}", widget);
+        });
+
+        // Refresh: the same question answered again on the latest data replaces the widget's answer and rows.
+        group.MapPut("/widgets/{id}", async (string id, WidgetRefresh input, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+        {
+            if (ResultProblem(input.Result) is { } problem)
+                return Invalid(problem);
+            var updated = await store.ChangeAsync(UserOf(context), w =>
+            {
+                var index = w.Widgets.FindIndex(x => x.Id == id);
+                if (index < 0)
+                    return null;
+                w.Widgets[index] = w.Widgets[index] with
+                {
+                    Answer = input.Answer, Result = input.Result, FetchedAt = input.FetchedAt ?? DateTimeOffset.Now,
+                    Details = input.Details ?? w.Widgets[index].Details,
+                };
+                return w.Widgets[index];
+            }, ct);
+            return updated is null ? NotFound("widget") : Results.Ok(updated);
+        });
+
+        group.MapDelete("/widgets/{id}", async (string id, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+            await store.ChangeAsync(UserOf(context), w => w.Widgets.RemoveAll(x => x.Id == id), ct) > 0
+                ? Results.NoContent()
+                : NotFound("widget"));
+
+        // One widget, for its own page (opened in a new tab from the board).
+        group.MapGet("/widgets/{id}", async (string id, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+            (await store.ReadAsync(UserOf(context), ct)).Widgets.Find(w => w.Id == id) is { } widget
+                ? Results.Ok(widget)
+                : NotFound("widget"));
+
+        // ---------- Shared insights (anyone signed in can open one by its link) ----------
+
+        // Shares a copy of one of the signed-in user's widgets as it is now, without its query; who shared it is the
+        // signed-in user. The link works for Workspace:ShareDays days (30 unless set).
+        group.MapPost("/shares", async (ShareInput input, HttpContext context, WorkspaceStore store, ShareStore shares, CancellationToken ct) =>
+        {
+            var widget = (await store.ReadAsync(UserOf(context), ct)).Widgets.Find(w => w.Id == input.WidgetId);
+            if (widget is null)
+                return NotFound("widget");
+            var now = DateTimeOffset.Now;
+            var share = new SharedInsight(Guid.NewGuid().ToString("n"), widget.Board, widget.Title, widget.Question, widget.Answer,
+                widget.Result, widget.Details is { } details ? details with { Sql = null } : null,
+                widget.FetchedAt ?? widget.CreatedAt, UserOf(context), now, now.AddDays(ShareDays()));
+            await shares.SaveAsync(share, ct);
+            return Results.Created($"/workspace/shares/{share.Id}", share);
+        });
+
+        // 410 once the link has expired (shares made before links expired count from when they were shared).
+        group.MapGet("/shares/{id}", async (string id, ShareStore shares, CancellationToken ct) =>
+        {
+            if (await shares.FindAsync(id, ct) is not { } share)
+                return NotFound("shared insight");
+            var expires = share.ExpiresAt ?? share.SharedAt.AddDays(ShareDays());
+            return expires <= DateTimeOffset.Now
+                ? Results.Problem($"This shared link expired on {expires:ddd d MMM yyyy}. Ask {share.SharedBy} to share it again.",
+                    statusCode: StatusCodes.Status410Gone)
+                : Results.Ok(share with { ExpiresAt = expires, Details = share.Details is { } d ? d with { Sql = null } : null });
+        });
+
+        // ---------- Table reviews (shared by everyone; the reviewer is the signed-in user) ----------
+
+        group.MapGet("/reviews", async (ReviewStore reviews, CancellationToken ct) => Results.Ok((await reviews.AllAsync(ct)).Values));
+
+        group.MapGet("/reviews/{tableId}", async (string tableId, ReviewStore reviews, CancellationToken ct) =>
+            (await reviews.AllAsync(ct)).TryGetValue(tableId, out var review) ? Results.Ok(review) : NotFound("review for that table"));
+
+        group.MapPut("/reviews/{tableId}", async (string tableId, ReviewInput input, HttpContext context, ReviewStore reviews, CancellationToken ct) =>
+        {
+            if (input.Status is null || !ReviewStatuses.All.Contains(input.Status))
+                return Invalid($"'status' must be one of {string.Join(", ", ReviewStatuses.All)}.");
+            if (tableId.Length > 256)
+                return Invalid("The table id is too long.");
+            if (input.Comment is { Length: > 2000 })
+                return Invalid("'comment' can be up to 2000 characters.");
+            var review = new TableReview(tableId, input.Status, input.Comment?.Trim() ?? "", UserOf(context), DateTimeOffset.Now);
+            return Results.Ok(await reviews.SaveAsync(review, ct));
+        });
+
+        app.Logger.LogInformation("Workspace files are kept in {Folder}", app.Services.GetRequiredService<WorkspaceStore>().Folder);
+    }
+
+    static string UserOf(HttpContext context) => context.Request.Headers["X-User"].ToString();
+    static IResult Invalid(string problem) => Results.Problem(problem, statusCode: StatusCodes.Status400BadRequest);
+    static IResult NotFound(string what) => Results.Problem($"No {what} with that id.", statusCode: StatusCodes.Status404NotFound);
+
+    /// Why a widget's result can't be kept, or null: it must be Analytics' { columns, rows, truncated }, not too large.
+    static string? ResultProblem(JsonElement? result) =>
+        result is { } r && (r.ValueKind != JsonValueKind.Object
+            || !r.TryGetProperty("rows", out var rows) || rows.ValueKind != JsonValueKind.Array
+            || rows.GetArrayLength() > MaxWidgetRows)
+            ? $"'result' must be an object with columns and rows, at most {MaxWidgetRows} rows."
+            : null;
+
+    static Schedule Build(string id, ScheduleInput input, DateTimeOffset createdAt, DateTimeOffset updatedAt) => new(
+        id, input.Name!.Trim(), input.Question!.Trim(), input.Frequency!, input.Time!, input.StartsOn!,
+        input.Frequency == Frequencies.Weekly ? input.DayOfWeek : null,
+        input.Frequency is Frequencies.Monthly or Frequencies.Quarterly ? input.DayOfMonth : null,
+        input.Enabled ?? true, input.Board, input.Answer, createdAt, updatedAt);
+}

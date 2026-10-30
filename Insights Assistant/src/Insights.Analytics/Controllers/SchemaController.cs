@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Insights.Analytics.Controllers;
 
-/// The knowledge model in Neo4j: what the data means and where it lives in PostgreSQL.
+/// The knowledge model in Neo4j: what the data means and where it lives in the data's database.
 [ApiController]
 public sealed class SchemaController(KnowledgeModelReader reader) : ControllerBase
 {
     /// The whole knowledge model: tables and columns, concepts with their attributes, relationships, metrics, business rules
-    /// and examples, plus the business dates PostgreSQL covers.
+    /// and examples, plus the business dates the data covers.
     [HttpGet("schema")]
     [ProducesResponseType<KnowledgeModelContext>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable)]

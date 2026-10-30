@@ -5,7 +5,7 @@ namespace Insights.Analytics.Models;
 // Same shapes as the AI Hub's own requests and responses; Analytics passes them through.
 
 /// Body of POST /ai/sql. History holds earlier questions in the conversation and their queries, oldest first, for a
-/// follow-up. FailedSql and Error ask for a corrected query after PostgreSQL rejected one written for this question.
+/// follow-up. FailedSql and Error ask for a corrected query after the database rejected one written for this question.
 public sealed record SqlRequest(string Question, IReadOnlyList<ConversationTurn>? History = null, string? FailedSql = null, string? Error = null);
 
 /// One earlier question and the query that answered it.
@@ -36,7 +36,7 @@ public sealed record AskRequest(string Question, IReadOnlyList<ConversationTurn>
 /// Response of POST /ask. Result is null, and Answer too, when the question can't be answered from the data;
 /// Answer alone is null when the request set Explain = false.
 /// CostUsd is the OpenAI cost of the question's model calls (0 when all were cached), or null when a call's cost is unknown.
-/// Corrected is true when PostgreSQL rejected the first query and the AI wrote this one to fix it.
-/// FetchedAt is when the query's rows were read from PostgreSQL (null when no query ran).
+/// Corrected is true when the database rejected the first query and the AI wrote this one to fix it.
+/// FetchedAt is when the query's rows were read from the database (null when no query ran).
 public sealed record AskResponse(string Question, bool Answerable, string Sql, string Explanation, QueryResult? Result, string? Answer,
     decimal? CostUsd, bool Corrected = false, IReadOnlyList<string>? KnowledgeModel = null, DateTimeOffset? FetchedAt = null);

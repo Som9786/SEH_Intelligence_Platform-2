@@ -2,7 +2,7 @@ namespace Insights.Analytics.Models;
 
 /// The knowledge model, read from Neo4j: all of it (GET /schema), or the part one question is about (POST /context), which is
 /// what the AI Hub puts in its prompt. Matched lists the concepts and metrics the question's words named, and is empty
-/// when the whole knowledge model is returned. Coverage is the first and last business date in PostgreSQL, or null when it
+/// when the whole knowledge model is returned. Coverage is the first and last business date in the data, or null when it
 /// couldn't be read.
 public sealed record KnowledgeModelContext(
     string Dialect, DataCoverage? Coverage, IReadOnlyList<string> Matched,
@@ -21,8 +21,8 @@ public sealed record RelationshipInfo(string Name, string From, string To, strin
 
 public sealed record MetricInfo(string Name, string Description, string Expression);
 
-/// A question with a SQL query checked as correct.
-public sealed record ExampleQuery(string Question, string Sql);
+/// A question with a SQL query checked as correct. Dialect is "SQL Server" for a SQL Server query, null for PostgreSQL.
+public sealed record ExampleQuery(string Question, string Sql, string? Dialect = null);
 
 /// The business dates the data covers, as yyyy-MM-dd.
 public sealed record DataCoverage(string From, string To);

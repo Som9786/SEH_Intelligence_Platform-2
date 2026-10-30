@@ -3,46 +3,56 @@ using System.Text.RegularExpressions;
 
 namespace Insights.Analytics.Services.Query;
 
-/// Refuses SQL that isn't a single read-only SELECT over the knowledge model's tables, before it reaches PostgreSQL.
+/// Refuses SQL that isn't a single read-only SELECT over the knowledge model's tables, before it reaches the database.
 /// PostgreSQL's read-only transaction already refuses writes; this check also keeps out what a read-only transaction
 /// allows: other tables and system catalogs, file and server functions (pg_read_file, dblink, lo_*), functions that
-/// run SQL passed as a string (query_to_xml), settings, and several statements in one.
+/// run SQL passed as a string (query_to_xml), settings, and several statements in one. SQL Server has no read-only
+/// transaction, so there it also keeps out EXEC, OPENROWSET and the like, sys.* and xp_* / sp_* procedures.
 /// The text is checked after removing comments and string literals, so -- comments or the words inside a value
-/// can't hide anything or cause false alarms.
+/// can't hide anything or cause false alarms. Quoting follows the dialect: $$ and E'\'' strings exist only in
+/// PostgreSQL, [bracketed names] only in SQL Server.
 public static partial class SqlGuard
 {
     /// Why the query is refused, or null when it may run. Tables are the knowledge model's, schema-qualified (public.t).
-    public static string? RejectionReason(string sql, IReadOnlyCollection<string> tables)
+    public static string? RejectionReason(string sql, IReadOnlyCollection<string> tables, SqlDialect dialect = SqlDialect.PostgreSQL)
     {
         // Keywords are checked with quoted names blanked ("update" as a column alias is fine); names are checked
         // with simple quoted names unquoted ("pg_catalog"."pg_user" is still pg_catalog.pg_user).
-        if (CodeOnly(sql, unquoteNames: false) is not { } keywords || CodeOnly(sql, unquoteNames: true) is not { } names)
+        if (CodeOnly(sql, unquoteNames: false, dialect) is not { } keywords || CodeOnly(sql, unquoteNames: true, dialect) is not { } names)
             return "The query has an unclosed comment, string or quoted name.";
 
+        var sqlServer = dialect == SqlDialect.SqlServer;
         keywords = keywords.Trim().TrimEnd(';').TrimEnd();
         if (keywords.Contains(';'))
             return "Only one statement can run at a time.";
         if (!SelectStart().IsMatch(keywords))
             return "Only SELECT queries (optionally starting with WITH) can run.";
-        if (Forbidden().Match(keywords) is { Success: true } word)
+        var word = Forbidden().Match(keywords);
+        if (!word.Success && sqlServer)
+            word = ServerForbidden().Match(keywords);
+        if (word.Success)
             return $"{word.Value.ToUpperInvariant()} is not allowed: questions can only read data.";
-        if (SystemName().Match(names) is { Success: true } system)
-            return $"{system.Value} is not allowed: questions can only read the knowledge model's tables, not system catalogs or functions.";
-        if (ForbiddenFunction().Match(names) is { Success: true } function)
+        if ((sqlServer ? ServerSystemName() : SystemName()).Match(names) is { Success: true } system)
+            return $"{system.Value.TrimEnd('.', ' ')} is not allowed: questions can only read the knowledge model's tables, not system catalogs or functions.";
+        if ((sqlServer ? ServerForbiddenFunction() : ForbiddenFunction()).Match(names) is { Success: true } function)
             return $"{function.Groups[1].Value}() is not allowed: it can reach files, other servers or settings, or run other SQL.";
         foreach (var table in ReadTables(names))
-            if (!Allowed(table, tables, CteNames(names)))
+        {
+            if (!IsName(table))
+                return "Only the knowledge model's tables can follow FROM or JOIN.";
+            if (!Allowed(table, tables, CteNames(names), sqlServer ? "dbo" : "public"))
                 return $"Table {table} is not in the knowledge model, so it can't be queried. Use only: {string.Join(", ", tables)}.";
+        }
         return null;
     }
 
-    static bool Allowed(string name, IReadOnlyCollection<string> tables, HashSet<string> ctes)
+    static bool Allowed(string name, IReadOnlyCollection<string> tables, HashSet<string> ctes, string defaultSchema)
     {
         if (!name.Contains('.') && ctes.Contains(name))
             return true;
-        // A bare name means the public schema (the default search_path).
-        var qualified = name.Contains('.') ? name : "public." + name;
-        return tables.Any(t => string.Equals(t.Contains('.') ? t : "public." + t, qualified, StringComparison.OrdinalIgnoreCase));
+        // A bare name means the default schema (public on PostgreSQL's default search_path, dbo on SQL Server).
+        var qualified = name.Contains('.') ? name : $"{defaultSchema}.{name}";
+        return tables.Any(t => string.Equals(t.Contains('.') ? t : $"{defaultSchema}.{t}", qualified, StringComparison.OrdinalIgnoreCase));
     }
 
     /// Names defined by WITH name AS (...), so FROM name reads the CTE, not a table.
@@ -105,6 +115,8 @@ public static partial class SqlGuard
                 }
                 else
                 {
+                    // Anything else (#temp, ::fn(), @variable) isn't one of the knowledge model's tables.
+                    yield return tokens[j];
                     break;
                 }
                 // Optional alias: AS name, or a name that isn't the next clause's keyword; then optional column aliases.
@@ -141,11 +153,12 @@ public static partial class SqlGuard
 
     static bool IsName(string token) => token.Length > 0 && (char.IsLetter(token[0]) || token[0] == '_');
 
-    /// The SQL with comments and string literals replaced by a space. Quoted names ("x") become their name when
-    /// unquoteNames is set and the name is a simple identifier, and a placeholder otherwise. Null when a comment,
-    /// string or quoted name never ends.
-    static string? CodeOnly(string sql, bool unquoteNames)
+    /// The SQL with comments and string literals replaced by a space. Quoted names ("x", and [x] on SQL Server) become
+    /// their name when unquoteNames is set and the name is a simple identifier, and a placeholder otherwise. Null when
+    /// a comment, string or quoted name never ends.
+    static string? CodeOnly(string sql, bool unquoteNames, SqlDialect dialect)
     {
+        var postgres = dialect == SqlDialect.PostgreSQL;
         var code = new StringBuilder(sql.Length);
         var i = 0;
         while (i < sql.Length)
@@ -159,7 +172,7 @@ public static partial class SqlGuard
             }
             else if (c == '/' && next == '*')
             {
-                // PostgreSQL block comments nest.
+                // Block comments nest, in PostgreSQL and SQL Server alike.
                 var depth = 1;
                 i += 2;
                 while (i < sql.Length && depth > 0)
@@ -174,8 +187,8 @@ public static partial class SqlGuard
             }
             else if (c == '\'')
             {
-                // A backslash escapes the next character only in E'...' strings; elsewhere it's an ordinary character.
-                var escapes = i > 0 && sql[i - 1] is 'E' or 'e' && (i < 2 || !IsNameChar(sql[i - 2]));
+                // A backslash escapes the next character only in PostgreSQL's E'...' strings; elsewhere it's an ordinary character.
+                var escapes = postgres && i > 0 && sql[i - 1] is 'E' or 'e' && (i < 2 || !IsNameChar(sql[i - 2]));
                 i++;
                 while (true)
                 {
@@ -193,29 +206,31 @@ public static partial class SqlGuard
                 i++;
                 code.Append(' ');
             }
-            else if (c == '$' && (i == 0 || !IsNameChar(sql[i - 1])) && DollarTag().Match(sql, i) is { Success: true } tag && tag.Index == i)
+            else if (postgres && c == '$' && (i == 0 || !IsNameChar(sql[i - 1])) && DollarTag().Match(sql, i) is { Success: true } tag && tag.Index == i)
             {
-                // $$...$$ or $tag$...$tag$ quoting.
+                // PostgreSQL's $$...$$ or $tag$...$tag$ quoting.
                 var end = sql.IndexOf(tag.Value, i + tag.Length, StringComparison.Ordinal);
                 if (end < 0)
                     return null;
                 i = end + tag.Length;
                 code.Append(' ');
             }
-            else if (c == '"')
+            else if (c == '"' || c == '[' && !postgres)
             {
+                // "name", or [name] on SQL Server; the closing character is doubled inside the name.
+                var close = c == '[' ? ']' : '"';
                 var name = new StringBuilder();
                 i++;
                 while (true)
                 {
                     if (i >= sql.Length)
                         return null;
-                    if (sql[i] == '"' && i + 1 < sql.Length && sql[i + 1] == '"')
+                    if (sql[i] == close && i + 1 < sql.Length && sql[i + 1] == close)
                     {
-                        name.Append('"');
+                        name.Append(close);
                         i += 2;
                     }
-                    else if (sql[i] == '"')
+                    else if (sql[i] == close)
                     {
                         break;
                     }
@@ -258,6 +273,21 @@ public static partial class SqlGuard
         RegexOptions.IgnoreCase)]
     private static partial Regex ForbiddenFunction();
 
+    // SQL Server, besides the above: running other SQL or procedures, waiting, server and database commands, variables.
+    [GeneratedRegex(@"\b(EXEC|WAITFOR|DBCC|KILL|SHUTDOWN|RECONFIGURE|BACKUP|RESTORE|USE|DECLARE|BULK|DENY|REVERT|READTEXT|WRITETEXT|" +
+                    @"UPDATETEXT|SETUSER|OPENROWSET|OPENDATASOURCE|OPENQUERY|OPENXML)\b|::", RegexOptions.IgnoreCase)]
+    private static partial Regex ServerForbidden();
+
+    // SQL Server's catalog views and system databases, and its extended and system procedures.
+    [GeneratedRegex(@"\b(?:(?:sys|information_schema|master|msdb|tempdb|model|mssqlsystemresource)\s*\.|(?:xp|sp)_\w*)",
+        RegexOptions.IgnoreCase)]
+    private static partial Regex ServerSystemName();
+
+    // Functions that read files, reach other servers, show server internals or run other SQL.
+    [GeneratedRegex(@"\b(openrowset|opendatasource|openquery|openxml|fn_\w+|dm_\w+|has_perms_by_name|is_srvrolemember|suser_\w+|" +
+                    @"object_definition|filestream\w*)\s*\(", RegexOptions.IgnoreCase)]
+    private static partial Regex ServerForbiddenFunction();
+
     [GeneratedRegex(@"(?:\bWITH\s+(?:RECURSIVE\s+)?|,\s*)([A-Za-z_]\w*)\s*(?:\([^()]*\)\s*)?AS\s+(?:NOT\s+)?(?:MATERIALIZED\s+)?\(",
         RegexOptions.IgnoreCase)]
     private static partial Regex CteName();
@@ -280,4 +310,11 @@ public static partial class SqlGuard
 
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_$]*$")]
     private static partial Regex SimpleName();
+}
+
+/// Which database's SQL a query is written in, which decides how SqlGuard reads its quoting and what it refuses.
+public enum SqlDialect
+{
+    PostgreSQL,
+    SqlServer,
 }

@@ -11,7 +11,7 @@ namespace Insights.Analytics.Controllers;
 [AiHubErrorFilter]
 public sealed class AiHubController(AiHubClient ai) : ControllerBase
 {
-    /// Question in English -> one read-only PostgreSQL query for /query, written from the part of the knowledge model the
+    /// Question in English -> one read-only query in the data's dialect (PostgreSQL or SQL Server) for /query, written from the part of the knowledge model the
     /// question is about. Optional history makes it a follow-up of earlier questions; failedSql and error ask for a
     /// corrected query after /query rejected one.
     [HttpPost("sql")]
