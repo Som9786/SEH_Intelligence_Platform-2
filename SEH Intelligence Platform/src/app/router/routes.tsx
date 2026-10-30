@@ -61,7 +61,7 @@ export const routes = [
   },
   {
     path: '/scheduled-insights',
-    label: 'Scheduled insights',
+    label: 'Scheduled Insights',
     feature: 'scheduled-insights',
     section: 'platform',
     icon: Clock,
@@ -98,7 +98,7 @@ export const routes = [
   },
   // A widget on its own page, opened in a new tab from its board.
   {
-    path: '/basket-intelligence/insight',
+    path: '/basket-intelligence/insight/:id',
     label: 'Insight',
     feature: 'basket-intelligence',
     section: null,
@@ -108,7 +108,7 @@ export const routes = [
   },
   // Opened from DB Catalog, so the sidebar keeps DB Catalog selected on these.
   {
-    path: '/table-details',
+    path: '/db-catalog/tables',
     label: 'DB Tables',
     feature: 'db-catalog',
     section: null,
@@ -117,7 +117,7 @@ export const routes = [
     element: TableDetailsPage,
   },
   {
-    path: '/documentation',
+    path: '/db-catalog/documentation',
     label: 'Documentation',
     feature: 'db-catalog',
     section: null,
@@ -126,7 +126,7 @@ export const routes = [
     element: DocumentationPage,
   },
   {
-    path: '/relationships',
+    path: '/db-catalog/relationships',
     label: 'Relationships',
     feature: 'db-catalog',
     section: null,

@@ -151,7 +151,7 @@ export function AiAssistantPage() {
     <div className="page-content ia-page">
       <PageHeading
         title="Insights Assistant"
-        description="Ask questions to explore sales trends, store performance, customer baskets, and database information."
+        description="Ask questions to explore sales trends, store performance, customer baskets, and how your data is organised."
       />
       <div className="ia-thread" role="log" aria-live="polite">
         {exchanges.length === 0 && (

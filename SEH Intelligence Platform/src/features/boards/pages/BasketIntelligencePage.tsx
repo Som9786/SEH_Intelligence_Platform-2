@@ -7,7 +7,7 @@ export function BasketIntelligencePage() {
     <div className="page-content">
       <PageHeading
         title="Basket Intelligence"
-        description="Understand which products customers buy together. Widgets are Insights Assistant answers you added here; refresh one to fetch the latest data."
+        description="Understand which products customers buy together. Pin answers from Insights Assistant here and refresh them for the latest data."
       />
       <BoardWidgets board="basket-intelligence" />
     </div>

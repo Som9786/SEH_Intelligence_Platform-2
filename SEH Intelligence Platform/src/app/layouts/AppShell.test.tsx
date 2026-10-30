@@ -57,7 +57,7 @@ describe('AppShell sidebar', () => {
       'Overview',
       'Insights Assistant',
       'DB Catalog',
-      'Scheduled insights',
+      'Scheduled Insights',
     ]);
     expect(links('Capabilities')).toEqual([
       'Basket Intelligence',
@@ -77,7 +77,7 @@ describe('AppShell sidebar', () => {
   });
 
   it('keeps DB Catalog selected on the pages opened from it', () => {
-    renderAt('/table-details');
+    renderAt('/db-catalog/tables');
     const nav = screen.getByRole('navigation', { name: 'Main' });
     expect(within(nav).getByRole('link', { name: 'DB Catalog' })).toHaveClass(
       'active',

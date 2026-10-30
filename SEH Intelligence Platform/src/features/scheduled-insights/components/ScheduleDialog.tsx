@@ -277,7 +277,7 @@ export function ScheduleDialog({
 
             <p className="rv-note">
               <strong>{describeSchedule(input)}</strong>. The schedule is saved
-              and listed on Scheduled insights; running it automatically is
+              and listed on Scheduled Insights; running it automatically is
               coming soon.
             </p>
             {save.error && (

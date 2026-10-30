@@ -48,8 +48,8 @@ export function ScheduledInsightsPage() {
   return (
     <div className="page-content">
       <PageHeading
-        title="Scheduled insights"
-        description="Manage your saved insights in one place. Soon, you'll be able to run them automatically against the latest data and stay informed with fresh, actionable insights."
+        title="Scheduled Insights"
+        description="Your saved questions in one place. Soon they'll run on their own and keep you up to date."
       />
       {schedules.isPending && (
         <div className="state-panel" role="status">

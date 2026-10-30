@@ -11,7 +11,7 @@ import {
 import { useAuth } from '../../features/auth/useAuth';
 import { BrandLogo } from '../../shared/components/BrandLogo';
 import { useTheme } from '../../shared/hooks/useTheme';
-import { NavLink, Outlet, useLocation } from 'react-router';
+import { matchPath, NavLink, Outlet, useLocation } from 'react-router';
 import { navSections, routes } from '../router/routes';
 import { TableFlyout } from '../../features/table-details/components/TableFlyout';
 import {
@@ -62,7 +62,10 @@ export function AppShell() {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [catalogMissing, hasCatalog]);
-  const currentRoute = routes.find((route) => route.path === location.pathname);
+  // Paths with an id (/basket-intelligence/insight/:id) match by pattern.
+  const currentRoute = routes.find((route) =>
+    matchPath(route.path, location.pathname),
+  );
   const current = currentRoute?.label ?? 'Overview';
   // A page opened from DB Catalog keeps DB Catalog selected and shows it in the breadcrumb.
   const parentPath =

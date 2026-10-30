@@ -8,7 +8,7 @@ import { ReviewDot } from './ReviewDot';
 import { groupTablesByArea } from '../utils/groupTablesByArea';
 import type { TableListItem } from '../types/tableDetails';
 
-export const TABLE_DETAILS_PATH = '/table-details';
+export const TABLE_DETAILS_PATH = '/db-catalog/tables';
 export const TABLE_FLYOUT_ID = 'table-flyout';
 
 /**

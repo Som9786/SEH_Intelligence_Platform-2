@@ -1,5 +1,12 @@
 import type { ReactNode } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useSearchParams,
+} from 'react-router';
 import { AppShell } from './app/layouts/AppShell';
 import { QueryProvider } from './app/providers/QueryProvider';
 import { homePath, routes } from './app/router/routes';
@@ -14,6 +21,22 @@ import { useAuth } from './features/auth/useAuth';
 function GoHome() {
   const { can } = useAuth();
   return <Navigate to={homePath(can)} replace />;
+}
+
+/** A page that moved: same query (?table=…) and hash at its new path. */
+function MovedTo({ path }: { path: string }) {
+  const { search, hash } = useLocation();
+  return <Navigate to={`${path}${search}${hash}`} replace />;
+}
+
+/** An old "?id=<id>" link, sent to "<base>/<id>". */
+function IdToPath({ base }: { base: string }) {
+  const id = useSearchParams()[0].get('id');
+  return id ? (
+    <Navigate to={`${base}/${encodeURIComponent(id)}`} replace />
+  ) : (
+    <GoHome />
+  );
 }
 
 /**
@@ -42,7 +65,12 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route element={<RequireAuth />}>
               {/* A shared link opens as a report: signed in, but without the sidebar and top bar. */}
-              <Route path="/shared-insight" element={<SharedInsightPage />} />
+              <Route path="/share/:id" element={<SharedInsightPage />} />
+              {/* Links made before the id moved into the path. */}
+              <Route
+                path="/shared-insight"
+                element={<IdToPath base="/share" />}
+              />
               <Route element={<AppShell />}>
                 {routes.map(({ path, feature, element: Page }) => (
                   <Route
@@ -68,6 +96,22 @@ export function App() {
                   element={<Navigate to="/insights-assistant" replace />}
                 />
                 <Route path="/overview" element={<Navigate to="/" replace />} />
+                {/* DB Catalog's pages moved under /db-catalog, and a widget's id into its path. */}
+                {[
+                  ['/table-details', '/db-catalog/tables'],
+                  ['/documentation', '/db-catalog/documentation'],
+                  ['/relationships', '/db-catalog/relationships'],
+                ].map(([from, to]) => (
+                  <Route
+                    key={from}
+                    path={from}
+                    element={<MovedTo path={to} />}
+                  />
+                ))}
+                <Route
+                  path="/basket-intelligence/insight"
+                  element={<IdToPath base="/basket-intelligence/insight" />}
+                />
                 <Route path="*" element={<GoHome />} />
               </Route>
             </Route>

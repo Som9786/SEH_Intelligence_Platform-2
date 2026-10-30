@@ -108,7 +108,7 @@ describe('TableFlyout', () => {
     const onClose = renderFlyout();
     fireEvent.click(screen.getByRole('button', { name: /sales\.Orders/ }));
     expect(screen.getByTestId('location')).toHaveTextContent(
-      '/table-details?table=sales.Orders',
+      '/db-catalog/tables?table=sales.Orders',
     );
     expect(onClose).toHaveBeenCalled();
   });

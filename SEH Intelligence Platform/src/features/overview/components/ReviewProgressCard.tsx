@@ -4,7 +4,7 @@ import { useTableList } from '../../table-details/hooks/useTableList';
 import { useReviews } from '../../table-details/hooks/useReview';
 
 const tableLink = (id: string) =>
-  `/table-details?table=${encodeURIComponent(id)}`;
+  `/db-catalog/tables?table=${encodeURIComponent(id)}`;
 
 /** How many tables have been reviewed, with a link to the next one that needs a look. */
 export function ReviewProgressCard() {

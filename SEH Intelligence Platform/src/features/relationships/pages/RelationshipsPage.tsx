@@ -18,7 +18,7 @@ import {
 const relationshipName = (edge: GraphEdge) =>
   edge.name ?? (edge.confirmed ? 'Foreign key' : 'Inferred join');
 const tableLink = (id: string) =>
-  `/table-details?table=${encodeURIComponent(id)}`;
+  `/db-catalog/tables?table=${encodeURIComponent(id)}`;
 
 export function RelationshipsPage() {
   const index = useRelationshipIndex();

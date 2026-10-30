@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { SearchX, Share2 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router';
+import { useParams } from 'react-router';
 import { getShare, getWidget } from '../../workspace/workspaceService';
 import { InsightView } from '../components/InsightView';
 import { ReportFrame, SharedReport } from '../components/SharedReport';
@@ -64,9 +64,12 @@ function Pending({
   );
 }
 
-/** A board widget on a page of its own, opened in a new tab from the board (?id=<widget id>). */
+/**
+ * A board widget on a page of its own, opened in a new tab from the board
+ * (/basket-intelligence/insight/<widget id>).
+ */
 export function WidgetInsightPage() {
-  const id = useSearchParams()[0].get('id') ?? '';
+  const id = useParams().id ?? '';
   const widget = useQuery({
     queryKey: ['workspace', 'widget', id],
     queryFn: () => getWidget(id),
@@ -110,11 +113,11 @@ export function WidgetInsightPage() {
 }
 
 /**
- * An insight someone shared (?id=<share id>): the copy made when they shared it, as a report on a
+ * An insight someone shared (/share/<share id>): the copy made when they shared it, as a report on a
  * page of its own (no sidebar or top bar). Signing in is still needed; the link expires.
  */
 export function SharedInsightPage() {
-  const id = useSearchParams()[0].get('id') ?? '';
+  const id = useParams().id ?? '';
   const share = useQuery({
     queryKey: ['workspace', 'shared', id],
     queryFn: () => getShare(id),

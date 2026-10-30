@@ -48,11 +48,11 @@ describe('csvFileName', () => {
 
 describe('shareSummary', () => {
   it('has the title, the answer as plain text, the rows and the link', () => {
-    const text = shareSummary(insight, 'https://seh/shared-insight?id=abc');
+    const text = shareSummary(insight, 'https://seh/share/abc');
     expect(text).toContain('Which items sell with SPAM Musubi?');
     expect(text).toContain('Bag Fee leads, with a lift of 2.14.');
     expect(text).toContain('2 rows');
-    expect(text).toContain('https://seh/shared-insight?id=abc');
+    expect(text).toContain('https://seh/share/abc');
   });
 });
 

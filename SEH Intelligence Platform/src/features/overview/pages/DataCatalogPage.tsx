@@ -18,15 +18,15 @@ export function DataCatalogPage() {
         description="Explore your database catalog and its documentation."
         badge={
           <div className="td-actions">
-            <Link to="/table-details" className="td-action">
+            <Link to="/db-catalog/tables" className="td-action">
               <TableProperties size={16} aria-hidden="true" />
               DB Tables
             </Link>
-            <Link to="/relationships" className="td-action">
+            <Link to="/db-catalog/relationships" className="td-action">
               <Network size={16} aria-hidden="true" />
               Relationships
             </Link>
-            <Link to="/documentation" className="td-action">
+            <Link to="/db-catalog/documentation" className="td-action">
               <BookOpen size={16} aria-hidden="true" />
               DB details
             </Link>

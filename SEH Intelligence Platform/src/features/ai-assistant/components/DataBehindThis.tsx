@@ -93,7 +93,7 @@ function Chips({ items, link }: { items: string[]; link?: boolean }) {
       {items.map((item) => (
         <li className="td-chip td-chip-columns" key={item}>
           {link && can('db-catalog') ? (
-            <Link to={`/table-details?table=${encodeURIComponent(item)}`}>
+            <Link to={`/db-catalog/tables?table=${encodeURIComponent(item)}`}>
               {item}
             </Link>
           ) : (

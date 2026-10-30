@@ -67,7 +67,7 @@ function ScheduleStatus({ view }: { view: ScheduleView }) {
       ) : (
         <span>
           <strong>Schedule paused:</strong> {describeSchedule(schedule)}. Resume
-          it on Scheduled insights to refresh this widget on its own.
+          it on Scheduled Insights to refresh this widget on its own.
         </span>
       )}
     </p>

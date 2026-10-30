@@ -104,11 +104,11 @@ export const detailsOf = (result: AnalyticsResult): WidgetDetails => ({
 
 /** The widget's own page, opened in a new tab from its board. */
 export const widgetPagePath = (widget: Pick<Widget, 'id'>) =>
-  `/basket-intelligence/insight?id=${encodeURIComponent(widget.id)}`;
+  `/basket-intelligence/insight/${encodeURIComponent(widget.id)}`;
 
 /** A shared insight's link, to send to others. */
 export const shareUrl = (share: Pick<SharedInsight, 'id'>) =>
-  `${window.location.origin}/shared-insight?id=${encodeURIComponent(share.id)}`;
+  `${window.location.origin}/share/${encodeURIComponent(share.id)}`;
 
 export const listSchedules = () =>
   apiJson<ScheduleView[]>('workspace/schedules');

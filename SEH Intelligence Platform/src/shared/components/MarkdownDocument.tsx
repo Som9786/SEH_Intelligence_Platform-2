@@ -31,7 +31,7 @@ function documentRoutes(documents: CatalogDocument[]): Map<string, string> {
     documents.map((d) => [
       '/' + d.path,
       d.table
-        ? `/table-details?table=${encodeURIComponent(d.table)}&tab=Documentation`
+        ? `/db-catalog/tables?table=${encodeURIComponent(d.table)}&tab=Documentation`
         : `/documentation?document=${encodeURIComponent(d.id)}`,
     ]),
   );
