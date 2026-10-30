@@ -1,0 +1,34 @@
+{
+  // What the DB Catalog page shows, and extra words people use for tables and columns. The catalog export has no synonyms,
+  // so add a word here when a question uses it and the right table isn't found. Keys are table ids (schema.Table) or
+  // column ids (schema.Table.Column). Reloaded into Neo4j when this file is saved.
+  "Guide": {
+    "Name": "SEH_Validation_Retail",
+    "Suggestions": [
+      "Which table should I use for product data?",
+      "How do I join order items to products?",
+      "How do I get each customer's orders with their order lines?",
+      "Which tables hold personal or sensitive data?",
+      "Which relationships are not enforced by a foreign key?",
+      "Where is the price including tax stored and how is it calculated?",
+      "How do I find the sales rep who handled an order?",
+      "What gets written to the audit log, and by what?"
+    ],
+    "Synonyms": {
+      "inventory.Products": [ "product", "item", "catalogue", "catalog", "merchandise", "goods" ],
+      "inventory.Products.Sku": [ "sku", "stock keeping unit", "product code", "item code" ],
+      "inventory.Products.UnitPrice": [ "price", "net price", "selling price" ],
+      "inventory.Products.PriceWithTax": [ "gross price", "price with tax", "price including tax" ],
+      "inventory.Products.StockQty": [ "stock", "inventory level", "quantity on hand" ],
+      "inventory.Categories": [ "category", "product category", "product group" ],
+      "inventory.Suppliers": [ "supplier", "vendor" ],
+      "sales.Customers": [ "customer", "client", "buyer" ],
+      "sales.CustomerAddresses": [ "address", "shipping address", "billing address" ],
+      "sales.Orders": [ "order", "sale", "purchase", "transaction" ],
+      "sales.OrderItems": [ "order line", "order item", "line item", "basket line" ],
+      "hr.Employees": [ "employee", "staff", "sales rep", "sales representative", "manager" ],
+      "hr.Departments": [ "department", "team", "org unit" ],
+      "dbo.AuditLog": [ "audit", "audit log", "change log", "history" ]
+    }
+  }
+}

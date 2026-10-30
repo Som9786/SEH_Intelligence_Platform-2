@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The AI Hub's request and response records, shared by every service that calls it. -->
+    <Using Include="Insights.Contracts" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Insights.Common\Insights.Common.csproj" />
+    <ProjectReference Include="..\Insights.Contracts\Insights.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

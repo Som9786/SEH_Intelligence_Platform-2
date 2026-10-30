@@ -6,7 +6,7 @@
   .\stop-all.ps1
 #>
 
-$ports = @{ 5000 = 'Gateway'; 5100 = 'Analytics'; 5200 = 'AI Hub'; 5300 = 'DB Guide'; 5174 = 'UI' }
+$ports = @{ 5000 = 'Gateway'; 5100 = 'Analytics'; 5200 = 'AI Hub'; 5300 = 'DB Catalog'; 5174 = 'UI' }
 
 foreach ($port in $ports.Keys | Sort-Object) {
     $owners = @(Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue |

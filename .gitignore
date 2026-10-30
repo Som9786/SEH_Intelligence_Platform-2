@@ -10,18 +10,18 @@ test-results/
 Thumbs.db
 .claude/
 
-# Insights Assistant APIs (.NET): build output, and logs and usage data written at runtime
-Insights Assistant/**/bin/
-Insights Assistant/**/obj/
-Insights Assistant/**/logs/
-Insights Assistant/**/App_Data/
+# The backend (.NET): build output, and logs and usage data written at runtime
+backend/**/bin/
+backend/**/obj/
+backend/**/logs/
+backend/**/App_Data/
 # Source data and the scripts that load it (the POS CSV, the client's spreadsheet): kept locally, never checked in.
-Insights Assistant/temp/
+backend/temp/
 .vs/
 *.user
 
 # UI (SEH Intelligence Platform): old MetaXtract snapshot, replaced by the catalog (it names an internal server)
-SEH Intelligence Platform/public/data/database.json
-SEH Intelligence Platform/public/data/dbo.*.json
-SEH Intelligence Platform/public/data/manifest.json
-SEH Intelligence Platform/public/data/generated/
+frontend/public/data/database.json
+frontend/public/data/dbo.*.json
+frontend/public/data/manifest.json
+frontend/public/data/generated/

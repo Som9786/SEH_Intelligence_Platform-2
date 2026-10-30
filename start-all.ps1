@@ -24,14 +24,14 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
-$backend = Join-Path $root 'Insights Assistant'
-$ui = Join-Path $root 'SEH Intelligence Platform'
+$backend = Join-Path $root 'backend'
+$ui = Join-Path $root 'frontend'
 
 # In the order they're started. Each can start without the others; the gateway reports which are missing.
 $services = @(
     @{ Name = 'Analytics'; Project = 'Insights.Analytics'; Port = 5100 },
     @{ Name = 'AI Hub'; Project = 'Insights.AiHub'; Port = 5200 },
-    @{ Name = 'DB Guide'; Project = 'Insights.DbGuide'; Port = 5300 },
+    @{ Name = 'DB Catalog'; Project = 'Insights.DbCatalog'; Port = 5300 },
     @{ Name = 'Gateway'; Project = 'Insights.Gateway'; Port = 5000 }
 )
 $uiPort = 5174

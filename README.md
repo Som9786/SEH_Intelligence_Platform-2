@@ -4,23 +4,23 @@ A web app for exploring a retail business's data. You can ask questions about sa
 
 | Folder | What it is |
 |---|---|
-| [SEH Intelligence Platform/](SEH%20Intelligence%20Platform) | The UI: React, TypeScript and Vite. |
-| [Insights Assistant/](Insights%20Assistant) | The backend: four .NET 9 services. See its [README](Insights%20Assistant/README.md) for how they work, their endpoints and settings. |
+| [frontend/](frontend) | The UI: React, TypeScript and Vite. |
+| [backend/](backend) | The backend: four .NET 9 services. See its [README](backend/README.md) for how they work, their endpoints and settings. |
 
 ## Prerequisites
 
 - [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0) and [Node.js 20.19+ or 22+](https://nodejs.org/) (with npm).
-- **PostgreSQL** on `localhost:5432`, with the `pos_basket` database loaded. It holds the sales data. The data and the script that loads it aren't in the repo: get the `temp` folder from the team (see the [backend README](Insights%20Assistant/README.md#local-only-files-temp)).
-  - **Or SQL Server**, with a copy of `pos_basket`: set `PosBasket:Provider` to `SqlServer` in [Insights.Analytics/appsettings.json](Insights%20Assistant/src/Insights.Analytics/appsettings.json) and restart Analytics. See [Choosing the database](Insights%20Assistant/README.md#choosing-the-database-postgresql-or-sql-server).
+- **PostgreSQL** on `localhost:5432`, with the `pos_basket` database loaded. It holds the sales data. The data and the script that loads it aren't in the repo: get the `temp` folder from the team (see the [backend README](backend/README.md#local-only-files-temp)).
+  - **Or SQL Server**, with a copy of `pos_basket`: set `PosBasket:Provider` to `SqlServer` in [Insights.Analytics/appsettings.json](backend/src/Insights.Analytics/appsettings.json) and restart Analytics. See [Choosing the database](backend/README.md#choosing-the-database-postgresql-or-sql-server).
 - **Neo4j 5+**, with the `knowledge-model` and `db-guide` databases. On the team's machines this is the Neo4j Desktop instance `salespoc`: start it and wait for **RUNNING**.
 - An **AWS Bedrock API key** (the AI Hub's default, `Llm:Provider` = `Bedrock`), or an **OpenAI API key** with `Llm:Provider` set to `OpenAI`.
 
-Run these once, from the `Insights Assistant` folder. They keep the passwords and the key outside the project:
+Run these once, from the `backend` folder. They keep the passwords and the key outside the project:
 
 ```powershell
 dotnet user-secrets set "Neo4j:Password"     "<neo4j password>"    --project src/Insights.Analytics
 dotnet user-secrets set "PosBasket:Password" "<postgres password>" --project src/Insights.Analytics
-dotnet user-secrets set "Neo4j:Password"     "<neo4j password>"    --project src/Insights.DbGuide
+dotnet user-secrets set "Neo4j:Password"     "<neo4j password>"    --project src/Insights.DbCatalog
 dotnet user-secrets set "Bedrock:ApiKey"     "<bedrock api key>"   --project src/Insights.AiHub
 # or, with Llm:Provider set to OpenAI:
 dotnet user-secrets set "OpenAI:ApiKey"      "<openai key>"        --project src/Insights.AiHub
@@ -47,30 +47,30 @@ Services that are already running are left as they are, so running it again star
 - **Stopping:** `.\stop-all.ps1` stops everything. Closing a service's window stops just that one.
 - **If Windows blocks the script**, run `powershell -ExecutionPolicy Bypass -File .\start-all.ps1`.
 
-**Signing in:** the demo user is `Admin`. Users, passwords and roles are under `Gateway:Users` and `Gateway:Roles` in [Insights.Gateway/appsettings.json](Insights%20Assistant/src/Insights.Gateway/appsettings.json). Change the password before showing it outside the team.
+**Signing in:** the demo user is `Admin`. Users, passwords and roles are under `Gateway:Users` and `Gateway:Roles` in [Insights.Gateway/appsettings.json](backend/src/Insights.Gateway/appsettings.json). Change the password before showing it outside the team.
 
 ## What runs where
 
 | Address | What |
 |---|---|
 | http://localhost:5174 | The UI (Vite dev server). It passes `/api` on to the gateway. |
-| http://localhost:5000 | **Gateway**: sign-in, access checks, and the only way in to the services below. Sends each question to Analytics or DB Guide, and keeps each user's schedules, board widgets and shared links, and the table reviews (`/api/workspace`). `/health` shows which services are up. |
+| http://localhost:5000 | **Gateway**: sign-in, access checks, and the only way in to the services below. Sends each question to Analytics or DB Catalog, and keeps each user's schedules, board widgets and shared links, and the table reviews (`/api/workspace`). `/health` shows which services are up. |
 | http://localhost:5100 | **Analytics**: answers questions about the sales data with read-only SQL on PostgreSQL, or SQL Server (`PosBasket:Provider`). |
 | http://localhost:5200 | **AI Hub**: the AI calls (OpenAI or Amazon Bedrock). It calls no other service. |
-| http://localhost:5300 | **DB Guide**: answers questions about the database's tables and joins. |
+| http://localhost:5300 | **DB Catalog**: answers questions about the database's tables and joins. |
 
 ## Starting them by hand
 
 To start them one at a time instead, use one terminal each:
 
 ```powershell
-cd "Insights Assistant"
+cd backend
 dotnet run --project src/Insights.Analytics
 dotnet run --project src/Insights.AiHub
-dotnet run --project src/Insights.DbGuide
+dotnet run --project src/Insights.DbCatalog
 dotnet run --project src/Insights.Gateway
 
-cd "SEH Intelligence Platform"
+cd frontend
 npm install   # first time only
 npm run dev
 ```
@@ -81,11 +81,11 @@ Each service can run as a Windows service, so it starts with Windows and keeps r
 
 1. **Publish** each service into its own folder, and build the UI. The machine then needs only the [.NET 9 ASP.NET Core Runtime](https://dotnet.microsoft.com/download/dotnet/9.0), not the SDK.
    ```powershell
-   cd "Insights Assistant"
-   foreach ($s in 'Gateway', 'Analytics', 'AiHub', 'DbGuide') {
+   cd backend
+   foreach ($s in 'Gateway', 'Analytics', 'AiHub', 'DbCatalog') {
        dotnet publish "src/Insights.$s" -c Release -o "C:\SEH\$s"
    }
-   cd "..\SEH Intelligence Platform"; npm run build   # then copy dist to C:\SEH\ui
+   cd ..\frontend; npm run build   # then copy dist to C:\SEH\ui
    ```
 2. **Gateway settings:** in `C:\SEH\Gateway\appsettings.json`:
    - Set `Gateway:UiPath` to `C:\SEH\ui`, so the gateway serves the app.
@@ -101,7 +101,7 @@ Each service can run as a Windows service, so it starts with Windows and keeps r
    To read the data from SQL Server, also set `PosBasket__Provider` to `SqlServer`. A service runs as Local System, so Windows sign-in reaches SQL Server as the machine account: give that account read access to `pos_basket`, or set `PosBasket__SqlServer__ConnectionString` to one with a SQL login.
 4. **Install and start** them, as an administrator:
    ```powershell
-   foreach ($s in 'Analytics', 'AiHub', 'DbGuide', 'Gateway') {
+   foreach ($s in 'Analytics', 'AiHub', 'DbCatalog', 'Gateway') {
        sc.exe create "SEH-$s" binPath= "C:\SEH\$s\Insights.$s.exe" start= auto
        sc.exe start "SEH-$s"
    }
