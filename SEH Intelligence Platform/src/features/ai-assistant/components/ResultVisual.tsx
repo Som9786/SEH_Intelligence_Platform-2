@@ -13,6 +13,7 @@ import {
   YAxis,
 } from 'recharts';
 import { useTheme } from '../../../shared/hooks/useTheme';
+import { scaledFont } from '../../../shared/utils/fontScale';
 import type { AnalyticsResult } from '../services/assistantService';
 import { formatCell, formatCompact, humanize } from '../utils/formatCell';
 import { measureColors, RAMP, SERIES, tint } from '../utils/chartColors';
@@ -190,7 +191,7 @@ const tooltipStyle = (colors: ReturnType<typeof useChartColors>) => ({
     border: `1px solid ${colors.grid}`,
     borderRadius: 8,
     color: colors.ink,
-    fontSize: 12,
+    fontSize: scaledFont(12),
   },
   labelStyle: { color: colors.ink, fontWeight: 600 },
 });
@@ -215,13 +216,13 @@ function TrendLine({ visual }: { visual: Visual }) {
           <XAxis
             dataKey={dim}
             tickFormatter={(v) => shortLabel(v, dim)}
-            tick={{ fill: colors.text, fontSize: 11 }}
+            tick={{ fill: colors.text, fontSize: scaledFont(11) }}
             stroke={colors.grid}
             tickLine={false}
           />
           <YAxis
             tickFormatter={(v: number) => formatCompact(v)}
-            tick={{ fill: colors.text, fontSize: 11 }}
+            tick={{ fill: colors.text, fontSize: scaledFont(11) }}
             stroke={colors.grid}
             tickLine={false}
             axisLine={false}
@@ -292,14 +293,14 @@ function Columns({ visual }: { visual: Visual }) {
           <XAxis
             dataKey={dim}
             tickFormatter={(v) => shortLabel(v, dim)}
-            tick={{ fill: colors.text, fontSize: 11 }}
+            tick={{ fill: colors.text, fontSize: scaledFont(11) }}
             stroke={colors.grid}
             tickLine={false}
             interval={0}
           />
           <YAxis
             tickFormatter={(v: number) => formatCompact(v)}
-            tick={{ fill: colors.text, fontSize: 11 }}
+            tick={{ fill: colors.text, fontSize: scaledFont(11) }}
             stroke={colors.grid}
             tickLine={false}
             axisLine={false}

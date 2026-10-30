@@ -5,6 +5,7 @@ import {
 } from './relationshipGraph';
 import { KEY_KINDS, keyIconSvg } from './keyKinds';
 import { cardColumns } from '../../relationships/utils/erLayout';
+import { scaledFont } from '../../../shared/utils/fontScale';
 
 export type DiagramTheme = 'light' | 'dark';
 
@@ -17,7 +18,7 @@ export interface RelationshipDiagramSource {
 }
 
 /** A font size scaled like the page's text (--fs-scale in index.css). */
-const px = (size: number) => `${Math.round(size * 0.9 * 10) / 10}px`;
+const px = (size: number) => `${scaledFont(size)}px`;
 
 const PALETTE = {
   light: {
