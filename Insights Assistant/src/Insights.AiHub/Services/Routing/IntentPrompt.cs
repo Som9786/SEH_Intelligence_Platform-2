@@ -32,6 +32,16 @@ static class IntentPrompt
           "fresh-food-forecasting" for fresh food demand, waste, stock-outs and forecasts;
           "revenue-opportunities" for growth, gaps against comparable stores and revenue potential;
           "none" for "db-guide" and "unclear" questions, or when no board fits.
+        - chart: "none" unless the user explicitly asks how the answer should be drawn. Most questions ask for none,
+          including ones that name a table, list items or ask for "top 10": those are "none". Only when they do ask,
+          read what they mean, typos and all: "pie" (also donut, slices, parts of a whole), "line" (a trend line),
+          "area", "columns" (vertical bars), "bars" (a bar chart, horizontal bars), "grouped" (bars side by side),
+          "stacked", "scatter" (one number against another), "heatmap", "table" (only when they ask to see the answer
+          as a table rather than a chart); "chart" when they ask for a chart, graph or plot without saying which.
+          Always "none" for "db-guide" and "unclear" questions. Words such as
+          "area", "line" or "bar" are business terms too ("sales by area", "product line", "candy bar"): only a request
+          to draw the answer counts. A follow-up asking only for a different chart ("now as a bar chart") is
+          "analytics" with that chart.
         """;
 
     static string Examples(ServiceProfile? profile) =>
@@ -45,9 +55,10 @@ static class IntentPrompt
           "properties": {
             "intent": { "type": "string", "enum": ["analytics", "db-guide", "unclear"] },
             "reason": { "type": "string" },
-            "board": { "type": "string", "enum": ["basket-intelligence", "fresh-food-forecasting", "revenue-opportunities", "none"] }
+            "board": { "type": "string", "enum": ["basket-intelligence", "fresh-food-forecasting", "revenue-opportunities", "none"] },
+            "chart": { "type": "string", "enum": ["none", "chart", "line", "area", "columns", "bars", "grouped", "stacked", "pie", "scatter", "heatmap", "table"] }
           },
-          "required": ["intent", "reason", "board"],
+          "required": ["intent", "reason", "board", "chart"],
           "additionalProperties": false
         }
         """;

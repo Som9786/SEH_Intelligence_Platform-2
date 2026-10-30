@@ -9,7 +9,7 @@ import { AnalyticsData } from '../../ai-assistant/components/DataBehindThis';
 import { ResultChart } from '../../ai-assistant/components/ResultVisual';
 import { ResultTable } from '../../ai-assistant/components/ResultTable';
 import { analyticsDetails } from '../../ai-assistant/utils/answerDetails';
-import { visualOf } from '../../ai-assistant/utils/visualOf';
+import { asChart, chooseChart } from '../../ai-assistant/utils/chartChoice';
 import { useAuth } from '../../auth/useAuth';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import { SqlCode } from '../../../shared/components/SqlCode';
@@ -56,9 +56,13 @@ export function InsightView({
   const { can } = useAuth();
   const asResult = useMemo(() => asAnalyticsResult(insight), [insight]);
   const details = useMemo(() => analyticsDetails(asResult), [asResult]);
+  const chart = asChart(insight.chart);
   const charted = useMemo(
-    () => (insight.result ? visualOf(insight.result).kind !== 'table' : false),
-    [insight.result],
+    () =>
+      insight.result
+        ? chooseChart(insight.result, { chosen: chart }).chart !== 'table'
+        : false,
+    [insight.result, chart],
   );
   // The definitions behind it are read from Analytics (POST /context), which these pages may call.
   const canSeeData = can('basket-intelligence') || can('insights-assistant');
@@ -107,7 +111,7 @@ export function InsightView({
           </Panel>
           {insight.result && charted && (
             <Panel title="Chart">
-              <ResultChart result={insight.result} />
+              <ResultChart result={insight.result} chart={chart} />
             </Panel>
           )}
           {insight.result && (

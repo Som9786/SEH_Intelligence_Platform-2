@@ -94,6 +94,8 @@ export type AssistantReply = {
   message: string | null;
   /** The capability board an answer about the data can be added to. */
   board: Board | 'none';
+  /** The chart the question asks for, as AI Hub read it ("none" when it asks for none; see askedOf). */
+  chart?: string;
 } & (
   | { intent: 'analytics'; service: 'analytics'; result: AnalyticsResult }
   | { intent: 'db-guide'; service: 'db-guide'; result: DbGuideResult }

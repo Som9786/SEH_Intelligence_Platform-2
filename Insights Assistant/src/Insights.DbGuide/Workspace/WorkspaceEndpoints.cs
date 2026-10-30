@@ -110,9 +110,11 @@ public static class WorkspaceEndpoints
                 return Invalid("'question' is required, up to 1000 characters.");
             if (ResultProblem(input.Result) is { } problem)
                 return Invalid(problem);
+            if (ChartProblem(input.Chart) is { } badChart)
+                return Invalid(badChart);
             var title = string.IsNullOrWhiteSpace(input.Title) ? input.Question.Trim() : input.Title.Trim();
             var widget = new Widget(Guid.NewGuid().ToString("n"), input.Board, title.Length > 160 ? title[..160] : title,
-                input.Question.Trim(), input.Answer, input.Result, DateTimeOffset.Now, input.FetchedAt, input.Details);
+                input.Question.Trim(), input.Answer, input.Result, DateTimeOffset.Now, input.FetchedAt, input.Details, input.Chart);
             await store.ChangeAsync(UserOf(context), w => { w.Widgets.Add(widget); return true; }, ct);
             return Results.Created($"/workspace/widgets/{widget.Id}", widget);
         });
@@ -160,7 +162,7 @@ public static class WorkspaceEndpoints
             var now = DateTimeOffset.Now;
             var share = new SharedInsight(Guid.NewGuid().ToString("n"), widget.Board, widget.Title, widget.Question, widget.Answer,
                 widget.Result, widget.Details is { } details ? details with { Sql = null } : null,
-                widget.FetchedAt ?? widget.CreatedAt, UserOf(context), now, now.AddDays(ShareDays()));
+                widget.FetchedAt ?? widget.CreatedAt, UserOf(context), now, now.AddDays(ShareDays()), widget.Chart);
             await shares.SaveAsync(share, ct);
             return Results.Created($"/workspace/shares/{share.Id}", share);
         });
@@ -210,6 +212,10 @@ public static class WorkspaceEndpoints
             || rows.GetArrayLength() > MaxWidgetRows)
             ? $"'result' must be an object with columns and rows, at most {MaxWidgetRows} rows."
             : null;
+
+    /// Why a widget's chart can't be kept, or null: it must be one of Charts.All, or null for the UI to pick.
+    static string? ChartProblem(string? chart) =>
+        chart is null || Charts.All.Contains(chart) ? null : $"'chart' must be one of {string.Join(", ", Charts.All)}, or null.";
 
     static Schedule Build(string id, ScheduleInput input, DateTimeOffset createdAt, DateTimeOffset updatedAt) => new(
         id, input.Name!.Trim(), input.Question!.Trim(), input.Frequency!, input.Time!, input.StartsOn!,

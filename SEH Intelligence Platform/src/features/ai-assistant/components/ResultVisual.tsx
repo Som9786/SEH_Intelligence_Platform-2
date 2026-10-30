@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -7,7 +9,11 @@ import {
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
+  Scatter,
+  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
@@ -17,7 +23,16 @@ import { scaledFont } from '../../../shared/utils/fontScale';
 import type { AnalyticsResult } from '../services/assistantService';
 import { formatCell, formatCompact, humanize } from '../utils/formatCell';
 import { measureColors, RAMP, SERIES, tint } from '../utils/chartColors';
-import { orderLabels, visualOf, type Visual } from '../utils/visualOf';
+import {
+  CHART_LABEL,
+  CHART_NAME,
+  chooseChart,
+  pivotDims,
+  type ChartKind,
+  type ChartSuggestion,
+  type Requested,
+} from '../utils/chartChoice';
+import { orderLabels, type Visual } from '../utils/visualOf';
 import { ResultTable } from './ResultTable';
 
 type Result = NonNullable<AnalyticsResult['result']>;
@@ -93,61 +108,136 @@ function kpiValue(value: unknown, column: string, single: boolean): string {
 }
 
 /**
- * A query result shown the way its shape suits best (see visualOf), with a Chart / Table switch.
- * Board widgets and Insights Assistant answers both use it, so a widget looks as it did in chat.
+ * A query result drawn the way the question asked for, or as kept with it, or as its shape suits
+ * best (see chooseChart). When the question asked for a chart that doesn't suit the rows, they show
+ * as a table with a suggestion of one that does; the answer to it is reported with onChart (the
+ * thread keeps it, and passes it back as chart). Board widgets and Insights Assistant answers both
+ * use it, so a widget looks as it did in chat.
  */
-export function ResultVisual({ result }: { result: Result }) {
-  const visual = useMemo(() => visualOf(result), [result]);
-  const [view, setView] = useState<'chart' | 'table'>('chart');
+export function ResultVisual({
+  result,
+  question,
+  asked,
+  chart,
+  onChart,
+}: {
+  result: Result;
+  question?: string;
+  /** The chart AI Hub read from the question, when it read one. */
+  asked?: Requested | null;
+  chart?: ChartKind | null;
+  onChart?: (chart: ChartKind) => void;
+}) {
+  // Shown at once; the thread or widget keeping it catches up through chart.
+  const [picked, setPicked] = useState<ChartKind | null>(null);
+  const choice = useMemo(
+    () => chooseChart(result, { question, asked, chosen: picked ?? chart }),
+    [result, question, asked, picked, chart],
+  );
   const { theme } = useTheme();
+  const { visual, suggestion } = choice;
   const colors = measureColors(visual.measures, theme);
   const barColor = (column: string) =>
     colors[visual.measures.indexOf(column)] ?? SERIES[theme][0];
-  if (visual.kind === 'table')
-    return <ResultTable result={result} dataBars barColor={barColor} />;
+  const pick = (next: ChartKind) => {
+    setPicked(next);
+    onChart?.(next);
+  };
+  const table = <ResultTable result={result} dataBars barColor={barColor} />;
   return (
     <div className="viz">
-      <div className="viz-switch" role="group" aria-label="Show as">
-        {(['chart', 'table'] as const).map((option) => (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={view === option}
-            onClick={() => setView(option)}
-          >
-            {option === 'chart' ? 'Chart' : 'Table'}
-          </button>
-        ))}
-      </div>
-      {view === 'chart' ? (
-        <VisualBody visual={visual} />
+      {suggestion && <Suggestion suggestion={suggestion} onPick={pick} />}
+      {choice.chart === 'table' ? (
+        table
       ) : (
-        <ResultTable result={result} dataBars barColor={barColor} />
+        <VisualBody visual={visual} chart={choice.chart} />
       )}
     </div>
   );
 }
 
-/** The chart alone, or nothing when the rows only suit a table. */
-export function ResultChart({ result }: { result: Result }) {
-  const visual = useMemo(() => visualOf(result), [result]);
-  return visual.kind === 'table' ? null : <VisualBody visual={visual} />;
+/** The question asked for a chart the rows don't suit: why, and what would, to show on a click. */
+function Suggestion({
+  suggestion: { requested, reason, instead },
+  onPick,
+}: {
+  suggestion: ChartSuggestion;
+  onPick: (chart: ChartKind) => void;
+}) {
+  const asked = requested === 'chart' ? 'a chart' : CHART_NAME[requested];
+  return (
+    <div className="viz-suggest" role="status">
+      <p>
+        I can't draw {asked} for this answer: {reason}.{' '}
+        {instead
+          ? `Show it as ${CHART_NAME[instead]} instead?`
+          : "It's shown as a table."}
+      </p>
+      {instead && (
+        <div className="viz-suggest-actions">
+          <button
+            type="button"
+            className="td-action"
+            onClick={() => onPick(instead)}
+          >
+            Yes, show {CHART_LABEL[instead].toLowerCase()}
+          </button>
+          <button
+            type="button"
+            className="td-action"
+            onClick={() => onPick('table')}
+          >
+            Keep table
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
-function VisualBody({ visual }: { visual: Visual }) {
-  switch (visual.kind) {
+/** The chart alone, as kept with the widget (or as its shape suits), or nothing for a table. */
+export function ResultChart({
+  result,
+  chart,
+}: {
+  result: Result;
+  chart?: ChartKind | null;
+}) {
+  const choice = useMemo(
+    () => chooseChart(result, { chosen: chart }),
+    [result, chart],
+  );
+  return choice.chart === 'table' ? null : (
+    <VisualBody visual={choice.visual} chart={choice.chart} />
+  );
+}
+
+function VisualBody({ visual, chart }: { visual: Visual; chart: ChartKind }) {
+  const first = (count: number) => ({
+    ...visual,
+    measures: visual.measures.slice(0, count),
+  });
+  switch (chart) {
     case 'kpi':
-    case 'kpis':
       return <Kpis visual={visual} />;
     case 'line':
-      return <TrendLine visual={visual} />;
+      return <Trend visual={first(3)} />;
+    case 'area':
+      return <Trend visual={first(3)} area />;
     case 'columns':
-      return <Columns visual={visual} />;
+      return <Columns visual={first(1)} />;
     case 'bars':
-    case 'bars2':
-      return <Bars visual={visual} />;
+      return <Bars visual={first(2)} />;
+    case 'grouped':
+      return <SeriesColumns visual={first(3)} />;
+    case 'stacked':
+      return <SeriesColumns visual={first(3)} stacked />;
+    case 'pie':
+      return <Donut visual={first(1)} />;
     case 'share':
-      return <Share visual={visual} />;
+      return <Share visual={first(1)} />;
+    case 'scatter':
+      return <Spread visual={visual} />;
     case 'heatmap':
       return <Heatmap visual={visual} />;
     default:
@@ -196,11 +286,12 @@ const tooltipStyle = (colors: ReturnType<typeof useChartColors>) => ({
   labelStyle: { color: colors.ink, fontWeight: 600 },
 });
 
-/** Up to three numbers over dates: lines, with a crosshair tooltip. */
-function TrendLine({ visual }: { visual: Visual }) {
+/** Up to three numbers over dates: lines (or filled areas), with a crosshair tooltip. */
+function Trend({ visual, area = false }: { visual: Visual; area?: boolean }) {
   const colors = useChartColors();
   const lineColors = measureColors(visual.measures, colors.theme);
   const [dim] = visual.dims;
+  const Chart = area ? AreaChart : LineChart;
   return (
     <figure className="panel viz-figure">
       <figcaption className="ia-label">
@@ -208,7 +299,7 @@ function TrendLine({ visual }: { visual: Visual }) {
         {humanize(dim).toLowerCase()}
       </figcaption>
       <ResponsiveContainer width="100%" height={240}>
-        <LineChart
+        <Chart
           data={visual.rows}
           margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
         >
@@ -247,24 +338,38 @@ function TrendLine({ visual }: { visual: Visual }) {
               iconType="plainline"
             />
           )}
-          {visual.measures.map((measure, i) => (
-            <Line
-              key={measure}
-              type="monotone"
-              dataKey={measure}
-              stroke={lineColors[i]}
-              strokeWidth={2}
-              dot={{
-                r: 4,
-                strokeWidth: 2,
-                stroke: colors.surface,
-                fill: lineColors[i],
-              }}
-              activeDot={{ r: 5, strokeWidth: 2, stroke: colors.surface }}
-              isAnimationActive={false}
-            />
-          ))}
-        </LineChart>
+          {visual.measures.map((measure, i) =>
+            area ? (
+              <Area
+                key={measure}
+                type="monotone"
+                dataKey={measure}
+                stroke={lineColors[i]}
+                strokeWidth={2}
+                fill={lineColors[i]}
+                fillOpacity={0.15}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: colors.surface }}
+                isAnimationActive={false}
+              />
+            ) : (
+              <Line
+                key={measure}
+                type="monotone"
+                dataKey={measure}
+                stroke={lineColors[i]}
+                strokeWidth={2}
+                dot={{
+                  r: 4,
+                  strokeWidth: 2,
+                  stroke: colors.surface,
+                  fill: lineColors[i],
+                }}
+                activeDot={{ r: 5, strokeWidth: 2, stroke: colors.surface }}
+                isAnimationActive={false}
+              />
+            ),
+          )}
+        </Chart>
       </ResponsiveContainer>
     </figure>
   );
@@ -383,24 +488,54 @@ function Bars({ visual }: { visual: Visual }) {
   );
 }
 
-/** Parts of a whole: one bar split into segments, with a legend of names, values and shares. */
-function Share({ visual }: { visual: Visual }) {
-  const colors = useChartColors();
+interface Part {
+  label: string;
+  value: number;
+  share: number;
+  color: string;
+}
+
+/** Each row as a part of the whole, in a colour of its own. */
+function partsOf(visual: Visual, series: string[]): Part[] {
   const [dim] = visual.dims;
   const [measure] = visual.measures;
   const total = visual.rows.reduce(
     (sum, r) => sum + (Number(r[measure]) || 0),
     0,
   );
-  const parts = visual.rows.map((row, i) => {
+  return visual.rows.map((row, i) => {
     const value = Number(row[measure]) || 0;
     return {
       label: formatCell(row[dim], dim),
       value,
       share: total ? value / total : 0,
-      color: colors.series[i],
+      color: series[i % series.length],
     };
   });
+}
+
+/** Names, values and shares, beside a pie or under a share bar. */
+function PartsLegend({ parts, measure }: { parts: Part[]; measure: string }) {
+  return (
+    <ul className="viz-legend">
+      {parts.map((part) => (
+        <li key={part.label}>
+          <i style={{ background: part.color }} aria-hidden="true" />
+          <span>{part.label}</span>
+          <strong>{formatCell(part.value, measure)}</strong>
+          <small>{Math.round(part.share * 100)}%</small>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Parts of a whole: one bar split into segments, with a legend of names, values and shares. */
+function Share({ visual }: { visual: Visual }) {
+  const colors = useChartColors();
+  const [dim] = visual.dims;
+  const [measure] = visual.measures;
+  const parts = partsOf(visual, colors.series);
   return (
     <figure className="panel viz-figure">
       <figcaption className="ia-label">
@@ -415,16 +550,257 @@ function Share({ visual }: { visual: Visual }) {
           />
         ))}
       </div>
-      <ul className="viz-legend">
-        {parts.map((part) => (
-          <li key={part.label}>
-            <i style={{ background: part.color }} aria-hidden="true" />
-            <span>{part.label}</span>
-            <strong>{formatCell(part.value, measure)}</strong>
-            <small>{Math.round(part.share * 100)}%</small>
-          </li>
-        ))}
-      </ul>
+      <PartsLegend parts={parts} measure={measure} />
+    </figure>
+  );
+}
+
+/** Parts of a whole as a ring, with the same legend. */
+function Donut({ visual }: { visual: Visual }) {
+  const colors = useChartColors();
+  const [dim] = visual.dims;
+  const [measure] = visual.measures;
+  const parts = partsOf(visual, colors.series);
+  return (
+    <figure className="panel viz-figure">
+      <figcaption className="ia-label">
+        {humanize(measure)} by {humanize(dim).toLowerCase()}
+      </figcaption>
+      <div className="viz-pie">
+        <ResponsiveContainer width="100%" height={200}>
+          <PieChart>
+            <Pie
+              data={parts}
+              dataKey="value"
+              nameKey="label"
+              innerRadius="55%"
+              outerRadius="95%"
+              paddingAngle={1}
+              stroke={colors.surface}
+              isAnimationActive={false}
+            >
+              {parts.map((part) => (
+                <Cell key={part.label} fill={part.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              {...tooltipStyle(colors)}
+              formatter={(v, name) => [formatCell(v, measure), String(name)]}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+        <PartsLegend parts={parts} measure={measure} />
+      </div>
+    </figure>
+  );
+}
+
+interface Series {
+  key: string;
+  name: string;
+  /** The column its values come from, to format them. */
+  measure: string;
+  color: string;
+}
+
+/**
+ * Columns for more than one series: one per number, or for two categories and a number, one per
+ * value of the category with fewer values. Pivoted series are keyed s0, s1… since their names can
+ * hold dots, which Recharts reads as a path.
+ */
+function seriesOf(
+  visual: Visual,
+  palette: string[],
+  measureColor: string[],
+): { x: string; data: Record<string, unknown>[]; series: Series[] } {
+  if (visual.dims.length === 1)
+    return {
+      x: visual.dims[0],
+      data: visual.rows,
+      series: visual.measures.map((measure, i) => ({
+        key: measure,
+        name: humanize(measure),
+        measure,
+        color: measureColor[i],
+      })),
+    };
+  const { x, series } = pivotDims(visual);
+  const [measure] = visual.measures;
+  const names = orderLabels([
+    ...new Set(visual.rows.map((r) => String(r[series]))),
+  ]);
+  const xs = orderLabels([...new Set(visual.rows.map((r) => String(r[x])))]);
+  const data = xs.map((value) => {
+    const point: Record<string, unknown> = { [x]: value };
+    for (const row of visual.rows)
+      if (String(row[x]) === value)
+        point[`s${names.indexOf(String(row[series]))}`] =
+          Number(row[measure]) || 0;
+    return point;
+  });
+  return {
+    x,
+    data,
+    series: names.map((name, i) => ({
+      key: `s${i}`,
+      name: shortLabel(name, series),
+      measure,
+      color: palette[i % palette.length],
+    })),
+  };
+}
+
+/** Several series side by side, or stacked into one column each. */
+function SeriesColumns({
+  visual,
+  stacked = false,
+}: {
+  visual: Visual;
+  stacked?: boolean;
+}) {
+  const colors = useChartColors();
+  const { x, data, series } = seriesOf(
+    visual,
+    colors.series,
+    measureColors(visual.measures, colors.theme),
+  );
+  const caption =
+    visual.dims.length === 1
+      ? `${visual.measures.map(humanize).join(', ')} by ${humanize(x).toLowerCase()}`
+      : `${humanize(visual.measures[0])} by ${visual.dims.map((d) => humanize(d).toLowerCase()).join(' and ')}`;
+  return (
+    <figure className="panel viz-figure">
+      <figcaption className="ia-label">{caption}</figcaption>
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart
+          data={data}
+          margin={{ top: 8, right: 12, bottom: 0, left: 0 }}
+          barCategoryGap={stacked ? 2 : '16%'}
+        >
+          <CartesianGrid stroke={colors.grid} vertical={false} />
+          <XAxis
+            dataKey={x}
+            tickFormatter={(v) => shortLabel(v, x)}
+            tick={{ fill: colors.text, fontSize: scaledFont(11) }}
+            stroke={colors.grid}
+            tickLine={false}
+          />
+          <YAxis
+            tickFormatter={(v: number) => formatCompact(v)}
+            tick={{ fill: colors.text, fontSize: scaledFont(11) }}
+            stroke={colors.grid}
+            tickLine={false}
+            axisLine={false}
+            width={48}
+          />
+          <Tooltip
+            {...tooltipStyle(colors)}
+            labelFormatter={(v) => formatCell(v, x)}
+            formatter={(v, name) => [
+              formatCell(v, series.find((s) => s.name === name)?.measure ?? ''),
+              String(name),
+            ]}
+            cursor={{ fill: colors.grid, opacity: 0.5 }}
+          />
+          <Legend
+            formatter={(name) => (
+              <span style={{ color: colors.ink }}>{String(name)}</span>
+            )}
+            iconType="square"
+          />
+          {series.map((s, i) => (
+            <Bar
+              key={s.key}
+              dataKey={s.key}
+              name={s.name}
+              fill={s.color}
+              stackId={stacked ? 'all' : undefined}
+              radius={
+                !stacked || i === series.length - 1 ? [4, 4, 0, 0] : undefined
+              }
+              maxBarSize={40}
+              isAnimationActive={false}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </figure>
+  );
+}
+
+/** Two numbers against each other: a dot per row, named in its tooltip. */
+function Spread({ visual }: { visual: Visual }) {
+  const colors = useChartColors();
+  const [x, y] = visual.measures;
+  const [color] = measureColors([y], colors.theme);
+  const label = (row: Record<string, unknown>) =>
+    visual.dims.map((d) => formatCell(row[d], d)).join(' · ');
+  const axis = {
+    tick: { fill: colors.text, fontSize: scaledFont(11) },
+    stroke: colors.grid,
+    tickLine: false,
+  };
+  return (
+    <figure className="panel viz-figure">
+      <figcaption className="ia-label">
+        {humanize(y)} against {humanize(x).toLowerCase()}
+      </figcaption>
+      <ResponsiveContainer width="100%" height={260}>
+        <ScatterChart margin={{ top: 8, right: 12, bottom: 16, left: 0 }}>
+          <CartesianGrid stroke={colors.grid} />
+          <XAxis
+            type="number"
+            dataKey={x}
+            name={humanize(x)}
+            tickFormatter={(v: number) => formatCompact(v)}
+            label={{
+              value: humanize(x),
+              position: 'insideBottom',
+              offset: -10,
+              fill: colors.text,
+              fontSize: scaledFont(11),
+            }}
+            {...axis}
+          />
+          <YAxis
+            type="number"
+            dataKey={y}
+            name={humanize(y)}
+            tickFormatter={(v: number) => formatCompact(v)}
+            width={48}
+            axisLine={false}
+            {...axis}
+          />
+          <Tooltip
+            cursor={{ stroke: colors.text, strokeDasharray: '3 3' }}
+            content={({ active, payload }) => {
+              const row = payload?.[0]?.payload as
+                Record<string, unknown> | undefined;
+              if (!active || !row) return null;
+              const { contentStyle, labelStyle } = tooltipStyle(colors);
+              return (
+                <div style={{ ...contentStyle, padding: '6px 10px' }}>
+                  {visual.dims.length > 0 && (
+                    <div style={labelStyle}>{label(row)}</div>
+                  )}
+                  <div>
+                    {humanize(x)}: {formatCell(row[x], x)}
+                  </div>
+                  <div>
+                    {humanize(y)}: {formatCell(row[y], y)}
+                  </div>
+                </div>
+              );
+            }}
+          />
+          <Scatter
+            data={visual.rows}
+            fill={color}
+            fillOpacity={0.8}
+            isAnimationActive={false}
+          />
+        </ScatterChart>
+      </ResponsiveContainer>
     </figure>
   );
 }

@@ -1,4 +1,5 @@
 import type { Board } from '../../workspace/workspaceService';
+import type { ChartKind } from '../utils/chartChoice';
 import type { AssistantReply } from './assistantService';
 
 /** What was already done with an answer, so coming back to the thread doesn't offer it again. */
@@ -15,6 +16,8 @@ export type Exchange =
       status: 'done';
       reply: AssistantReply;
       kept?: KeptActions;
+      /** How the result is drawn, when the user picked it. */
+      chart?: ChartKind;
     }
   | { question: string; status: 'error'; error: string };
 

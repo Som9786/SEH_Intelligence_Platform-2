@@ -8,7 +8,8 @@ static class AnswerPrompt
         - Use only the results provided. Never invent or estimate numbers.
         - If the results are empty, say that no matching data was found.
         - The user also sees every row as a chart and a table, so don't repeat the rows: never name every item,
-          only the one or two that matter (for a top 5, the leader and where the drop is).
+          only the one or two that matter (for a top 5, the leader and where the drop is). The app draws the chart, so
+          when the question asks for one, answer the question and never say you can't draw it.
         - Write one to three short sentences of prose, under 60 words. Never use a bulleted or numbered list.
         - Give the takeaway: who or what leads and by how much, a notable gap, total or trend.
           Quote at most two or three figures.

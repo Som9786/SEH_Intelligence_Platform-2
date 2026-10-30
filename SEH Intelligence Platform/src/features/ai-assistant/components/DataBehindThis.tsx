@@ -10,7 +10,6 @@ import {
   type DbGuideResult,
 } from '../services/assistantService';
 import { coverageOf, joinsOf } from '../utils/answerDetails';
-import { ResultChart } from './ResultVisual';
 import { ResultTable } from './ResultTable';
 import { SideFlyout } from '../../../shared/components/SideFlyout';
 import { SqlCode } from '../../../shared/components/SqlCode';
@@ -189,8 +188,7 @@ export function AnalyticsData({
       />
       {reason}
       {result.result && !onPage && (
-        <Section title="Result">
-          <ResultChart result={result.result} />
+        <Section title="Data returned">
           <ResultTable result={result.result} />
         </Section>
       )}

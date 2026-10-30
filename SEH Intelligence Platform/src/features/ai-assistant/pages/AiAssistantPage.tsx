@@ -205,11 +205,24 @@ export function AiAssistantPage() {
                 {/* One card per answer, with its actions, so answers stand apart. */}
                 <div className="ia-card">
                   <ErrorBoundary compact>
-                    <AssistantAnswer reply={exchange.reply} />
+                    <AssistantAnswer
+                      reply={exchange.reply}
+                      chart={exchange.chart}
+                      onChart={(chart) =>
+                        setExchanges((all) =>
+                          all.map((e, j) =>
+                            j === i && e.status === 'done'
+                              ? { ...e, chart }
+                              : e,
+                          ),
+                        )
+                      }
+                    />
                   </ErrorBoundary>
                   <AnswerActions
                     reply={exchange.reply}
                     kept={exchange.kept}
+                    chart={exchange.chart}
                     onKept={(change) =>
                       setExchanges((all) =>
                         all.map((e, j) =>

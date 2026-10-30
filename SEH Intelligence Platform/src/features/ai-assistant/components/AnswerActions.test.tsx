@@ -72,7 +72,7 @@ describe('AnswerActions', () => {
     ]);
   });
 
-  it('opens Data behind this with the reason, chart, rows and query', () => {
+  it('opens Data behind this with the reason, the rows (no chart) and query', () => {
     fetchMock.mockReturnValue(new Promise(() => {}));
     show({
       ...REPLY,
@@ -92,7 +92,8 @@ describe('AnswerActions', () => {
     const flyout = screen.getByRole('dialog');
     expect(flyout).toHaveTextContent('Why it was routed here');
     expect(flyout).toHaveTextContent('Sales by store.');
-    expect(screen.getByRole('figure')).toHaveTextContent('Net sales by store');
+    expect(screen.queryByRole('figure')).not.toBeInTheDocument();
+    expect(flyout).toHaveTextContent('Data returned');
     expect(screen.getByRole('table')).toHaveTextContent('1,520.5');
     expect(flyout).toHaveTextContent('SELECT 1');
     expect(fetchMock.mock.calls[0][0]).toBe('/api/analytics/context');

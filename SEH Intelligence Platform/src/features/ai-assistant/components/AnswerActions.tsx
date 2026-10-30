@@ -14,22 +14,26 @@ import {
 } from '../../workspace/workspaceService';
 import type { AssistantReply } from '../services/assistantService';
 import type { KeptActions } from '../services/threadStore';
+import { askedOf, chooseChart, type ChartKind } from '../utils/chartChoice';
 import { DataBehindThis } from './DataBehindThis';
 
 /**
  * What can be done with an answer: open the data behind it, and for an answer about the data,
  * schedule the question to run again and keep the answer as a widget on the board AI Hub picked.
  * What was done is reported with onKept and comes back as kept, so a saved thread doesn't offer
- * to add the same answer twice.
+ * to add the same answer twice. A widget keeps the chart the answer is drawn as, when it was picked
+ * or asked for.
  */
 export function AnswerActions({
   reply,
   kept,
   onKept,
+  chart,
 }: {
   reply: AssistantReply;
   kept?: KeptActions;
   onKept?: (change: KeptActions) => void;
+  chart?: ChartKind;
 }) {
   const { can } = useAuth();
   const queryClient = useQueryClient();
@@ -93,6 +97,15 @@ export function AnswerActions({
       ? (reply.board as Board)
       : null;
   const canSchedule = can('scheduled-insights');
+  const keptChart = () => {
+    if (!result.result) return null;
+    const choice = chooseChart(result.result, {
+      question: reply.question,
+      asked: askedOf(reply.chart),
+      chosen: chart,
+    });
+    return choice.explicit ? choice.chart : null;
+  };
 
   return (
     <div className="ia-actions">
@@ -132,6 +145,7 @@ export function AnswerActions({
                 result: result.result,
                 fetchedAt: result.fetchedAt ?? null,
                 details: detailsOf(result),
+                chart: keptChart(),
               })
             }
           >

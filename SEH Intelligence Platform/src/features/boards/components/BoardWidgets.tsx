@@ -14,7 +14,11 @@ import {
 import { Link } from 'react-router';
 import { Prose } from '../../ai-assistant/components/AssistantAnswer';
 import { ResultVisual } from '../../ai-assistant/components/ResultVisual';
-import { visualOf } from '../../ai-assistant/utils/visualOf';
+import {
+  asChart,
+  chartSize,
+  chooseChart,
+} from '../../ai-assistant/utils/chartChoice';
 import { useAuth } from '../../auth/useAuth';
 import { ScheduleDialog } from '../../scheduled-insights/components/ScheduleDialog';
 import {
@@ -301,10 +305,15 @@ function WidgetCard({
       ),
   });
 
+  const chart = asChart(widget.chart);
+
   // The card takes a third, half or the whole row, by what its data is shown as.
   const size = useMemo(
-    () => (widget.result ? visualOf(widget.result).size : 'medium'),
-    [widget.result],
+    () =>
+      widget.result
+        ? chartSize(chooseChart(widget.result, { chosen: chart }))
+        : 'medium',
+    [widget.result, chart],
   );
 
   const [scheduling, setScheduling] = useState(false);
@@ -449,7 +458,7 @@ function WidgetCard({
       {/* A widget that can't be drawn says so; the rest of the board still shows. */}
       <ErrorBoundary compact resetKey={widget.fetchedAt ?? undefined}>
         {widget.answer && <Prose markdown={widget.answer} />}
-        {widget.result && <ResultVisual result={widget.result} />}
+        {widget.result && <ResultVisual result={widget.result} chart={chart} />}
       </ErrorBoundary>
       {scheduling && (
         <ScheduleDialog

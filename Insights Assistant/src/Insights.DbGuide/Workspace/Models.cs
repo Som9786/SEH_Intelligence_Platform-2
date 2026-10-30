@@ -19,6 +19,13 @@ public static class Boards
     public static readonly string[] All = ["basket-intelligence", "fresh-food-forecasting", "revenue-opportunities"];
 }
 
+/// The ways the UI can draw a widget's rows, when the question asked for one (otherwise it picks from their shape).
+public static class Charts
+{
+    public static readonly string[] All =
+        ["kpi", "line", "area", "columns", "bars", "grouped", "stacked", "pie", "share", "scatter", "heatmap", "table"];
+}
+
 /// A question to ask again on a schedule. Time is "HH:mm" and StartsOn "yyyy-MM-dd", in the server's time zone.
 /// DayOfWeek (0 = Sunday) is for weekly schedules; DayOfMonth (1-28) for monthly and quarterly ones, which repeat every
 /// three months from the month they start. Answer is the answer shown when it was scheduled.
@@ -40,15 +47,16 @@ public sealed record AnswerDetails(string? Sql, string? Explanation, string[]? K
 
 /// An answer kept on a capability board. Result is Analytics' result ({ columns, rows, truncated }) as it was shown;
 /// FetchedAt is when those rows were read from the database (null for widgets saved before it was recorded); Details
-/// is how the answer was reached (null for widgets saved before it was kept, until they are refreshed).
+/// is how the answer was reached (null for widgets saved before it was kept, until they are refreshed); Chart is how its
+/// rows are drawn (one of Charts.All), or null for the UI to pick.
 public sealed record Widget(
     string Id, string Board, string Title, string Question, string? Answer, JsonElement? Result, DateTimeOffset CreatedAt,
-    DateTimeOffset? FetchedAt = null, AnswerDetails? Details = null);
+    DateTimeOffset? FetchedAt = null, AnswerDetails? Details = null, string? Chart = null);
 
 /// Body of POST /widgets.
 public sealed record WidgetInput(
     string? Board, string? Title, string? Question, string? Answer, JsonElement? Result, DateTimeOffset? FetchedAt = null,
-    AnswerDetails? Details = null);
+    AnswerDetails? Details = null, string? Chart = null);
 
 /// Body of PUT /widgets/{id}: the question answered again.
 public sealed record WidgetRefresh(string? Answer, JsonElement? Result, DateTimeOffset? FetchedAt, AnswerDetails? Details = null);
@@ -58,7 +66,7 @@ public sealed record WidgetRefresh(string? Answer, JsonElement? Result, DateTime
 /// report shows the answer and data, not how the database is built.
 public sealed record SharedInsight(
     string Id, string Board, string Title, string Question, string? Answer, JsonElement? Result, AnswerDetails? Details,
-    DateTimeOffset? FetchedAt, string SharedBy, DateTimeOffset SharedAt, DateTimeOffset? ExpiresAt = null);
+    DateTimeOffset? FetchedAt, string SharedBy, DateTimeOffset SharedAt, DateTimeOffset? ExpiresAt = null, string? Chart = null);
 
 /// Body of POST /shares: the signed-in user's widget to share.
 public sealed record ShareInput(string? WidgetId);

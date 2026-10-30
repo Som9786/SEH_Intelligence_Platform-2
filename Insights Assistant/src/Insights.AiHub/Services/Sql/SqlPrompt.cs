@@ -50,6 +50,8 @@ static class SqlPrompt
             - Give every returned column a short snake_case alias, such as net_sales.
             {(sqlServer ? SqlServerRules : PostgresRules)}
             - Write one query only, with no comments and no trailing semicolon.
+            - The app draws the rows itself, so a request for a chart, graph or table ("as a pie chart", "draw a bar graph")
+              is not a reason to refuse: ignore it and write the query for the data the chart would show.
             - If the knowledge model can't answer the question, set answerable to false, sql to an empty string, and explain why.
             - explanation: one plain-English sentence saying what the query returns.
             """;

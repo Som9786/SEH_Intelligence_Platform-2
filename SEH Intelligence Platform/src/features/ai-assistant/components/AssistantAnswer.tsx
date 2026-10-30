@@ -1,6 +1,7 @@
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import type { AssistantReply } from '../services/assistantService';
+import { askedOf, type ChartKind } from '../utils/chartChoice';
 import {
   analyticsDetails,
   dbGuideDetails,
@@ -63,9 +64,18 @@ export function Confidence({
 /**
  * A reply from Insights Assistant: where it was routed, the answer, how it was reached, the result
  * (as bars when they suit, otherwise as a table) and how far to trust it. Sources and definitions
- * open from AnswerActions (Data behind this).
+ * open from AnswerActions (Data behind this). The result is drawn as the question asked, or as
+ * picked (reported with onChart and passed back as chart).
  */
-export function AssistantAnswer({ reply }: { reply: AssistantReply }) {
+export function AssistantAnswer({
+  reply,
+  chart,
+  onChart,
+}: {
+  reply: AssistantReply;
+  chart?: ChartKind;
+  onChart?: (chart: ChartKind) => void;
+}) {
   if (reply.intent === 'unclear')
     return (
       <div className="ia-answer">
@@ -92,7 +102,13 @@ export function AssistantAnswer({ reply }: { reply: AssistantReply }) {
           {text && <Prose markdown={text} />}
           <Steps steps={details.steps} />
           {reply.intent === 'analytics' && reply.result.result && (
-            <ResultVisual result={reply.result.result} />
+            <ResultVisual
+              result={reply.result.result}
+              question={reply.question}
+              asked={askedOf(reply.chart)}
+              chart={chart}
+              onChart={onChart}
+            />
           )}
           <Confidence confidence={details.confidence} />
         </>

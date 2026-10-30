@@ -8,7 +8,14 @@ import {
 /** What an insight's page shows: a board widget, or a shared copy of one. */
 export type Insight = Pick<
   Widget,
-  'board' | 'title' | 'question' | 'answer' | 'result' | 'details' | 'fetchedAt'
+  | 'board'
+  | 'title'
+  | 'question'
+  | 'answer'
+  | 'result'
+  | 'details'
+  | 'fetchedAt'
+  | 'chart'
 >;
 
 /**

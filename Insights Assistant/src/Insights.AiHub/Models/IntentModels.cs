@@ -22,6 +22,14 @@ public static class Boards
     public const string None = "none";
 }
 
+/// The chart a question asks its answer to be drawn as, matching the UI's chart kinds. "chart" is a chart asked for
+/// without naming one; "none" is no chart asked for, so the UI picks one from the rows. Whether the rows suit it is
+/// for the UI to tell, since the question is classified before it is answered.
+public static class Charts
+{
+    public const string None = "none";
+}
+
 /// Body of POST /intent and POST /ask. History holds the conversation's earlier turns, oldest first.
 public sealed record RouteRequest(string Question, IReadOnlyList<RouteTurn>? History = null);
 
@@ -31,15 +39,19 @@ public sealed record RouteTurn(string Question, string? Intent = null, string? A
 
 /// Response of POST /intent. Reason is one sentence a user can read. Board is the capability board the answer belongs on
 /// (a Boards value; "none" for questions about the database or that fit no board). Usage is the model call's tokens and
-/// cost; null with Cached = true when the same question was classified before.
-public sealed record IntentResponse(string Intent, string Reason, string Board = Boards.None, LlmUsage? Usage = null, bool Cached = false);
+/// cost; null with Cached = true when the same question was classified before. Chart is the chart the question asks
+/// for (see Charts).
+public sealed record IntentResponse(
+    string Intent, string Reason, string Board = Boards.None, LlmUsage? Usage = null, bool Cached = false,
+    string Chart = Charts.None);
 
 /// Response of POST /ask. Service is the service that answered ("analytics" or "db-guide") and Result its own POST /ask
 /// response, passed through as it is. For an unclear question both are null and Message says what to ask instead. Board
-/// is the capability board the answer can be added to (see IntentResponse).
+/// is the capability board the answer can be added to, and Chart the chart the question asks for ("none" unless it is
+/// about the data; see IntentResponse).
 public sealed record RoutedAnswer(
     string Question, string Intent, string Reason, string Board, string? Service, JsonElement? Result, string? Message,
-    LlmUsage? IntentUsage, bool IntentCached);
+    LlmUsage? IntentUsage, bool IntentCached, string Chart = Charts.None);
 
 /// Body of POST /follow-ups: the question, the intent it was given, and the answer shown (the answer text, plus the
 /// result's column names for Analytics).

@@ -3427,32 +3427,10 @@ small {
     --viz-high: #6da7ec;
   }
 }
-/* Chart / Table switch, above a result's chart. */
+/* A result's chart, with the suggestion above it when there is one. */
 .viz {
   display: grid;
   gap: 8px;
-}
-.viz-switch {
-  justify-self: end;
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border-radius: var(--radius-sm);
-  background: var(--neutral-bg);
-}
-.viz-switch button {
-  padding: 3px 10px;
-  border: 0;
-  border-radius: var(--radius-xs);
-  background: none;
-  color: var(--t-5f7268);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-}
-.viz-switch button[aria-pressed='true'] {
-  background: var(--b-ffffff);
-  color: var(--t-172a24);
-  box-shadow: var(--shadow-control);
 }
 .viz-figure {
   margin: 0;
@@ -3551,6 +3529,42 @@ small {
   color: var(--t-5f7268);
   text-align: right;
   font-size: var(--fs-sm);
+}
+/* The question asked for a chart the rows don't suit: why, and the one that would. */
+.viz-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--neutral-bg);
+  font-size: var(--fs-md);
+}
+.viz-suggest p {
+  flex: 1 1 260px;
+  margin: 0;
+}
+.viz-suggest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Pie: the ring beside its legend, or above it when narrow. */
+.viz-pie {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  align-items: center;
+  gap: 16px;
+}
+.viz-pie .viz-legend {
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .viz-pie {
+    grid-template-columns: 1fr;
+  }
 }
 /* Heatmap: cells shaded on one blue ramp, light (low) to dark (high). */
 .viz-heat-scroll {
@@ -4718,9 +4732,6 @@ small {
 @media print {
   .rp-bar,
   .rp-screen-only,
-  .rp-page .viz-switch {
-    display: none !important;
-  }
   .rp-page {
     background: #fff;
   }

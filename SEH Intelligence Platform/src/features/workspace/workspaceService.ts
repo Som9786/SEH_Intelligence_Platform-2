@@ -1,5 +1,6 @@
 import { apiJson } from '../../platform/api/apiClient';
 import type { AnalyticsResult } from '../ai-assistant/services/assistantService';
+import type { ChartKind } from '../ai-assistant/utils/chartChoice';
 
 /**
  * The signed-in user's saved work, kept by the workspace in Insights.DbGuide (through the gateway at
@@ -76,6 +77,8 @@ export interface Widget {
   fetchedAt: string | null;
   /** Null for widgets saved before it was kept, until they are refreshed. */
   details?: WidgetDetails | null;
+  /** How its rows are drawn, when picked or asked for; otherwise as their shape suits. */
+  chart?: ChartKind | null;
 }
 
 /** A copy of a widget as it was when shared, which anyone signed in can open by its link. */
@@ -92,6 +95,7 @@ export interface SharedInsight {
   sharedAt: string;
   /** After this the link no longer opens (410). */
   expiresAt: string | null;
+  chart?: ChartKind | null;
 }
 
 /** What a widget keeps of an Analytics reply's working. */
@@ -140,6 +144,7 @@ export const addWidget = (widget: {
   result: AnalyticsResult['result'];
   fetchedAt: string | null;
   details: WidgetDetails;
+  chart: ChartKind | null;
 }) => apiJson<Widget>('workspace/widgets', { body: widget });
 
 /** Shares a copy of the widget as it is now; the link opens it for anyone signed in. */

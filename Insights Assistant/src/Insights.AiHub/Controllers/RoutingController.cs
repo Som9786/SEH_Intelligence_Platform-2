@@ -60,10 +60,11 @@ public sealed class RoutingController(IntentService intentService, AskRouter rou
         if (reply.Status is < 200 or > 299)
             return new ContentResult { StatusCode = reply.Status, ContentType = reply.ContentType, Content = reply.Body };
         using var result = JsonDocument.Parse(reply.Body);
-        // Only answers about the data go on a board.
-        var board = intent.Intent == Intents.Analytics ? intent.Board : Boards.None;
-        return Ok(new RoutedAnswer(request.Question, intent.Intent, intent.Reason, board, reply.Service, result.RootElement.Clone(),
-            null, intent.Usage, intent.Cached));
+        // Only answers about the data go on a board, or are drawn as a chart.
+        var analytics = intent.Intent == Intents.Analytics;
+        return Ok(new RoutedAnswer(request.Question, intent.Intent, intent.Reason, analytics ? intent.Board : Boards.None,
+            reply.Service, result.RootElement.Clone(), null, intent.Usage, intent.Cached,
+            analytics ? intent.Chart : Charts.None));
     }
 
     /// Question + the answer shown -> up to three questions to ask next. The UI asks for these after showing the answer.

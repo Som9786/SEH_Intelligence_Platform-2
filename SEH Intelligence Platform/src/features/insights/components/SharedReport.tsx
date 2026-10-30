@@ -9,7 +9,7 @@ import { AnalyticsData } from '../../ai-assistant/components/DataBehindThis';
 import { ResultChart } from '../../ai-assistant/components/ResultVisual';
 import { ResultTable } from '../../ai-assistant/components/ResultTable';
 import { analyticsDetails } from '../../ai-assistant/utils/answerDetails';
-import { visualOf } from '../../ai-assistant/utils/visualOf';
+import { asChart, chooseChart } from '../../ai-assistant/utils/chartChoice';
 import { useAuth } from '../../auth/useAuth';
 import { BrandLogo } from '../../../shared/components/BrandLogo';
 import {
@@ -66,9 +66,13 @@ export function SharedReport({ share }: { share: SharedInsight }) {
 
   const asResult = useMemo(() => asAnalyticsResult(share), [share]);
   const details = useMemo(() => analyticsDetails(asResult), [asResult]);
+  const chart = asChart(share.chart);
   const charted = useMemo(
-    () => (share.result ? visualOf(share.result).kind !== 'table' : false),
-    [share.result],
+    () =>
+      share.result
+        ? chooseChart(share.result, { chosen: chart }).chart !== 'table'
+        : false,
+    [share.result, chart],
   );
   // The definitions are read from Analytics, which these users may call.
   const canSeeData = can('basket-intelligence') || can('insights-assistant');
@@ -148,7 +152,7 @@ export function SharedReport({ share }: { share: SharedInsight }) {
 
       {share.result && charted && (
         <Section title="Chart">
-          <ResultChart result={share.result} />
+          <ResultChart result={share.result} chart={chart} />
         </Section>
       )}
 
