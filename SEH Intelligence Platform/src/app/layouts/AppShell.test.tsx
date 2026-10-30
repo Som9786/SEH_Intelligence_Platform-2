@@ -48,7 +48,7 @@ afterEach(() => {
 
 describe('AppShell sidebar', () => {
   it('groups the links into Platform and Capabilities', () => {
-    renderAt('/');
+    renderAt('/db-catalog');
     const links = (section: string) =>
       within(screen.getByRole('group', { name: section }))
         .getAllByRole('link')
@@ -85,7 +85,7 @@ describe('AppShell sidebar', () => {
     const breadcrumb = screen.getByLabelText('Breadcrumb');
     expect(
       within(breadcrumb).getByRole('link', { name: 'DB Catalog' }),
-    ).toHaveAttribute('href', '/');
+    ).toHaveAttribute('href', '/db-catalog');
     expect(within(breadcrumb).getByText('DB Tables')).toBeInTheDocument();
   });
 
@@ -111,13 +111,13 @@ describe('AppShell sidebar', () => {
 
   it('has no table search without DB Catalog', () => {
     hiddenFeatures = ['db-catalog'];
-    renderAt('/overview');
+    renderAt('/');
     fireEvent.keyDown(document.body, { key: '/' });
     expect(screen.queryByTestId('table-flyout')).not.toBeInTheDocument();
   });
 
   it('opens the table flyout when "/" is pressed outside a text field', () => {
-    renderAt('/');
+    renderAt('/db-catalog');
     expect(screen.queryByTestId('table-flyout')).not.toBeInTheDocument();
     fireEvent.keyDown(document.body, { key: '/' });
     expect(screen.getByTestId('table-flyout')).toBeInTheDocument();

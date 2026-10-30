@@ -63,7 +63,7 @@ export function AppShell() {
     return () => document.removeEventListener('keydown', onKey);
   }, [catalogMissing, hasCatalog]);
   const currentRoute = routes.find((route) => route.path === location.pathname);
-  const current = currentRoute?.label ?? 'DB Catalog';
+  const current = currentRoute?.label ?? 'Overview';
   // A page opened from DB Catalog keeps DB Catalog selected and shows it in the breadcrumb.
   const parentPath =
     currentRoute && 'parent' in currentRoute ? currentRoute.parent : null;

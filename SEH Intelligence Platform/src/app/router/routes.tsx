@@ -39,7 +39,8 @@ export const navSections = [
  */
 export const routes = [
   {
-    path: '/overview',
+    // The app's address opens Overview.
+    path: '/',
     label: 'Overview',
     feature: 'overview',
     section: 'platform',
@@ -55,7 +56,7 @@ export const routes = [
     element: AiAssistantPage,
   },
   {
-    path: '/',
+    path: '/db-catalog',
     label: 'DB Catalog',
     feature: 'db-catalog',
     section: 'platform',
@@ -124,7 +125,7 @@ export const routes = [
     label: 'DB Tables',
     feature: 'db-catalog',
     section: null,
-    parent: '/',
+    parent: '/db-catalog',
     icon: TableProperties,
     element: TableDetailsPage,
   },
@@ -133,7 +134,7 @@ export const routes = [
     label: 'Documentation',
     feature: 'db-catalog',
     section: null,
-    parent: '/',
+    parent: '/db-catalog',
     icon: BookOpen,
     element: DocumentationPage,
   },
@@ -142,7 +143,7 @@ export const routes = [
     label: 'Relationships',
     feature: 'db-catalog',
     section: null,
-    parent: '/',
+    parent: '/db-catalog',
     icon: Network,
     element: RelationshipsPage,
   },
