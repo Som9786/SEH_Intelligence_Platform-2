@@ -20,7 +20,9 @@ public sealed class UsageTracker(IOptionsMonitor<LlmOptions> llm, IOptionsMonito
     static string Today => DateTime.Now.ToString("yyyy-MM-dd");
 
     /// The active provider's appsettings section and settings.
-    (string Section, LlmProviderOptions Options) Active => llm.CurrentValue.UsesBedrock
+    (string Section, LlmProviderOptions Options) Active => llm.CurrentValue.UsesBedrock ? Provider(LlmOptions.Bedrock) : Provider(LlmOptions.OpenAI);
+
+    (string Section, LlmProviderOptions Options) Provider(string name) => name == LlmOptions.Bedrock
         ? (BedrockOptions.SectionName, bedrock.CurrentValue) : (OpenAIOptions.SectionName, openAI.CurrentValue);
 
     /// Throws BudgetExceededException when today's cost has reached the active provider's DailyBudgetUsd. Called before each
@@ -41,15 +43,21 @@ public sealed class UsageTracker(IOptionsMonitor<LlmOptions> llm, IOptionsMonito
         }
     }
 
-    /// The call's usage with its cost, after adding it to the running totals.
-    public LlmUsage Record(string model, int inputTokens, int cachedInputTokens, int outputTokens, int reasoningTokens)
+    /// The call's usage with its cost, after adding it to the running totals. Priced from the prices of the provider that
+    /// made the call, even if Llm:Provider changed while it ran. InputTokens includes the cached and cache-write tokens.
+    public LlmUsage Record(string provider, string model, int inputTokens, int cachedInputTokens, int outputTokens, int reasoningTokens,
+        int cacheWriteTokens = 0)
     {
+        var (section, options) = Provider(provider);
         decimal? cost = null;
-        if (PriceFor(model) is { } price)
-            cost = ((inputTokens - cachedInputTokens) * price.InputPerMillion + cachedInputTokens * price.CachedInputPerMillion
-                + outputTokens * price.OutputPerMillion) / 1_000_000m;
+        if (PriceFor(options, model, stripRegionPrefix: provider == LlmOptions.Bedrock) is { } price)
+        {
+            var writePrice = price.CacheWriteInputPerMillion > 0 ? price.CacheWriteInputPerMillion : price.InputPerMillion;
+            cost = ((inputTokens - cachedInputTokens - cacheWriteTokens) * price.InputPerMillion + cachedInputTokens * price.CachedInputPerMillion
+                + cacheWriteTokens * writePrice + outputTokens * price.OutputPerMillion) / 1_000_000m;
+        }
         else
-            logger.LogWarning("No price for model {Model} in {Section}:Prices, so this call is counted without a cost", model, Active.Section);
+            logger.LogWarning("No price for model {Model} in {Section}:Prices, so this call is counted without a cost", model, section);
 
         var usage = new LlmUsage(model, inputTokens, cachedInputTokens, outputTokens, reasoningTokens, cost);
         UsageTotals t;
@@ -79,9 +87,9 @@ public sealed class UsageTracker(IOptionsMonitor<LlmOptions> llm, IOptionsMonito
     }
 
     /// A Bedrock inference profile ID ("us.anthropic.claude-...") is also priced by the model ID after its region prefix.
-    ModelPrice? PriceFor(string model) => Active.Options.Prices
+    static ModelPrice? PriceFor(LlmProviderOptions options, string model, bool stripRegionPrefix) => options.Prices
         .Where(p => model.StartsWith(p.Key, StringComparison.OrdinalIgnoreCase)
-            || model.IndexOf('.') is > 0 and var dot && model[(dot + 1)..].StartsWith(p.Key, StringComparison.OrdinalIgnoreCase))
+            || stripRegionPrefix && model.IndexOf('.') is > 0 and var dot && model[(dot + 1)..].StartsWith(p.Key, StringComparison.OrdinalIgnoreCase))
         .MaxBy(p => p.Key.Length).Value;
 
     /// Call with the lock held. The totals, read from the file on first use, with today's cost reset on a new day.

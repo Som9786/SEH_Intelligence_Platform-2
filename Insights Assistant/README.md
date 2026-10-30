@@ -235,7 +235,7 @@ Rejected queries return **400** "Query rejected"; queries the database refuses r
 | `POST /ask` | `{ "question": "...", "history": [{ "question", "intent", "answer", "sql" }] }` | `{ question, intent, reason, board, service, result, message, intentUsage, intentCached }`: classifies the question, then asks Analytics or DB Guide (`POST /ask`, at `Analytics:BaseUrl` and `Routing:DbGuideBaseUrl`) and passes its response through in `result`. Each service is sent only its own earlier turns as history (`sql` for Analytics, `answer` for DB Guide). An `unclear` question calls neither: `message` says what to ask instead. A failing service's error is passed on, with the intent in the `X-Intent` header. The one endpoint the UI's Insights Assistant needs (`/api/ai/ask` through the gateway). |
 | `POST /follow-ups` | `{ "question": "...", "intent": "analytics", "answer": "...", "columns": [...] }` | `{ questions, usage, cached }`: up to three questions to ask next, about the sales data or the database. The UI asks for these after showing the answer, so they never delay it. |
 | `GET /usage` | – | OpenAI calls, tokens and estimated cost, in total and today, and the daily budget |
-| `GET /health` | – | `{ status, model }`. Doesn't call OpenAI. |
+| `GET /health` | – | `{ status, model, provider }`. Doesn't call the model. |
 | `GET /logs?after=<id>` / `DELETE /logs` | – | AI Hub's recent log entries / clears them |
 
 AI Hub returns **500** for missing configuration (such as no API key), **502** for OpenAI errors and **503** when it can't load the knowledge model context from Analytics.
@@ -289,7 +289,7 @@ Settings are in each project's `appsettings.json`; `appsettings.Development.json
 | `Bedrock:Region` | AI Hub | `us-east-1` | The AWS region the model is enabled in |
 | `Bedrock:ApiKey` / `AccessKeyId` / `SecretAccessKey` / `SessionToken` | AI Hub | *(empty)* | A Bedrock API key, or an IAM key pair. All empty: `AWS_BEARER_TOKEN_BEDROCK`, then the default AWS credentials (`AWS_PROFILE`, `~/.aws`, an instance role) |
 | `Bedrock:Model` / `FallbackModel` | AI Hub | `us.anthropic.claude-sonnet-5` / `us.anthropic.claude-haiku-4-5-20251001-v1:0` (the two our AWS account allows) | A model ID or inference profile ID that supports JSON schema output. The fallback is also used if `Model` isn't found or isn't enabled |
-| `Bedrock:TimeoutSeconds` / `MaxTokens` / `Effort` | AI Hub | `150` / `8192` / `low` | Time limit, longest reply, and effort (`low` to `max`, empty for the model's default; dropped for a model that rejects it) |
+| `Bedrock:TimeoutSeconds` / `MaxTokens` / `Effort` | AI Hub | `150` / `8192` / `low` | Time limit for the whole call (retries and fallback included; keep it under `AiHub:TimeoutSeconds`), longest reply, and effort (`low` to `max`, empty for the model's default; dropped for a model that rejects it) |
 | `Bedrock:DailyBudgetUsd` / `Prices` | AI Hub | `5` / Claude Sonnet 5 and Haiku 4.5 | As for OpenAI; a price key matches the model ID with or without the `us.` prefix. Check them against [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
 | `Analytics:BaseUrl` | AI Hub | `http://localhost:5100` | Where AI Hub gets each question's knowledge model context |
 | `Answer:MaxResultChars` | AI Hub | `50000` | Longer query results are cut before they're sent to OpenAI |
@@ -440,6 +440,7 @@ Open the **Debug log** card or the log files first: failed steps show their real
 | `/ai/sql` returns 503 "Analytics service unavailable" | AI Hub can't reach Analytics `/context`: Analytics isn't running, `Analytics:BaseUrl` is wrong, or Neo4j is down (the detail says which). |
 | 502 "Bedrock refused access" | The Bedrock API key or AWS credentials are wrong or expired, or aren't allowed to call `Bedrock:Model` in `Bedrock:Region`. Check them and the model access in the Bedrock console. |
 | 502 "Bedrock credentials not found or not usable" | `Llm:Provider` is `Bedrock` but no credentials were found. Set `Bedrock:ApiKey` with user-secrets for AI Hub, or `AWS_BEARER_TOKEN_BEDROCK`. |
+| 503 "Bedrock unreachable" | AI Hub can't connect to Bedrock at all: network, proxy or firewall, or a wrong `Bedrock:Region`. |
 | 502 "Bedrock rejected the request" | Usually a wrong `Bedrock:Model`, or a model without JSON schema output. |
 | 502 "OpenAI rejected the API key" | The OpenAI key is wrong or revoked. Set a valid one with `dotnet user-secrets set OpenAI:ApiKey <key> --project src/Insights.AiHub` and restart AI Hub. |
 | Configuration error: OpenAI API key is not configured | Set `OpenAI:ApiKey` with user-secrets for AI Hub, or `OPENAI_API_KEY`. |

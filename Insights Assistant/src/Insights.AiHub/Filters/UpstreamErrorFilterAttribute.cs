@@ -33,18 +33,24 @@ public sealed class UpstreamErrorFilterAttribute : ExceptionFilterAttribute
             ValidationException e => (StatusCodes.Status502BadGateway, "Bedrock rejected the request",
                 $"Check Bedrock:Model (a model or inference profile ID that supports JSON schema output) and Bedrock:Region. {e.Message}"),
             AmazonBedrockRuntimeException e => (StatusCodes.Status502BadGateway, $"Bedrock error ({(int)e.StatusCode})", e.Message),
-            // Raised before any request is sent, most often because no credentials were found.
-            Amazon.Runtime.AmazonClientException e => (StatusCodes.Status502BadGateway, "Bedrock credentials not found or not usable",
+            BedrockUnreachableException e => (StatusCodes.Status503ServiceUnavailable, "Bedrock unreachable",
+                $"{e.Message}. Check the network, proxy or firewall, and Bedrock:Region."),
+            // Raised before any request is sent: no credentials found, or another client-side problem such as a bad region.
+            Amazon.Runtime.AmazonClientException e when IsCredentialProblem(e) => (StatusCodes.Status502BadGateway,
+                "Bedrock credentials not found or not usable",
                 "Set Bedrock:ApiKey (a Bedrock API key) with " +
                 "`dotnet user-secrets set Bedrock:ApiKey <key> --project src/Insights.AiHub`, or Bedrock:AccessKeyId and " +
-                $"Bedrock:SecretAccessKey, or the AWS_BEARER_TOKEN_BEDROCK environment variable, then restart the AI Hub. {e.Message}"),
+                $"Bedrock:SecretAccessKey, or the AWS_BEARER_TOKEN_BEDROCK environment variable. {e.Message}"),
+            Amazon.Runtime.AmazonClientException e => (StatusCodes.Status502BadGateway, "Bedrock client error",
+                $"Check Bedrock:Region and the other Bedrock settings. {e.Message}"),
             LlmReplyException e => (StatusCodes.Status502BadGateway, "No usable answer from the model", e.Message),
             BudgetExceededException e => (StatusCodes.Status429TooManyRequests, "Daily model budget reached", e.Message),
             HttpRequestException e => (StatusCodes.Status503ServiceUnavailable, "Analytics service unavailable",
                 $"Could not load the knowledge model context from the analytics service: {e.Message}"),
-            // The model client's network timeout surfaces as TaskCanceledException; a caller hanging up is not one.
+            TimeoutException e => (StatusCodes.Status504GatewayTimeout, "Model timeout", e.Message),
+            // The OpenAI client's network timeout surfaces as TaskCanceledException; a caller hanging up is not one.
             TaskCanceledException when !context.HttpContext.RequestAborted.IsCancellationRequested =>
-                (StatusCodes.Status504GatewayTimeout, "Model timeout", "The model did not answer in time (OpenAI:TimeoutSeconds or Bedrock:TimeoutSeconds)."),
+                (StatusCodes.Status504GatewayTimeout, "Model timeout", "The model did not answer in time (OpenAI:TimeoutSeconds)."),
             _ => null,
         };
         if (problem is not { } p)
@@ -55,4 +61,7 @@ public sealed class UpstreamErrorFilterAttribute : ExceptionFilterAttribute
         context.Result = new ObjectResult(details) { StatusCode = p.Status };
         context.ExceptionHandled = true;
     }
+
+    static bool IsCredentialProblem(Exception e) =>
+        e.Message.Contains("credential", StringComparison.OrdinalIgnoreCase) || e.Message.Contains("token", StringComparison.OrdinalIgnoreCase);
 }

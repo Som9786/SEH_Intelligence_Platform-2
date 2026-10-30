@@ -37,6 +37,8 @@ public sealed class ModelPrice
     public decimal InputPerMillion { get; set; }
     /// Input tokens served from the provider's prompt cache, usually a tenth of the input price.
     public decimal CachedInputPerMillion { get; set; }
+    /// Input tokens written to the prompt cache (Bedrock bills them above the input price). 0 = the input price.
+    public decimal CacheWriteInputPerMillion { get; set; }
     /// Output tokens, including a reasoning model's hidden reasoning tokens.
     public decimal OutputPerMillion { get; set; }
 }

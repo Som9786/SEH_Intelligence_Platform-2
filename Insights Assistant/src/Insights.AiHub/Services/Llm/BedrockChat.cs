@@ -19,6 +19,8 @@ public sealed class BedrockChat(IOptionsMonitor<BedrockOptions> options, UsageTr
     // One client per region, credentials and time limit, reused across calls so its HTTP connections are too.
     readonly ConcurrentDictionary<(string Region, string ApiKey, string AccessKeyId, string Secret, string Session, int TimeoutSeconds),
         AmazonBedrockRuntimeClient> clients = new();
+    // Models that answered "does not support the effort parameter", so effort isn't sent to them again.
+    readonly ConcurrentDictionary<string, bool> rejectsEffort = new(StringComparer.OrdinalIgnoreCase);
 
     public string Name => LlmOptions.Bedrock;
     public LlmProviderOptions Options => options.CurrentValue;
@@ -32,27 +34,23 @@ public sealed class BedrockChat(IOptionsMonitor<BedrockOptions> options, UsageTr
             throw new InvalidOperationException("Bedrock model is not configured. Set Bedrock:Model (or Bedrock:FallbackModel) in the AI Hub's appsettings.json.");
         var client = Client(o);
 
-        var request = new ConverseRequest
+        var system = messages.Where(m => m.Role == LlmRole.System).Select(m => new SystemContentBlock { Text = m.Text }).ToList();
+        var conversation = messages.Where(m => m.Role != LlmRole.System).Select(m => new Message
         {
-            System = [.. messages.Where(m => m.Role == LlmRole.System).Select(m => new SystemContentBlock { Text = m.Text })],
-            Messages = [.. messages.Where(m => m.Role != LlmRole.System).Select(m => new Message
-            {
-                Role = m.Role == LlmRole.Assistant ? ConversationRole.Assistant : ConversationRole.User,
-                Content = [new ContentBlock { Text = m.Text }],
-            })],
-            InferenceConfig = new InferenceConfiguration { MaxTokens = o.MaxTokens },
+            Role = m.Role == LlmRole.Assistant ? ConversationRole.Assistant : ConversationRole.User,
+            Content = [new ContentBlock { Text = m.Text }],
+        }).ToList();
+        var format = schema is null ? null : new OutputFormat
+        {
+            Type = OutputFormatType.Json_schema,
+            Structure = new OutputFormatStructure { JsonSchema = new JsonSchemaDefinition { Name = schema.Name, Schema = schema.Schema } },
         };
         var effort = string.IsNullOrWhiteSpace(o.Effort) ? null : o.Effort.Trim().ToLowerInvariant();
-        if (schema is not null || effort is not null)
-            request.OutputConfig = new OutputConfig
-            {
-                Effort = effort,
-                TextFormat = schema is null ? null : new OutputFormat
-                {
-                    Type = OutputFormatType.Json_schema,
-                    Structure = new OutputFormatStructure { JsonSchema = new JsonSchemaDefinition { Name = schema.Name, Schema = schema.Schema } },
-                },
-            };
+
+        // One deadline for every attempt (the SDK's retry, the effort retry and the fallback), so a call never outlasts
+        // Bedrock:TimeoutSeconds, which is kept under the time Analytics waits.
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(TimeSpan.FromSeconds(o.TimeoutSeconds));
 
         var model = o.ConfiguredModel;
         try
@@ -67,21 +65,22 @@ public sealed class BedrockChat(IOptionsMonitor<BedrockOptions> options, UsageTr
 
         async Task<LlmReply> CallAsync(string name)
         {
-            request.ModelId = name;
+            var sendEffort = effort is not null && !rejectsEffort.ContainsKey(name);
             logger.LogInformation("Bedrock: calling model {Model}{Effort} in {Region} with {Messages} messages ({Chars} characters)",
-                name, effort is null ? "" : $" (effort {effort})", o.Region, messages.Count, messages.Sum(m => m.Text.Length));
+                name, sendEffort ? $" (effort {effort})" : "", o.Region, messages.Count, messages.Sum(m => m.Text.Length));
             var timer = Stopwatch.StartNew();
             ConverseResponse response;
             try
             {
-                response = await client.ConverseAsync(request, ct);
+                response = await SendAsync(name, sendEffort ? effort : null);
             }
-            // Older models (such as Claude Haiku 4.5) reject effort; the fallback may be one of them.
-            catch (ValidationException e) when (request.OutputConfig?.Effort is not null && e.Message.Contains("effort", StringComparison.OrdinalIgnoreCase))
+            // Older models (such as Claude Haiku 4.5) reject effort, and the fallback may be one of them. Remembered, so
+            // later calls to the same model don't pay for the rejected round trip.
+            catch (ValidationException e) when (sendEffort && e.Message.Contains("effort", StringComparison.OrdinalIgnoreCase))
             {
                 logger.LogWarning("Bedrock: {Model} doesn't support effort, so asking again without it", name);
-                request.OutputConfig.Effort = null;
-                response = await client.ConverseAsync(request, ct);
+                rejectsEffort[name] = true;
+                response = await SendAsync(name, null);
             }
             var u = response.Usage;
             logger.LogInformation("Bedrock: {Model} answered in {Ms} ms ({InputTokens} input + {OutputTokens} output tokens, stop reason {StopReason})",
@@ -89,8 +88,8 @@ public sealed class BedrockChat(IOptionsMonitor<BedrockOptions> options, UsageTr
             // Bedrock reports cache reads and writes apart from the other input tokens; UsageTracker counts them all as input.
             // Counted before the checks below: Bedrock charges for a blocked or cut-off reply too.
             var cacheRead = u?.CacheReadInputTokens ?? 0;
-            var usage = usageTracker.Record(name, (u?.InputTokens ?? 0) + cacheRead + (u?.CacheWriteInputTokens ?? 0), cacheRead,
-                u?.OutputTokens ?? 0, 0);
+            var cacheWrite = u?.CacheWriteInputTokens ?? 0;
+            var usage = usageTracker.Record(Name, name, (u?.InputTokens ?? 0) + cacheRead + cacheWrite, cacheRead, u?.OutputTokens ?? 0, 0, cacheWrite);
 
             var reason = response.StopReason;
             // A reply cut off at the token limit is incomplete, and as JSON it wouldn't parse.
@@ -105,12 +104,44 @@ public sealed class BedrockChat(IOptionsMonitor<BedrockOptions> options, UsageTr
                 throw new LlmReplyException($"The model returned an empty answer (stop reason {reason?.Value}).");
             return new(text, usage);
         }
+
+        async Task<ConverseResponse> SendAsync(string name, string? withEffort)
+        {
+            var request = new ConverseRequest
+            {
+                ModelId = name,
+                System = system,
+                Messages = conversation,
+                InferenceConfig = new InferenceConfiguration { MaxTokens = o.MaxTokens },
+                OutputConfig = format is null && withEffort is null ? null : new OutputConfig { TextFormat = format, Effort = withEffort },
+            };
+            try
+            {
+                return await client.ConverseAsync(request, deadline.Token);
+            }
+            // The deadline above, not the caller hanging up: reported as the model's timeout.
+            catch (OperationCanceledException) when (deadline.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                throw new TimeoutException($"Bedrock did not answer within {o.TimeoutSeconds} seconds (Bedrock:TimeoutSeconds).");
+            }
+            // Otherwise it would be reported as the analytics service being down, the other HTTP call AI Hub makes.
+            catch (HttpRequestException e)
+            {
+                throw new BedrockUnreachableException($"Could not reach Bedrock in {o.Region}: {e.Message}", e);
+            }
+        }
     }
 
-    /// The model ID is wrong, or the account hasn't been given access to the model.
-    static bool IsModelUnavailable(Exception e) => e is ResourceNotFoundException
-        || e is ValidationException && e.Message.Contains("model", StringComparison.OrdinalIgnoreCase)
-            && (e.Message.Contains("invalid", StringComparison.OrdinalIgnoreCase) || e.Message.Contains("not", StringComparison.OrdinalIgnoreCase));
+    /// Only "this model doesn't exist" or "this account may not call this model", where another model can still answer.
+    /// Other rejections (too long, a bad schema) would fail the same way on the fallback, so they're reported as they are.
+    static bool IsModelUnavailable(Exception e) => e switch
+    {
+        ResourceNotFoundException => true,
+        AccessDeniedException => e.Message.Contains("bedrock:InvokeModel", StringComparison.OrdinalIgnoreCase),
+        ValidationException => e.Message.Contains("model identifier is invalid", StringComparison.OrdinalIgnoreCase)
+            || e.Message.Contains("end of its life", StringComparison.OrdinalIgnoreCase),
+        _ => false,
+    };
 
     AmazonBedrockRuntimeClient Client(BedrockOptions o)
     {
@@ -123,6 +154,8 @@ public sealed class BedrockChat(IOptionsMonitor<BedrockOptions> options, UsageTr
                 {
                     RegionEndpoint = RegionEndpoint.GetBySystemName(k.Region),
                     Timeout = TimeSpan.FromSeconds(k.TimeoutSeconds),
+                    // One retry for throttling or a dropped connection; CompleteAsync's deadline bounds the total time.
+                    MaxErrorRetry = 1,
                 };
                 if (k.ApiKey.Length > 0)
                 {
@@ -149,3 +182,6 @@ public sealed class BedrockChat(IOptionsMonitor<BedrockOptions> options, UsageTr
             client.Dispose();
     }
 }
+
+/// The Bedrock endpoint couldn't be reached at all: DNS, a proxy or firewall, or no network.
+public sealed class BedrockUnreachableException(string message, Exception inner) : Exception(message, inner);

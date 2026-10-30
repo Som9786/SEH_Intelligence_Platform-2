@@ -44,7 +44,7 @@ public sealed class OpenAIChat(IOptionsMonitor<OpenAIOptions> options, UsageTrac
         {
             return await CallAsync(model);
         }
-        catch (ClientResultException e) when (e.Status == 404 && model != o.FallbackModel)
+        catch (ClientResultException e) when (e.Status == 404 && !string.IsNullOrWhiteSpace(o.FallbackModel) && model != o.FallbackModel)
         {
             logger.LogWarning("Model {Model} is not available ({Message}); using fallback {Fallback}", model, e.Message, o.FallbackModel);
             return await CallAsync(o.FallbackModel);
@@ -67,7 +67,7 @@ public sealed class OpenAIChat(IOptionsMonitor<OpenAIOptions> options, UsageTrac
             logger.LogInformation("OpenAI: {Model} answered in {Ms} ms ({InputTokens} input + {OutputTokens} output tokens, finish reason {FinishReason})",
                 completion.Model, timer.ElapsedMilliseconds, completion.Usage?.InputTokenCount, completion.Usage?.OutputTokenCount, completion.FinishReason);
             // Counted before the checks below: OpenAI charges for a refused or cut-off reply too.
-            var usage = usageTracker.Record(completion.Model ?? name, completion.Usage?.InputTokenCount ?? 0,
+            var usage = usageTracker.Record(Name, completion.Model ?? name, completion.Usage?.InputTokenCount ?? 0,
                 completion.Usage?.InputTokenDetails?.CachedTokenCount ?? 0, completion.Usage?.OutputTokenCount ?? 0,
                 completion.Usage?.OutputTokenDetails?.ReasoningTokenCount ?? 0);
 
