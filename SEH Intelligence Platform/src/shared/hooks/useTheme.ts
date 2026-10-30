@@ -17,17 +17,19 @@ function subscribe(onChange: () => void) {
   return () => observer.disconnect();
 }
 
-/** The saved choice, else the operating system preference. Storage can throw (private windows), so it is optional. */
+/**
+ * The saved choice, else light: the app starts light whatever the operating system prefers, and
+ * dark is a choice the user makes with the toggle. Storage can throw (private windows), so it is
+ * optional.
+ */
 export function initialTheme(): Theme {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'light' || saved === 'dark') return saved;
   } catch {
-    /* fall through to the system preference */
+    /* fall through to the default */
   }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches
-    ? 'dark'
-    : 'light';
+  return 'light';
 }
 
 export function applyTheme(theme: Theme) {
