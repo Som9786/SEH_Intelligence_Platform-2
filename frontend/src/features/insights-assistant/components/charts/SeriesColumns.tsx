@@ -14,6 +14,7 @@ import { measureColors } from '../../utils/chartColors';
 import { pivotDims } from '../../utils/chartChoice';
 import { orderLabels, type Visual } from '../../utils/visualOf';
 import { useChartColors, shortLabel, tooltipStyle } from './chartKit';
+import { fittedTick, needsTwoLines } from './FittedTick';
 
 interface Series {
   key: string;
@@ -84,6 +85,8 @@ export function SeriesColumns({
     colors.series,
     measureColors(visual.measures, colors.theme),
   );
+  const label = (value: unknown) => shortLabel(value, x);
+  const twoLines = needsTwoLines(data.map((row) => label(row[x])));
   const caption =
     visual.dims.length === 1
       ? `${visual.measures.map(humanize).join(', ')} by ${humanize(x).toLowerCase()}`
@@ -100,8 +103,8 @@ export function SeriesColumns({
           <CartesianGrid stroke={colors.grid} vertical={false} />
           <XAxis
             dataKey={x}
-            tickFormatter={(v) => shortLabel(v, x)}
-            tick={{ fill: colors.text, fontSize: scaledFont(11) }}
+            tick={fittedTick(label, colors.text, scaledFont(11))}
+            height={twoLines ? 40 : 30}
             stroke={colors.grid}
             tickLine={false}
           />

@@ -40,16 +40,15 @@
   min-width: 0;
   padding: 18px 20px;
 }
-/* A narrow card's buttons wrap to their own line rather than squeeze the title. */
+/* The grip, the title (up to two lines) and three small buttons share one row. */
 .bw-head {
+  --bw-title-line: calc(var(--fs-lg) * var(--lh-tight));
   display: flex;
-  flex-wrap: wrap;
   align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 .bw-title {
-  flex: 1 1 240px;
+  flex: 1 1 auto;
   min-width: 0;
 }
 /* Drag and drop: the grip moves a card; the card being dragged fades and the one under it is outlined. */
@@ -60,6 +59,8 @@
   justify-content: center;
   width: 24px;
   height: 30px;
+  /* Centred on the title's first line, not its top. */
+  margin-top: calc((var(--bw-title-line) - 30px) / 2);
   margin-left: -8px;
   padding: 0;
   border: 0;
@@ -84,9 +85,16 @@
   outline-offset: 3px;
 }
 .bw-head h3 {
+  display: -webkit-box;
   margin: 0 0 4px;
+  overflow: hidden;
   font-size: var(--fs-lg);
   font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 .bw-rename {
   display: flex;
@@ -136,12 +144,19 @@
 .bw-age {
   color: var(--t-08784e);
 }
-/* A scheduled widget: the schedule button turns green, and a line says when it refreshes. */
-.bw-buttons .td-action.bw-scheduled {
-  border-color: transparent;
-  background: var(--success-bg);
-  color: var(--success-fg);
+/* "Synced 2 min ago" under a card's title; the date and time show on hover. */
+.bw-synced {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
 }
+.bw-synced time {
+  color: var(--t-08784e);
+}
+/* A scheduled widget: a line under the title says when it refreshes. */
 .bw-schedule {
   display: flex;
   align-items: flex-start;
@@ -167,8 +182,108 @@
 .bw-buttons {
   display: flex;
   flex: none;
-  gap: 6px;
+  gap: 2px;
+  /* Centred on the title's first line, not its top. */
+  margin-top: calc((var(--bw-title-line) - 32px) / 2);
   margin-left: auto;
+}
+/* Small borderless icon buttons: Refresh, Open, the ⋯ menu, and Save / Cancel while renaming. */
+.bw-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--t-5f7268);
+}
+.bw-icon:hover,
+.bw-icon[aria-expanded='true'] {
+  background: var(--b-eaf5ee);
+  color: var(--t-245943);
+}
+.bw-icon:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.bw-menu {
+  position: relative;
+}
+.bw-menu-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 180px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+  box-shadow: var(--shadow-popover);
+}
+.bw-menu-list button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--t-172a24);
+  font-size: var(--fs-md);
+  text-align: left;
+}
+.bw-menu-list button:hover:not(:disabled),
+.bw-menu-list button:focus-visible {
+  background: var(--b-eaf5ee);
+}
+.bw-menu-list button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+/* Remove: set apart at the foot, in red. */
+.bw-menu-danger {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.bw-menu-danger button {
+  color: var(--danger-fg);
+}
+.bw-menu-danger button:hover:not(:disabled),
+.bw-menu-danger button:focus-visible {
+  background: var(--danger-bg);
+}
+/* The answer on a card: three lines, fading out when there is more, until Read more. */
+.bw-answer {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+.bw-answer .is-clamped {
+  max-height: calc(3 * var(--lh-long) * var(--fs-lg));
+  overflow: hidden;
+}
+.bw-answer .is-faded {
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+.bw-more {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--t-08784e);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.bw-more:hover {
+  text-decoration: underline;
 }
 .bw-spin {
   animation: bw-spin 0.9s linear infinite;

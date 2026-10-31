@@ -19,8 +19,9 @@ import {
   leaderOf,
   tooltipStyle,
 } from './chartKit';
+import { fittedTick, needsTwoLines } from './FittedTick';
 
-/** A number by weekday or hour: columns in time order. */
+/** A number by weekday or hour (or by name, when asked for columns): columns in order. */
 export function Columns({ visual }: { visual: Visual }) {
   const colors = useChartColors();
   const [dim] = visual.dims;
@@ -28,6 +29,8 @@ export function Columns({ visual }: { visual: Visual }) {
   const [color] = measureColors([measure], colors.theme);
   const leader = leaderOf(visual.rows, measure);
   const others = tint(color, colors.surface, OTHERS);
+  const label = (value: unknown) => shortLabel(value, dim);
+  const twoLines = needsTwoLines(visual.rows.map((row) => label(row[dim])));
   return (
     <figure className="panel viz-figure">
       <figcaption className="ia-label">
@@ -42,8 +45,8 @@ export function Columns({ visual }: { visual: Visual }) {
           <CartesianGrid stroke={colors.grid} vertical={false} />
           <XAxis
             dataKey={dim}
-            tickFormatter={(v) => shortLabel(v, dim)}
-            tick={{ fill: colors.text, fontSize: scaledFont(11) }}
+            tick={fittedTick(label, colors.text, scaledFont(11))}
+            height={twoLines ? 40 : 30}
             stroke={colors.grid}
             tickLine={false}
             interval={0}

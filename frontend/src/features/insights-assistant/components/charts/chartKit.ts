@@ -94,3 +94,33 @@ export const tooltipStyle = (colors: ReturnType<typeof useChartColors>) => ({
   },
   labelStyle: { color: colors.ink, fontWeight: 600 },
 });
+
+/**
+ * A label broken into lines of at most maxChars, at spaces where it can, over at most maxLines;
+ * what still doesn't fit is cut short with "…".
+ */
+export function fitLabel(
+  label: string,
+  maxChars: number,
+  maxLines = 2,
+): string[] {
+  const width = Math.max(3, Math.floor(maxChars));
+  const lines: string[] = [];
+  let rest = label.trim();
+  while (rest && lines.length < maxLines) {
+    if (rest.length <= width) {
+      lines.push(rest);
+      rest = '';
+      break;
+    }
+    const space = rest.lastIndexOf(' ', width);
+    const end = space > 0 ? space : width;
+    lines.push(rest.slice(0, end));
+    rest = rest.slice(end).trim();
+  }
+  if (rest) {
+    const last = lines.length - 1;
+    lines[last] = `${lines[last].slice(0, width - 1).trimEnd()}…`;
+  }
+  return lines;
+}

@@ -1,9 +1,18 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useRef, useState } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import {
   CalendarClock,
   Check,
   Database,
+  Ellipsis,
   ExternalLink,
   GripVertical,
   LayoutDashboard,
@@ -13,6 +22,7 @@ import {
   Share2,
   Trash2,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import { Link } from 'react-router';
 import { Prose } from '../../insights-assistant/components/AssistantAnswer';
@@ -86,25 +96,182 @@ function ScheduleStatus({ view }: { view: ScheduleView }) {
 }
 
 /**
- * How fresh a widget's data is: when its rows were last read from the database, and how long ago.
- * Refresh reads them again.
+ * How fresh a widget's data is: how long ago its rows were last read from the database, with the
+ * date and time on hover. Refresh reads them again.
  */
 function DataStatus({ widget }: { widget: Widget }) {
   // Widgets saved before the fetch time was recorded: the data was read just before adding.
   const fetched = widget.fetchedAt ?? widget.createdAt;
   return (
-    <dl className="bw-status">
-      <div>
-        <dt>
-          <Database size={13} aria-hidden="true" />
-          Data synced
-        </dt>
-        <dd>
-          <time dateTime={fetched}>{formatWhen(fetched)}</time>{' '}
-          <span className="bw-age">({ageOf(fetched)})</span>
-        </dd>
+    <p className="bw-synced">
+      <Database size={13} aria-hidden="true" />
+      <span>
+        Synced{' '}
+        <time dateTime={fetched} title={`Data synced ${formatWhen(fetched)}`}>
+          {ageOf(fetched)}
+        </time>
+      </span>
+    </p>
+  );
+}
+
+/** One action in a card's ⋯ menu. */
+interface MenuAction {
+  label: string;
+  icon: LucideIcon;
+  onSelect: () => void;
+  /** Set apart at the foot of the menu, in red. */
+  danger?: boolean;
+  disabled?: boolean;
+}
+
+/**
+ * A card's ⋯ menu: the actions used less often than Refresh and Open. It closes on a choice, on
+ * Escape (back to its button) or on a click elsewhere; the arrow keys move between its items.
+ */
+function WidgetMenu({ label, items }: { label: string; items: MenuAction[] }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const menuId = useId();
+  const enabledItems = () => [
+    ...(root.current?.querySelectorAll<HTMLButtonElement>(
+      '[role="menuitem"]:not(:disabled)',
+    ) ?? []),
+  ];
+
+  useEffect(() => {
+    if (!open) return;
+    enabledItems()[0]?.focus();
+    const close = (event: MouseEvent | KeyboardEvent) => {
+      if (event instanceof KeyboardEvent) {
+        if (event.key !== 'Escape') return;
+        setOpen(false);
+        trigger.current?.focus();
+        return;
+      }
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', close);
+    return () => {
+      document.removeEventListener('mousedown', close);
+      document.removeEventListener('keydown', close);
+    };
+  }, [open]);
+
+  const move = (e: ReactKeyboardEvent<HTMLUListElement>) => {
+    const list = enabledItems();
+    const at = list.indexOf(document.activeElement as HTMLButtonElement);
+    const next =
+      e.key === 'ArrowDown'
+        ? (at + 1) % list.length
+        : e.key === 'ArrowUp'
+          ? (at - 1 + list.length) % list.length
+          : e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? list.length - 1
+              : -1;
+    if (next < 0) return;
+    e.preventDefault();
+    list[next]?.focus();
+  };
+
+  return (
+    <div className="bw-menu" ref={root}>
+      <button
+        ref={trigger}
+        type="button"
+        className="bw-icon"
+        aria-label={label}
+        title="More actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
+        onClick={() => setOpen(!open)}
+      >
+        <Ellipsis size={16} strokeWidth={2.75} aria-hidden="true" />
+      </button>
+      {open && (
+        <ul
+          className="bw-menu-list"
+          role="menu"
+          id={menuId}
+          aria-label={label}
+          onKeyDown={move}
+        >
+          {items.map(({ label, icon: Icon, onSelect, danger, disabled }) => (
+            <li
+              key={label}
+              role="none"
+              className={danger ? 'bw-menu-danger' : undefined}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                disabled={disabled}
+                onClick={() => {
+                  setOpen(false);
+                  onSelect();
+                }}
+              >
+                <Icon size={15} aria-hidden="true" />
+                {label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A widget's answer: its first three lines, with Read more when there is more. The widget's own
+ * page always shows it all.
+ */
+function AnswerText({ markdown }: { markdown: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const id = useId();
+
+  // Whether the text runs past three lines, measured again as the card's width changes.
+  useLayoutEffect(() => {
+    const el = box.current;
+    if (!el || expanded) return;
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [markdown, expanded]);
+
+  return (
+    <div className="bw-answer">
+      <div
+        ref={box}
+        id={id}
+        className={
+          expanded ? undefined : `is-clamped${overflows ? ' is-faded' : ''}`
+        }
+      >
+        <Prose markdown={markdown} />
       </div>
-    </dl>
+      {(overflows || expanded) && (
+        <button
+          type="button"
+          className="bw-more"
+          aria-expanded={expanded}
+          aria-controls={id}
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? 'Show less' : 'Read more'}
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -285,8 +452,8 @@ export function BoardWidgets({ board }: { board: Board }) {
 const MAX_TITLE = 200;
 
 /**
- * One widget, with a grip to move it and buttons to rename it, schedule it, refresh its data
- * from the database and remove it.
+ * One widget, with a grip to move it, buttons to refresh its data from the database and open its
+ * page, and a ⋯ menu to rename, share, schedule or remove it.
  */
 function WidgetCard({
   widget,
@@ -402,7 +569,9 @@ function WidgetCard({
         </button>
         <div className="bw-title">
           {draft === null ? (
-            <h3 title={`Question: ${widget.question}`}>{widget.title}</h3>
+            <h3 title={`${widget.title}\nQuestion: ${widget.question}`}>
+              {widget.title}
+            </h3>
           ) : (
             <form
               className="bw-rename"
@@ -425,7 +594,7 @@ function WidgetCard({
               />
               <button
                 type="submit"
-                className="td-action"
+                className="bw-icon"
                 aria-label="Save title"
                 title="Save"
                 disabled={rename.isPending || !draft.trim()}
@@ -434,7 +603,7 @@ function WidgetCard({
               </button>
               <button
                 type="button"
-                className="td-action"
+                className="bw-icon"
                 aria-label="Cancel renaming"
                 title="Cancel"
                 disabled={rename.isPending}
@@ -451,86 +620,70 @@ function WidgetCard({
           )}
           <DataStatus widget={widget} />
         </div>
-        <div className="bw-buttons">
-          {draft === null && (
+        {/* While renaming, the title field takes the whole row. */}
+        {draft === null && (
+          <div className="bw-buttons">
             <button
               type="button"
-              className="td-action"
-              aria-label={`Rename ${widget.title}`}
-              title="Rename: change the heading on this widget"
-              onClick={() => setDraft(widget.title)}
-            >
-              <Pencil size={15} aria-hidden="true" />
-            </button>
-          )}
-          <a
-            className="td-action"
-            href={widgetPagePath(widget)}
-            target="_blank"
-            rel="noopener"
-            aria-label={`Open ${widget.title} in a new tab`}
-            title="Open in a new tab: the full page, with the data and answer details"
-          >
-            <ExternalLink size={15} aria-hidden="true" />
-          </a>
-          <button
-            type="button"
-            className="td-action"
-            aria-haspopup="dialog"
-            aria-label={`Share ${widget.title}`}
-            title="Share: a link to this insight, with its data and answer details"
-            onClick={() => setSharing(true)}
-          >
-            <Share2 size={15} aria-hidden="true" />
-          </button>
-          {canSchedule && (
-            <button
-              type="button"
-              className={`td-action${schedule ? ' bw-scheduled' : ''}`}
-              aria-label={
-                schedule
-                  ? `Edit the schedule for ${widget.title}`
-                  : `Schedule ${widget.title}`
-              }
+              className="bw-icon"
+              aria-label={`Refresh ${widget.title}`}
               title={
-                schedule
-                  ? `Scheduled: ${describeSchedule(schedule.schedule)}. Click to edit.`
-                  : 'Schedule: refresh this widget on its own'
+                refresh.isPending
+                  ? 'Fetching the latest data…'
+                  : 'Refresh: fetch the latest data from the database'
               }
-              onClick={() => setScheduling(true)}
+              disabled={refresh.isPending}
+              onClick={() => refresh.mutate()}
             >
-              <CalendarClock size={15} aria-hidden="true" />
+              <RefreshCw
+                size={16}
+                aria-hidden="true"
+                className={refresh.isPending ? 'bw-spin' : undefined}
+              />
             </button>
-          )}
-          <button
-            type="button"
-            className="td-action"
-            aria-label={`Refresh ${widget.title}`}
-            title={
-              refresh.isPending
-                ? 'Fetching the latest data…'
-                : 'Refresh: fetch the latest data from the database'
-            }
-            disabled={refresh.isPending}
-            onClick={() => refresh.mutate()}
-          >
-            <RefreshCw
-              size={15}
-              aria-hidden="true"
-              className={refresh.isPending ? 'bw-spin' : undefined}
+            <a
+              className="bw-icon"
+              href={widgetPagePath(widget)}
+              target="_blank"
+              rel="noopener"
+              aria-label={`Open ${widget.title} in a new tab`}
+              title="Open in a new tab: the full page, with the data and answer details"
+            >
+              <ExternalLink size={16} aria-hidden="true" />
+            </a>
+            <WidgetMenu
+              label={`More actions for ${widget.title}`}
+              items={[
+                {
+                  label: 'Rename',
+                  icon: Pencil,
+                  onSelect: () => setDraft(widget.title),
+                },
+                {
+                  label: 'Share',
+                  icon: Share2,
+                  onSelect: () => setSharing(true),
+                },
+                ...(canSchedule
+                  ? [
+                      {
+                        label: schedule ? 'Edit schedule' : 'Schedule',
+                        icon: CalendarClock,
+                        onSelect: () => setScheduling(true),
+                      },
+                    ]
+                  : []),
+                {
+                  label: 'Remove',
+                  icon: Trash2,
+                  danger: true,
+                  disabled: removing || refresh.isPending,
+                  onSelect: onRemove,
+                },
+              ]}
             />
-          </button>
-          <button
-            type="button"
-            className="td-action"
-            aria-label={`Remove ${widget.title}`}
-            title="Remove from board"
-            disabled={removing || refresh.isPending}
-            onClick={onRemove}
-          >
-            <Trash2 size={15} aria-hidden="true" />
-          </button>
-        </div>
+          </div>
+        )}
       </header>
       {schedule && <ScheduleStatus view={schedule} />}
       {refresh.isPending && (
@@ -545,7 +698,7 @@ function WidgetCard({
       )}
       {/* A widget that can't be drawn says so; the rest of the board still shows. */}
       <ErrorBoundary compact resetKey={widget.fetchedAt ?? undefined}>
-        {widget.answer && <Prose markdown={widget.answer} />}
+        {widget.answer && <AnswerText markdown={widget.answer} />}
         {widget.result && <ResultVisual result={widget.result} chart={chart} />}
       </ErrorBoundary>
       {scheduling && (
