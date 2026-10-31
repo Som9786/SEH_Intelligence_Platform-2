@@ -1,0 +1,70 @@
+/* Overview: the database header card. Name and description on the left, headline numbers on the right. */
+.overview-db {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 22px;
+  margin-bottom: 18px;
+}
+.db-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.db-stat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--b-f7faf8);
+}
+.db-stat-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  color: var(--t-08784e);
+  background: var(--b-eaf5ee);
+}
+.db-stat-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.db-stat-value {
+  font-size: var(--fs-xl);
+  line-height: var(--lh-tight);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.3px;
+  overflow-wrap: anywhere;
+}
+.db-stat-title {
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.db-stat-note {
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+}
+@media (max-width: 1050px) {
+  .overview-db {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 480px) {
+  .db-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Table review (demo): status badge, header summary and dialog */

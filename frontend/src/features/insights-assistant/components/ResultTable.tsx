@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import type { AnalyticsResult } from '../services/assistantService';
-import { formatCell, isAmount } from '../utils/formatCell';
+import { formatCell, humanize, isAmount } from '../utils/formatCell';
 
 /** Rows shown in the results table; the rest are counted. */
 const MAX_ROWS = 50;
@@ -21,9 +22,12 @@ export function ResultTable({
   barColor?: (column: string) => string;
   maxRows?: number;
 }) {
+  // "Show all" lifts the limit for this table; the rows a query returned are all in the result.
+  const [showAll, setShowAll] = useState(false);
   if (result.rows.length === 0)
     return <p className="ia-table-note">The query returned no rows.</p>;
-  const rows = result.rows.slice(0, maxRows);
+  const limit = showAll ? Infinity : maxRows;
+  const rows = result.rows.slice(0, limit);
   const maxOf = new Map(
     dataBars && rows.length > 1
       ? result.columns
@@ -48,7 +52,7 @@ export function ResultTable({
                     isAmount(rows[0][column], column) ? 'is-number' : undefined
                   }
                 >
-                  {column}
+                  {humanize(column)}
                 </th>
               ))}
             </tr>
@@ -89,6 +93,15 @@ export function ResultTable({
         <p className="ia-table-note">
           Showing {rows.length} of {result.rows.length}
           {result.truncated ? '+' : ''} rows.
+          {result.rows.length > maxRows && (
+            <button
+              type="button"
+              className="ia-table-more"
+              onClick={() => setShowAll((all) => !all)}
+            >
+              {showAll ? 'Show fewer' : `Show all ${result.rows.length} rows`}
+            </button>
+          )}
         </p>
       )}
     </div>

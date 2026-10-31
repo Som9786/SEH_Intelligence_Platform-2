@@ -1,0 +1,109 @@
+/* Scheduled insights: the user's saved schedules. */
+.si-count {
+  margin: 0 0 10px;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  text-align: right;
+}
+.si-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow: hidden;
+}
+.si-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+}
+.si-row + .si-row {
+  border-top: 1px solid var(--line);
+}
+.si-question h3 {
+  margin: 0 0 6px;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
+.si-question p {
+  margin: 0 0 8px;
+  color: var(--t-5f7268);
+  font-size: var(--fs-md);
+}
+.si-row-paused .si-question h3 {
+  color: var(--t-5f7268);
+}
+.si-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+.si-meta dt {
+  margin-bottom: 4px;
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+.si-meta dd {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.si-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.si-switch {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--neutral-bg);
+  cursor: pointer;
+}
+.si-switch:disabled {
+  cursor: progress;
+}
+.si-switch::after {
+  content: '';
+  transition: left 0.15s ease;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--b-ffffff);
+}
+.si-switch-on {
+  background: var(--b-08784e);
+}
+.si-switch-on::after {
+  left: 21px;
+}
+.si-state {
+  min-width: 52px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.si-foot {
+  margin: 16px 0 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-md);
+}
+/* More specific than ".si-question p", so its smaller size wins. */
+.si-question .si-answer {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--fs-sm);
+}

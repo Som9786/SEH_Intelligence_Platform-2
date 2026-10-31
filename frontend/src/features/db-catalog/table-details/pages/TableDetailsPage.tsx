@@ -25,7 +25,7 @@ type Tab = (typeof tabs)[number];
 /** Visible tab names; the ids above stay stable because documents link to `?tab=Documentation`. */
 const tabLabels: Record<Tab, string> = {
   Overview: 'Schema',
-  Documentation: 'Documentation',
+  Documentation: 'Table details',
 };
 
 export function TableDetailsPage() {
@@ -108,7 +108,7 @@ export function TableDetailsPage() {
     <div className="page-content">
       <PageHeading
         title="DB Tables"
-        description="Explore each table's columns, keys, relationships and documentation."
+        description="Explore each table's columns, keys, relationships and details."
         badge={
           <div className="td-actions">
             <div className={'td-browse' + (filter ? ' is-filtered' : '')}>

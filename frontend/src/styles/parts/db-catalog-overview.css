@@ -1,0 +1,155 @@
+/* Review progress card (Data Catalog page). */
+.po-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+}
+.overview-db + .po-card {
+  margin-bottom: 18px;
+}
+.po-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.po-card-head h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
+.po-card-foot a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--t-08784e);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.po-card-foot a:hover {
+  text-decoration: underline;
+}
+.po-card-note {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.po-card-foot {
+  margin: auto 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+/* Review progress: one bar split by status, with a 2px gap between segments. */
+.po-review-bar {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  border-radius: var(--radius-xs);
+  overflow: hidden;
+}
+.po-review-bar span {
+  min-width: 4px;
+}
+.po-review-verified {
+  background: var(--status-ok);
+}
+.po-review-needs-attention {
+  background: var(--status-alert);
+}
+.po-review-none {
+  background: var(--neutral-bg);
+}
+.po-review-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.po-review-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.po-review-legend strong {
+  color: var(--t-172a24);
+}
+.po-review-legend .rv-dot {
+  margin-left: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .po-capability {
+    transition: none;
+  }
+  .po-capability:hover {
+    transform: none;
+  }
+}
+@media (max-width: 1050px) {
+  .po-capabilities {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .po-hero {
+    padding: 24px 20px;
+  }
+  .po-hero h2 {
+    font-size: var(--fs-2xl);
+  }
+}
+.glance-panel {
+  padding-bottom: 8px;
+}
+.insight {
+  display: flex;
+  gap: 12px;
+  margin: 13px 18px;
+  padding: 13px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-lg);
+  background: var(--b-fafbf9);
+}
+.insight svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--t-258554);
+}
+.insight h3 {
+  margin: 0 0 5px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.insight-legend-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.insight-legend-list li {
+  display: grid;
+  gap: 5px;
+}
+.legend-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.td-chip-inferred {
+  background: var(--b-fff1e2);
+}
+.insight p {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+}

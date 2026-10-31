@@ -30,8 +30,8 @@ describe('headlineOf', () => {
         ),
       ),
     ).toEqual({
-      value: '54297',
-      valueLabel: 'highest net sales · 265.1K',
+      value: '$265.1K',
+      valueLabel: 'highest net sales · store 54297',
       detail: 'Store 54297 leads.',
     });
   });
@@ -48,14 +48,14 @@ describe('headlineOf', () => {
             { day_of_week: 3, hour_of_day: 8, baskets: 990 },
           ],
         ),
-      ).value,
-    ).toBe('Thu · 07:00');
+      ).valueLabel,
+    ).toBe('highest baskets · day of week Thu · hour of day 07:00');
   });
 
   it('shows a KPI’s own number', () => {
     expect(
       headlineOf(widget(['net_sales'], [{ net_sales: 8144077.28 }])),
-    ).toMatchObject({ value: '8.1M', valueLabel: 'net sales' });
+    ).toMatchObject({ value: '$8.1M', valueLabel: 'net sales' });
   });
 
   it('shows the latest point of a trend', () => {

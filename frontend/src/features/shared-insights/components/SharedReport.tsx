@@ -9,7 +9,10 @@ import { AnalyticsData } from '../../insights-assistant/components/DataBehindThi
 import { ResultChart } from '../../insights-assistant/components/ResultVisual';
 import { ResultTable } from '../../insights-assistant/components/ResultTable';
 import { analyticsDetails } from '../../insights-assistant/utils/answerDetails';
-import { asChart, chooseChart } from '../../insights-assistant/utils/chartChoice';
+import {
+  asChart,
+  chooseChart,
+} from '../../insights-assistant/utils/chartChoice';
 import { useAuth } from '../../auth/useAuth';
 import { BrandLogo } from '../../../shared/components/BrandLogo';
 import {

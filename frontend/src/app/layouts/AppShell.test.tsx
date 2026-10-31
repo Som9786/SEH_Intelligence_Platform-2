@@ -26,9 +26,12 @@ let hiddenFeatures: string[] = [];
 vi.mock('../../shared/hooks/useCatalog', () => ({
   useCatalog: () => ({ missing: false }),
 }));
-vi.mock('../../features/db-catalog/table-details/components/TableFlyout', () => ({
-  TableFlyout: () => <div data-testid="table-flyout" />,
-}));
+vi.mock(
+  '../../features/db-catalog/table-details/components/TableFlyout',
+  () => ({
+    TableFlyout: () => <div data-testid="table-flyout" />,
+  }),
+);
 
 function renderAt(path: string) {
   return render(

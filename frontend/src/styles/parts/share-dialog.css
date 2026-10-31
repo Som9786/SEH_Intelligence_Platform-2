@@ -1,0 +1,28 @@
+/* Share dialog: the link with its copy button, what's shared, and other ways to send it. */
+.sh-modal .rv-body {
+  display: grid;
+  gap: 16px;
+}
+.sh-link {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.sh-link .rv-field {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+.sh-included {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+}
+.sh-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

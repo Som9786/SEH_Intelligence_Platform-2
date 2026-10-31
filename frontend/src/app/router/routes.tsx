@@ -9,19 +9,64 @@ import {
   TableProperties,
   TrendingUp,
 } from 'lucide-react';
-import { InsightsAssistantPage } from '../../features/insights-assistant/pages/InsightsAssistantPage';
-import { BasketIntelligencePage } from '../../features/boards/pages/BasketIntelligencePage';
-import {
-  FreshFoodForecastingPage,
-  RevenueOpportunitiesPage,
-} from '../../features/coming-soon/pages/ComingSoonPages';
-import { WidgetInsightPage } from '../../features/shared-insights/pages/InsightPages';
-import { ScheduledInsightsPage } from '../../features/scheduled-insights/pages/ScheduledInsightsPage';
-import { PlatformOverviewPage } from '../../features/home/pages/PlatformOverviewPage';
-import { DocumentationPage } from '../../features/db-catalog/documentation/pages/DocumentationPage';
-import { DataCatalogPage } from '../../features/db-catalog/overview/pages/DataCatalogPage';
-import { RelationshipsPage } from '../../features/db-catalog/relationships/pages/RelationshipsPage';
-import { TableDetailsPage } from '../../features/db-catalog/table-details/pages/TableDetailsPage';
+import { lazy } from 'react';
+// Each page's code loads when the page is first opened (AppShell shows a spinner meanwhile), so
+// signing in doesn't wait for every page's charts, Markdown and diagram libraries.
+const InsightsAssistantPage = lazy(() =>
+  import('../../features/insights-assistant/pages/InsightsAssistantPage').then(
+    (m) => ({ default: m.InsightsAssistantPage }),
+  ),
+);
+const BasketIntelligencePage = lazy(() =>
+  import('../../features/boards/pages/BasketIntelligencePage').then((m) => ({
+    default: m.BasketIntelligencePage,
+  })),
+);
+const FreshFoodForecastingPage = lazy(() =>
+  import('../../features/coming-soon/pages/ComingSoonPages').then((m) => ({
+    default: m.FreshFoodForecastingPage,
+  })),
+);
+const RevenueOpportunitiesPage = lazy(() =>
+  import('../../features/coming-soon/pages/ComingSoonPages').then((m) => ({
+    default: m.RevenueOpportunitiesPage,
+  })),
+);
+const WidgetInsightPage = lazy(() =>
+  import('../../features/shared-insights/pages/InsightPages').then((m) => ({
+    default: m.WidgetInsightPage,
+  })),
+);
+const ScheduledInsightsPage = lazy(() =>
+  import('../../features/scheduled-insights/pages/ScheduledInsightsPage').then(
+    (m) => ({ default: m.ScheduledInsightsPage }),
+  ),
+);
+const PlatformOverviewPage = lazy(() =>
+  import('../../features/home/pages/PlatformOverviewPage').then((m) => ({
+    default: m.PlatformOverviewPage,
+  })),
+);
+const DocumentationPage = lazy(() =>
+  import('../../features/db-catalog/documentation/pages/DocumentationPage').then(
+    (m) => ({ default: m.DocumentationPage }),
+  ),
+);
+const DataCatalogPage = lazy(() =>
+  import('../../features/db-catalog/overview/pages/DataCatalogPage').then(
+    (m) => ({ default: m.DataCatalogPage }),
+  ),
+);
+const RelationshipsPage = lazy(() =>
+  import('../../features/db-catalog/relationships/pages/RelationshipsPage').then(
+    (m) => ({ default: m.RelationshipsPage }),
+  ),
+);
+const TableDetailsPage = lazy(() =>
+  import('../../features/db-catalog/table-details/pages/TableDetailsPage').then(
+    (m) => ({ default: m.TableDetailsPage }),
+  ),
+);
 
 /** Sidebar sections, in display order. */
 export const navSections = [
@@ -118,7 +163,7 @@ export const routes = [
   },
   {
     path: '/db-catalog/documentation',
-    label: 'Documentation',
+    label: 'DB details',
     feature: 'db-catalog',
     section: null,
     parent: '/db-catalog',

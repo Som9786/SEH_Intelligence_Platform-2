@@ -14,7 +14,10 @@ import { Link, useNavigate } from 'react-router';
 import { PageHeading } from '../../../shared/components/PageHeading';
 import { useAuth } from '../../auth/useAuth';
 import { useSuggestedQuestions } from '../../insights-assistant/hooks/useSuggestedQuestions';
-import { listWidgets, type Widget } from '../../../platform/api/workspaceService';
+import {
+  listWidgets,
+  type Widget,
+} from '../../../platform/api/workspaceService';
 import { headlineOf } from '../utils/basketHeadline';
 import {
   interleave,

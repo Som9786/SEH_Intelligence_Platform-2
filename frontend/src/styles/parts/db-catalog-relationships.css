@@ -1,0 +1,35 @@
+/* Relationships page */
+.rel-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.rel-page .page-heading {
+  margin-bottom: 0;
+}
+.rel-page .td-rel-viewport {
+  max-height: 72vh;
+  min-height: 280px;
+}
+.rel-focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--t-5f7268);
+}
+.rel-focus select {
+  min-height: 38px;
+  max-width: 280px;
+  padding: 0 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+  color: var(--t-172a24);
+  font-size: var(--fs-sm);
+}
+.rel-page .td-card-title p a {
+  color: var(--t-08784e);
+  text-decoration: underline;
+}

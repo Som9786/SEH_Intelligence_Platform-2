@@ -1,0 +1,39 @@
+/* Schedule dialog: reuses the review dialog (rv-*). */
+.sd-modal select {
+  width: 100%;
+}
+.sd-frequencies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.sd-frequency {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--b-ffffff);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+.sd-frequency input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.sd-frequency.is-selected {
+  border-color: var(--b-08784e);
+  background: var(--b-eaf5ee);
+  color: var(--t-08784e);
+}
+.sd-frequency:focus-within {
+  outline: 2px solid var(--b-08784e);
+  outline-offset: 2px;
+}
+.sd-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}

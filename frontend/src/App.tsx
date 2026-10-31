@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import {
   BrowserRouter,
   Navigate,
@@ -14,9 +14,16 @@ import { AuthProvider } from './features/auth/AuthProvider';
 import { RequireAuth } from './features/auth/components/RequireAuth';
 import { RequireFeature } from './features/auth/components/RequireFeature';
 import { LoginPage } from './features/auth/pages/LoginPage';
-import { SharedInsightPage } from './features/shared-insights/pages/InsightPages';
 import { ErrorBoundary } from './shared/components/ErrorBoundary';
 import { useAuth } from './features/auth/useAuth';
+import { PageLoading } from './shared/components/PageLoading';
+
+// A shared report has no sidebar, so it loads its own code here rather than through AppShell.
+const SharedInsightPage = lazy(() =>
+  import('./features/shared-insights/pages/InsightPages').then((m) => ({
+    default: m.SharedInsightPage,
+  })),
+);
 
 /** Unknown paths go to the user's own landing page. */
 function GoHome() {
@@ -70,7 +77,9 @@ export function App() {
                 path="/share/:id"
                 element={
                   <ErrorBoundary>
-                    <SharedInsightPage />
+                    <Suspense fallback={<PageLoading />}>
+                      <SharedInsightPage />
+                    </Suspense>
                   </ErrorBoundary>
                 }
               />

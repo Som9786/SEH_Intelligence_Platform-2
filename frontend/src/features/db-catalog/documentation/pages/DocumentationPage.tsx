@@ -20,8 +20,8 @@ export function DocumentationPage() {
   return (
     <div className="page-content">
       <PageHeading
-        title="Documentation"
-        description="Read the AI-generated documentation for this catalog."
+        title="DB details"
+        description="Read the details for this database."
         badge={
           <div className="td-actions">
             <BackToDbCatalog />
@@ -43,11 +43,11 @@ export function DocumentationPage() {
         </select>
       </div>
       {query.isPending ? (
-        <ResourceState kind="loading" title="Loading documentation…" />
+        <ResourceState kind="loading" title="Loading DB details…" />
       ) : query.isError ? (
         <ResourceState
           kind="error"
-          title="Documentation could not be loaded."
+          title="DB details could not be loaded."
           onRetry={() => {
             void query.refetch();
           }}
@@ -55,10 +55,10 @@ export function DocumentationPage() {
       ) : !query.data ? (
         <ResourceState
           kind="empty"
-          title="No documentation available for this database."
+          title="No DB details available for this database."
         />
       ) : (
-        <article className="table-markdown" aria-label="Database documentation">
+        <article className="table-markdown" aria-label="DB details">
           <MarkdownDocument
             markdown={query.data.markdown}
             sourcePath={query.data.path}

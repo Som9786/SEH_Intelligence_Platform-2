@@ -1,0 +1,282 @@
+.state-panel > svg {
+  color: var(--t-08784e);
+}
+.si-empty .td-action,
+.state-panel > .td-action {
+  margin-top: 14px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .si-switch::after {
+    transition: none;
+  }
+}
+@media (max-width: 1050px) {
+  .si-row {
+    grid-template-columns: 1fr;
+  }
+}
+.state-panel,
+.placeholder-panel {
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  text-align: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--b-ffffff);
+  box-shadow: var(--shadow-card);
+}
+.state-panel h2,
+.placeholder-panel h2 {
+  margin: 13px 0 6px;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+}
+.state-panel p,
+.placeholder-panel > p:last-child {
+  max-width: 430px;
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+}
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--l-c9e6d4);
+  border-top-color: var(--l-08784e);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.button {
+  margin-top: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.button-primary {
+  background: var(--b-08784e);
+  border-color: var(--l-08784e);
+  color: white;
+}
+.button-primary:hover {
+  background: var(--b-09613f);
+}
+.empty-panel {
+  margin: 20px;
+  padding: 26px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--b-fafcf9);
+  text-align: center;
+}
+.empty-panel h3 {
+  margin: 0 0 7px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.empty-panel p {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.placeholder-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 19px;
+  border-radius: var(--radius-xl);
+  color: var(--t-08784e);
+  background: var(--b-eaf5ee);
+}
+.placeholder-panel .eyebrow {
+  margin-bottom: 0;
+}
+
+.table-detail-panel {
+  min-height: 410px;
+  overflow: hidden;
+}
+.table-resource-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  color: var(--t-5f7268);
+  text-align: center;
+  font-size: var(--fs-md);
+}
+.table-markdown {
+  color: var(--t-3f5449);
+  font-size: var(--fs-md);
+  line-height: var(--lh-long);
+}
+.table-markdown h1,
+.table-markdown h2 {
+  color: var(--t-172a24);
+  line-height: var(--lh-tight);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.3px;
+}
+.table-markdown h1 {
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.3px;
+}
+.table-markdown h1 {
+  margin: 12px 0 6px;
+}
+.table-markdown h2 {
+  font-size: var(--fs-lg);
+  margin: 28px 0 8px;
+}
+/* The reset removes every default margin: paragraphs and lists get room between them again. */
+.table-markdown p,
+.table-markdown ul,
+.table-markdown ol,
+.table-markdown blockquote {
+  margin: 0 0 12px;
+}
+.table-markdown li + li {
+  margin-top: 4px;
+}
+.table-markdown h1 + p {
+  margin-bottom: 4px;
+  color: var(--t-5f7268);
+}
+.table-markdown ul,
+.table-markdown ol {
+  padding-left: 22px;
+}
+.table-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: var(--fs-md);
+}
+.table-markdown th,
+.table-markdown td {
+  border: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.table-markdown th {
+  background: var(--b-f1f6f3);
+  color: var(--t-172a24);
+  font-weight: var(--fw-semibold);
+}
+.table-markdown code {
+  background: var(--b-f1f6f3);
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  font-size: var(--fs-sm);
+}
+.table-markdown pre {
+  background: var(--b-f1f6f3);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+.table-markdown pre code {
+  background: none;
+  padding: 0;
+}
+.table-markdown blockquote {
+  margin: 10px 0;
+  padding: 6px 12px;
+  border-left: 3px solid var(--l-a9c9bb);
+  color: var(--t-45594e);
+  background: var(--b-f6faf8);
+}
+
+@media (max-width: 1050px) {
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 700px) {
+  .sidebar {
+    position: fixed;
+    z-index: 30;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 300px;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  /* The shadow only while open: on the hidden drawer it showed as a grey strip along the left edge. */
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 15px 0 30px #102e2830;
+  }
+  .is-collapsed .sidebar {
+    width: 300px;
+  }
+  .is-collapsed .brand-copy,
+  .is-collapsed .nav-text {
+    display: block;
+  }
+  .is-collapsed .nav-section-label {
+    height: auto;
+    margin: 0;
+    padding: 4px 13px 2px;
+    color: var(--t-85a79b);
+    background: none;
+  }
+  .is-collapsed .nav-link,
+  .is-collapsed .collapse-button {
+    justify-content: flex-start;
+  }
+  .sidebar-scrim {
+    position: fixed;
+    z-index: 20;
+    inset: 0;
+    border: 0;
+    background: #071c16a6;
+  }
+  .menu-button,
+  .mobile-close {
+    display: grid;
+  }
+  .mobile-close {
+    margin-left: auto;
+  }
+  .collapse-button {
+    display: none;
+  }
+  .topbar {
+    height: 62px;
+    padding: 0 17px;
+  }
+  .page-content {
+    padding: 18px 16px;
+  }
+  .page-heading {
+    flex-wrap: wrap;
+  }
+  .area-grid {
+    grid-template-columns: 1fr;
+  }
+}

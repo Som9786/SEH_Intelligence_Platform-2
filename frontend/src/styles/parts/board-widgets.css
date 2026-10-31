@@ -1,0 +1,178 @@
+/* Board widgets: Insights Assistant answers kept on a capability board. */
+/* Widgets on a 6-column grid: a KPI takes a third, most charts half, trends, heatmaps and tables
+   the whole row. Dense packing fills the gaps; narrower screens stack them. */
+.bw-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  align-items: start;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bw-small {
+  grid-column: span 2;
+}
+.bw-medium {
+  grid-column: span 3;
+}
+.bw-wide {
+  grid-column: span 6;
+}
+@media (max-width: 1100px) {
+  .bw-small {
+    grid-column: span 3;
+  }
+  .bw-medium {
+    grid-column: span 6;
+  }
+}
+@media (max-width: 700px) {
+  .bw-small {
+    grid-column: span 6;
+  }
+}
+.bw-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px 20px;
+}
+/* A narrow card's buttons wrap to their own line rather than squeeze the title. */
+.bw-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.bw-title {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+/* Drag and drop: the grip moves a card; the card being dragged fades and the one under it is outlined. */
+.bw-grip {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 30px;
+  margin-left: -8px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--t-5f7268);
+  cursor: grab;
+}
+.bw-grip:hover,
+.bw-grip:focus-visible {
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
+}
+.bw-grip:active {
+  cursor: grabbing;
+}
+.bw-card.is-dragging {
+  opacity: 0.45;
+}
+.bw-card.is-drop-target {
+  outline: 2px dashed var(--success-fg);
+  outline-offset: 3px;
+}
+.bw-head h3 {
+  margin: 0 0 4px;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
+.bw-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.bw-status > div {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.bw-status dt {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: var(--fw-semibold);
+}
+.bw-status dt::after {
+  content: ':';
+  margin-left: -4px; /* no flex gap before the colon */
+}
+.bw-status dd {
+  margin: 0;
+}
+.bw-age {
+  color: var(--t-08784e);
+}
+/* A scheduled widget: the schedule button turns green, and a line says when it refreshes. */
+.bw-buttons .td-action.bw-scheduled {
+  border-color: transparent;
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+.bw-schedule {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--success-bg);
+  color: var(--success-fg);
+  font-size: var(--fs-sm);
+}
+.bw-schedule svg {
+  flex: none;
+  margin-top: 2px;
+}
+.bw-schedule-note {
+  opacity: 0.8;
+}
+.bw-schedule.is-paused {
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
+}
+.bw-buttons {
+  display: flex;
+  flex: none;
+  gap: 6px;
+  margin-left: auto;
+}
+.bw-spin {
+  animation: bw-spin 0.9s linear infinite;
+}
+@keyframes bw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bw-spin {
+    animation: none;
+  }
+}
+.bw-refreshing {
+  margin: 0;
+  color: var(--t-08784e);
+  font-size: var(--fs-sm);
+}
+.bw-card .ia-markdown {
+  font-size: var(--fs-md);
+}
+.bw-card .ia-chart {
+  margin: 0;
+}

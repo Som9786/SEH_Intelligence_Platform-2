@@ -1,0 +1,700 @@
+/* Insights Assistant: a question thread with the composer pinned to the bottom. */
+.ia-page {
+  min-height: calc(100vh - 62px);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+/* Chart colours for results, on the assistant page and on board widgets alike. The defaults are
+   blue and its one-hue ramp (no green: that is the app's own colour and "success"); each chart sets its metric's colour (chartColors.ts).
+   Dark mode has its own steps for the dark surface. */
+.ia-chart,
+.viz,
+.ia-table-card {
+  --ia-bar: #2a78d6;
+  --viz-low: #e3eefb;
+  --viz-high: #0d366b;
+}
+:root[data-theme='dark'] .ia-chart,
+:root[data-theme='dark'] .viz,
+:root[data-theme='dark'] .ia-table-card {
+  --ia-bar: #3987e5;
+  --viz-low: #1b2533;
+  --viz-high: #86b6ef;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) :is(.ia-chart, .viz, .ia-table-card) {
+    --ia-bar: #3987e5;
+    --viz-low: #1d2633;
+    --viz-high: #6da7ec;
+  }
+}
+/* A result's chart, with the suggestion above it when there is one. */
+.viz {
+  display: grid;
+  gap: 8px;
+}
+.viz-figure {
+  margin: 0;
+  padding: 16px 18px 12px;
+}
+.viz-figure .ia-label {
+  margin-bottom: 10px;
+}
+/* Charts take keyboard focus (to step through the points): show it then, not on a click. */
+.viz-figure .recharts-wrapper:focus:not(:focus-visible),
+.viz-figure svg:focus:not(:focus-visible) {
+  outline: none;
+}
+.viz-figure .recharts-surface:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+/* KPI: the figure is the answer. */
+.viz-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.viz-kpi {
+  display: grid;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ia-bar, #2a78d6);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+}
+.viz-kpi-value {
+  color: var(--t-172a24);
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.viz-kpis.is-single .viz-kpi-value {
+  font-size: var(--fs-3xl);
+}
+.viz-kpi-label {
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+/* Bars with a second number: an extra column after the bar's value. */
+.ia-chart.has-second li {
+  grid-template-columns: minmax(120px, 1.2fr) minmax(80px, 1fr) 72px 56px;
+}
+.ia-chart .ia-label {
+  display: flex;
+}
+.viz-second-head {
+  margin-left: auto;
+}
+.viz-second {
+  color: var(--t-5f7268);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* Share: one bar split into parts, 2px gaps between them, and a legend. */
+.viz-share {
+  display: flex;
+  gap: 2px;
+  height: 18px;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+}
+.viz-share span {
+  min-width: 3px;
+}
+.viz-legend {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-md);
+}
+.viz-legend li {
+  display: grid;
+  grid-template-columns: 12px 1fr auto 44px;
+  align-items: center;
+  gap: 10px;
+}
+.viz-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-xs);
+}
+.viz-legend strong {
+  font-variant-numeric: tabular-nums;
+}
+.viz-legend small {
+  color: var(--t-5f7268);
+  text-align: right;
+  font-size: var(--fs-sm);
+}
+/* The question asked for a chart the rows don't suit: why, and the one that would. */
+.viz-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--neutral-bg);
+  font-size: var(--fs-md);
+}
+.viz-suggest p {
+  flex: 1 1 260px;
+  margin: 0;
+}
+.viz-suggest-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Pie: the ring beside its legend, or above it when narrow. */
+.viz-pie {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) 1fr;
+  align-items: center;
+  gap: 16px;
+}
+.viz-pie .viz-legend {
+  margin: 0;
+}
+@media (max-width: 700px) {
+  .viz-pie {
+    grid-template-columns: 1fr;
+  }
+}
+/* Heatmap: cells shaded on one blue ramp, light (low) to dark (high). */
+.viz-heat-scroll {
+  overflow-x: auto;
+}
+.viz-heat {
+  border-collapse: separate;
+  border-spacing: 2px;
+  width: 100%;
+  font-size: var(--fs-xs);
+  font-variant-numeric: tabular-nums;
+}
+.viz-heat th {
+  padding: 2px 6px;
+  color: var(--t-5f7268);
+  font-weight: var(--fw-semibold);
+  white-space: nowrap;
+}
+.viz-heat thead th {
+  text-align: center;
+}
+.viz-heat tbody th {
+  text-align: right;
+}
+.viz-heat td {
+  min-width: 28px;
+  height: 28px;
+  border-radius: var(--radius-xs);
+  background: color-mix(in oklab, var(--viz-high) var(--level), var(--viz-low));
+  color: var(--t-172a24);
+  text-align: center;
+}
+.viz-heat td.is-strong {
+  color: var(--on-brand);
+}
+:root[data-theme='dark'] .viz-heat td.is-strong {
+  color: #0b1626;
+}
+.viz-scale {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin: 10px 0 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+}
+.viz-scale i {
+  width: 120px;
+  height: 8px;
+  border-radius: var(--radius-xs);
+  background: linear-gradient(90deg, var(--viz-low), var(--viz-high));
+}
+/* Table: a thin bar under each amount, sized against its column's largest value. */
+.ia-cell-bar {
+  display: block;
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: var(--neutral-bg);
+  overflow: hidden;
+}
+.ia-cell-bar span {
+  display: block;
+  height: 100%;
+  margin-left: auto;
+  border-radius: 2px;
+  background: var(--ia-bar);
+}
+.ia-thread {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  padding-bottom: 24px;
+}
+.ia-welcome {
+  padding-top: 20px;
+}
+.ia-welcome h2 {
+  margin: 0 0 24px;
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: -1px;
+  font-weight: var(--fw-bold);
+  color: var(--t-172a24);
+}
+.ia-welcome ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ia-welcome button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 0 18px;
+  /* The same colour as every other question. */
+  border: 1px solid var(--q-border);
+  border-radius: var(--radius-md);
+  background: var(--q-bg);
+  color: var(--q-fg);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  text-align: left;
+}
+.ia-welcome button svg {
+  flex: none;
+  transition: transform 0.15s ease;
+}
+.ia-welcome button:hover {
+  border-color: var(--q-border-strong);
+}
+.ia-welcome button:hover svg {
+  transform: translateX(3px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .ia-welcome button svg {
+    transition: none;
+  }
+}
+@media (max-width: 700px) {
+  .ia-welcome h2 {
+    font-size: var(--fs-2xl);
+  }
+}
+.ia-exchange {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  /* A new question scrolls to the top of the screen, below the top bar. */
+  scroll-margin-top: 68px;
+}
+/* Room for the latest question to reach the top of the screen, with its answer below it. */
+.ia-exchange:last-child {
+  min-height: calc(100vh - 200px);
+}
+/* One answer, its actions and follow-ups in one card, so each answer stands apart from the next. */
+.ia-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--b-ffffff);
+  box-shadow: var(--shadow-card);
+}
+@media (max-width: 700px) {
+  .ia-card {
+    padding: 16px;
+  }
+}
+.ia-question {
+  align-self: flex-end;
+  max-width: 75%;
+  margin: 0;
+  padding: 11px 16px;
+  /* Same colour as the suggested questions: questions are tinted, answers are cards. */
+  border: 1px solid var(--q-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+  background: var(--q-bg);
+  color: var(--q-fg);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+}
+.ia-thinking {
+  margin: 0;
+  color: var(--t-5f7268);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ia-thinking .spinner {
+  width: 18px;
+  height: 18px;
+  border-width: 2px;
+}
+.ia-markdown {
+  color: var(--t-172a24);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-long);
+}
+.ia-markdown > :first-child {
+  margin-top: 0;
+}
+.ia-markdown > :last-child {
+  margin-bottom: 0;
+}
+.ia-markdown p,
+.ia-markdown ul,
+.ia-markdown ol {
+  margin: 0 0 10px;
+}
+/* The base styles (Tailwind's preflight) remove list markers; answers and documents need them back. */
+.ia-markdown ul,
+.ia-markdown ol {
+  padding-left: 22px;
+}
+.ia-markdown ul,
+.table-markdown ul {
+  list-style: disc;
+}
+.ia-markdown ol,
+.table-markdown ol {
+  list-style: decimal;
+}
+.ia-markdown li::marker {
+  color: var(--t-5f7268);
+}
+.ia-markdown li + li {
+  margin-top: 4px;
+}
+.ia-markdown code {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--neutral-bg);
+  font-size: 0.88em;
+}
+.ia-markdown table {
+  border-collapse: collapse;
+  margin: 0 0 10px;
+  font-size: var(--fs-md);
+}
+.ia-markdown th,
+.ia-markdown td {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  text-align: left;
+}
+.ia-table-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+  overflow: hidden;
+}
+.ia-table-scroll {
+  max-height: 420px;
+  overflow: auto;
+  /* Scroll shadows: a soft edge appears at the bottom (or top) while there are more rows that way,
+     so a row cut by the edge reads as "scroll for more". */
+  background:
+    linear-gradient(var(--b-ffffff) 30%, transparent) top / 100% 24px no-repeat
+      local,
+    linear-gradient(transparent, var(--b-ffffff) 70%) bottom / 100% 24px
+      no-repeat local,
+    radial-gradient(farthest-side at 50% 0, rgb(0 0 0 / 0.12), transparent)
+      top / 100% 10px no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, rgb(0 0 0 / 0.12), transparent)
+      bottom / 100% 10px no-repeat scroll;
+}
+.ia-table-more {
+  margin-left: 8px;
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--l-08784e);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ia-table-more:hover {
+  text-decoration: underline;
+}
+.ia-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-md);
+}
+.ia-table th {
+  position: sticky;
+  top: 0;
+  padding: 10px 14px;
+  background: var(--b-f6faf8);
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.ia-table td {
+  padding: 9px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--t-172a24);
+}
+.ia-table th.is-number {
+  text-align: right;
+}
+.ia-table td.is-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ia-table tbody tr:hover td {
+  background: var(--b-f6faf8);
+}
+.ia-table-note {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.ia-table-card .ia-table-note {
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+}
+.ia-sql summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--t-08784e);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  list-style: none;
+}
+.ia-sql summary::-webkit-details-marker {
+  display: none;
+}
+.ia-sql summary svg {
+  transition: transform 0.15s ease;
+}
+.ia-sql[open] summary svg {
+  transform: rotate(90deg);
+}
+.ia-sql .sql-block {
+  margin-top: 8px;
+}
+.ia-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--danger-fg) 30%, transparent);
+  border-radius: var(--radius-md);
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+.ia-error p {
+  margin: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ia-sql summary svg {
+    transition: none;
+  }
+}
+.ia-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ia-route,
+.ia-label {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+.ia-route {
+  color: var(--t-08784e);
+}
+.ia-summary {
+  margin: 0;
+  color: var(--t-172a24);
+  font-size: var(--fs-lg);
+  line-height: var(--lh-long);
+}
+/* A SQL query (SqlCode): a "SQL" bar with a copy button over the coloured query. */
+.sql-block {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--code-bg);
+  color: var(--code-text);
+}
+.sql-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px 6px 14px;
+  background: var(--code-head);
+}
+.sql-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.sql-copy {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--code-muted);
+  cursor: pointer;
+}
+.sql-copy:hover {
+  background: var(--code-bg);
+  color: var(--code-text);
+}
+.sql-code {
+  margin: 0;
+  padding: 12px 14px 14px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.sql-keyword {
+  color: var(--code-keyword);
+}
+.sql-function {
+  color: var(--code-function);
+}
+.sql-name {
+  color: var(--code-name);
+}
+.sql-string {
+  color: var(--code-string);
+}
+.sql-number {
+  color: var(--code-number);
+}
+.sql-comment {
+  color: var(--code-muted);
+  font-style: italic;
+}
+.ia-chart {
+  margin: 4px 0 0;
+  padding: 16px 18px;
+}
+.ia-chart ul {
+  display: grid;
+  gap: 4px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ia-chart li {
+  display: grid;
+  grid-template-columns: minmax(120px, 1.2fr) minmax(80px, 1fr) 64px;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-md);
+}
+.ia-chart li:hover {
+  background: var(--b-f6faf8);
+}
+.ia-chart-track {
+  height: 8px;
+  border-radius: var(--radius-xs);
+  background: var(--neutral-bg);
+  overflow: hidden;
+}
+/* The leader in full colour; the other bars in a lighter tint of it. */
+.ia-chart.has-leader li:not(.is-top) .ia-chart-bar {
+  background: color-mix(in srgb, var(--ia-bar) 45%, var(--b-ffffff));
+}
+.ia-chart-bar {
+  display: block;
+  height: 100%;
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  background: var(--ia-bar);
+}
+.ia-chart-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ia-steps {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-md);
+}
+.ia-steps li {
+  display: flex;
+  gap: 10px;
+}
+.ia-steps span {
+  color: var(--t-08784e);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+.ia-confidence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.ia-confidence-level {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+}
+.ia-confidence-level.is-high {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+.ia-confidence-level.is-medium {
+  background: var(--b-fff1e2);
+  color: var(--t-8a3f06);
+}
+.ia-confidence-level.is-low {
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
+}

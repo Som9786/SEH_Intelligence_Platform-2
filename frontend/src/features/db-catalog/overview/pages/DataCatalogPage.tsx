@@ -15,20 +15,20 @@ export function DataCatalogPage() {
     <div className="page-content">
       <PageHeading
         title="DB Catalog"
-        description="Explore your database catalog and its documentation."
+        description="Explore your database catalog, its tables and its details."
         badge={
           <div className="td-actions">
-            <Link to="/db-catalog/tables" className="td-action">
-              <TableProperties size={16} aria-hidden="true" />
-              DB Tables
+            <Link to="/db-catalog/documentation" className="td-action">
+              <BookOpen size={16} aria-hidden="true" />
+              DB details
             </Link>
             <Link to="/db-catalog/relationships" className="td-action">
               <Network size={16} aria-hidden="true" />
               Relationships
             </Link>
-            <Link to="/db-catalog/documentation" className="td-action">
-              <BookOpen size={16} aria-hidden="true" />
-              DB details
+            <Link to="/db-catalog/tables" className="td-action">
+              <TableProperties size={16} aria-hidden="true" />
+              DB Tables
             </Link>
           </div>
         }
@@ -68,9 +68,9 @@ export function DataCatalogPage() {
                 <div>
                   <h3>What's in the catalog</h3>
                   <p>
-                    Explore tables and business areas in one place, with
-                    documentation that makes database metadata easier to
-                    understand.
+                    Explore tables and business areas in one place, with DB
+                    details and table details that make database metadata easier
+                    to understand.
                   </p>
                 </div>
               </div>
@@ -99,7 +99,8 @@ export function DataCatalogPage() {
                       </div>
                       <p>
                         Suggested from names or data patterns, not enforced by
-                        the database. Shown in orange.
+                        the database. Shown in orange; inferred descriptions
+                        have an orange bar beside them.
                       </p>
                     </li>
                   </ul>
@@ -108,10 +109,11 @@ export function DataCatalogPage() {
               <div className="insight">
                 <Eye aria-hidden="true" />
                 <div>
-                  <h3>Read-only, file-based</h3>
+                  <h3>Read-only, from the metadata export</h3>
                   <p>
-                    Uses exported JSON and Markdown files only. No live database
-                    connection, database changes or AI requests.
+                    Built from the database&apos;s exported metadata and
+                    details, never a live connection, so nothing here can change
+                    the database.
                   </p>
                 </div>
               </div>

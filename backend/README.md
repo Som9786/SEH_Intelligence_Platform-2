@@ -304,11 +304,11 @@ Settings are in each project's `appsettings.json`; `appsettings.Development.json
 | `OpenAI:DailyBudgetUsd` | AI Hub | `5` | Questions are refused (429) once today's OpenAI cost reaches this; `0` means no limit |
 | `Cache:Enabled` / `MaxEntries` | AI Hub | `true` / `500` | Reuse the query for a repeated question while its knowledge model context is the same, and the answer for the same question, query and results, without calling OpenAI. Follow-ups and corrections are never cached. |
 | `OpenAI:Prices` | AI Hub | gpt-5, gpt-5-mini, gpt-5-nano, gpt-4.1, gpt-4o families | US dollars per million input, cached input and output tokens, used to count cost (see [Model cost](#model-cost)) |
-| `Bedrock:Region` | AI Hub | `us-east-1` | The AWS region the model is enabled in |
+| `Bedrock:Region` | AI Hub | `eu-north-1` | The AWS region the model is enabled in |
 | `Bedrock:ApiKey` / `AccessKeyId` / `SecretAccessKey` / `SessionToken` | AI Hub | *(empty)* | A Bedrock API key, or an IAM key pair. All empty: `AWS_BEARER_TOKEN_BEDROCK`, then the default AWS credentials (`AWS_PROFILE`, `~/.aws`, an instance role) |
-| `Bedrock:Model` / `FallbackModel` | AI Hub | `us.anthropic.claude-sonnet-5` / `us.anthropic.claude-haiku-4-5-20251001-v1:0` (the two our AWS account allows) | A model ID or inference profile ID that supports JSON schema output. The fallback is also used if `Model` isn't found or isn't enabled |
+| `Bedrock:Model` / `FallbackModel` | AI Hub | `eu.anthropic.claude-sonnet-4-6` / `eu.anthropic.claude-haiku-4-5-20251001-v1:0` (our AWS account also allows `eu.anthropic.claude-opus-5` there) | A model ID or inference profile ID that supports JSON schema output. The fallback is also used if `Model` isn't found or isn't enabled |
 | `Bedrock:TimeoutSeconds` / `MaxTokens` / `Effort` | AI Hub | `150` / `8192` / `low` | Time limit for the whole call (retries and fallback included; keep it under `AiHub:TimeoutSeconds`), longest reply, and effort (`low` to `max`, empty for the model's default; dropped for a model that rejects it) |
-| `Bedrock:DailyBudgetUsd` / `Prices` | AI Hub | `5` / Claude Sonnet 5 and Haiku 4.5 | As for OpenAI; a price key matches the model ID with or without the `us.` prefix. Check them against [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
+| `Bedrock:DailyBudgetUsd` / `Prices` | AI Hub | `5` / Claude Sonnet 4.6, Opus 5, Sonnet 5 and Haiku 4.5 | As for OpenAI; a price key matches the model ID with or without the `us.` prefix. Check them against [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
 | `Answer:MaxResultChars` | AI Hub | `50000` | Longer query results are cut before they're sent to the model |
 | `Gateway:AskTimeoutSeconds` | Gateway | `300` | How long `/api/ai/ask` waits for Analytics or DB Catalog to answer |
 | `Workspace:DataPath` / `ShareDays` | Gateway | `App_Data` / `30` | Where the workspace's files are kept, and how many days a shared insight's link works |

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import {
   LogOut,
   Menu,
@@ -13,6 +13,7 @@ import { BrandLogo } from '../../shared/components/BrandLogo';
 import { ErrorBoundary } from '../../shared/components/ErrorBoundary';
 import { useTheme } from '../../shared/hooks/useTheme';
 import { matchPath, NavLink, Outlet, useLocation } from 'react-router';
+import { PageLoading } from '../../shared/components/PageLoading';
 import { navSections, routes } from '../router/routes';
 import { TableFlyout } from '../../features/db-catalog/table-details/components/TableFlyout';
 import {
@@ -258,7 +259,9 @@ export function AppShell() {
             </div>
           ) : (
             <ErrorBoundary resetKey={location.pathname}>
-              <Outlet />
+              <Suspense fallback={<PageLoading />}>
+                <Outlet />
+              </Suspense>
             </ErrorBoundary>
           )}
         </main>

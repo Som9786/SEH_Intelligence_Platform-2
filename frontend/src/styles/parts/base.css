@@ -1,0 +1,30 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+/* Text fields take focus on every click, so they show it as a border and glow rather than a ring.
+   :where() keeps this easy to override for fields inside a wrapper. */
+:where(
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select
+):focus-visible {
+  outline: none;
+  border-color: var(--focus-field-border);
+  box-shadow: var(--focus-field-glow);
+}

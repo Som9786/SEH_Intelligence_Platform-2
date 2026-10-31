@@ -3,7 +3,7 @@ import { formatCell, isAmount } from './formatCell';
 
 describe('formatCell', () => {
   it('formats amounts but not identifiers', () => {
-    expect(formatCell(265122.03, 'net_sales')).toBe('265,122.03');
+    expect(formatCell(265122.03, 'net_sales')).toBe('$265,122.03');
     expect(formatCell(54297, 'store')).toBe('54297');
     expect(isAmount(54297, 'store')).toBe(false);
     expect(isAmount(1.5, 'lift')).toBe(true);

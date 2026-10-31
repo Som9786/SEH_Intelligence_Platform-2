@@ -63,11 +63,12 @@ function ScheduleStatus({ view }: { view: ScheduleView }) {
       <RefreshCw size={13} aria-hidden="true" />
       {schedule.enabled ? (
         <span>
-          <strong>Auto-refresh:</strong> {describeSchedule(schedule)}
-          {nextRunAt && <> · next {formatWhen(nextRunAt)}</>}
+          <strong>Auto-refresh (not running yet):</strong>{' '}
+          {describeSchedule(schedule)}
+          {nextRunAt && <> · would run next {formatWhen(nextRunAt)}</>}
           <span className="bw-schedule-note">
             {' '}
-            — starts once scheduled runs are switched on
+            — use Refresh to update it until scheduled runs are switched on
           </span>
         </span>
       ) : (

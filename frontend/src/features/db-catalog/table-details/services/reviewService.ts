@@ -9,6 +9,8 @@ import type { ReviewDraft, ReviewStatus, TableReview } from '../types/review';
 export interface ReviewService {
   /** The latest review for a table, or null when it has not been reviewed. */
   getReview(tableId: string): Promise<TableReview | null>;
+  /** Every table's latest review, in one call. Tables without one are left out. */
+  listReviews(): Promise<TableReview[]>;
   /** Stores a review and returns it with the reviewer and `updatedAt` the server assigned. */
   saveReview(review: ReviewDraft): Promise<TableReview>;
 }
@@ -47,6 +49,19 @@ export const reviewService: ReviewService = {
       if (error instanceof ApiError && error.status === 404) return null;
       throw error;
     }
+  },
+
+  async listReviews() {
+    const all = await apiJson<unknown>('workspace/reviews');
+    return (Array.isArray(all) ? all : []).flatMap((value) => {
+      const tableId = (value as { tableId?: unknown } | null)?.tableId;
+      if (typeof tableId !== 'string') return [];
+      try {
+        return [parseReview(value, tableId)];
+      } catch {
+        return []; // An entry this UI can't read is shown as not reviewed.
+      }
+    });
   },
 
   async saveReview({ tableId, status, comment }) {

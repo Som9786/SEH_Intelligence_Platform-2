@@ -1,0 +1,298 @@
+/* Theme colours: every colour below is a variable so the dark theme only redefines values. */
+:root {
+  --t-065c3b: #065c3b;
+  --t-08784e: #08784e;
+  --t-09633f: #09633f;
+  --t-15703f: #15703f;
+  --t-172a24: #172a24;
+  --t-1c7650: #1c7650;
+  --t-245943: #245943;
+  --t-25744c: #25744c;
+  --t-258554: #1b6f45;
+  --t-288653: #1b6f45;
+  --t-355544: #355544;
+  --t-365a73: #365a73;
+  --t-3f5449: #3f5449;
+  --t-40564b: #40564b;
+  --t-45594e: #45594e;
+  --t-5f7268: #475a50;
+  --t-74847a: #566a5f;
+  --t-85a79b: #85a79b;
+  --t-8a3f06: #8a3f06;
+  --t-a95c18: #8f4f10;
+  --t-acd1ba: #acd1ba;
+  --t-ad611d: #94540f;
+  --t-b76719: #9a5410;
+  --t-bd4c42: #a83d34;
+  --t-c0661a: #9a500c;
+  --t-d8e8df: #d8e8df;
+  --t-f6a54b: #f6a54b;
+  --b-08784e: #08784e;
+  --b-09613f: #09613f;
+  --b-0c2520: #0c2520;
+  --b-102e28: #102e28;
+  --b-15a668: #15a668;
+  --b-22473b: #22473b;
+  --b-265644: #265644;
+  --b-e0811f: #e0811f;
+  --b-e3ebe5: #e3ebe5;
+  --b-e3ebe6: #e3ebe6;
+  --b-e3f3e9: #e3f3e9;
+  --b-e6f4ec: #e6f4ec;
+  --b-e74646: #e74646;
+  --b-e8ece9: #e8ece9;
+  --b-e8efea: #e8efea;
+  --b-e9f6eb: #e9f6eb;
+  --b-eaf5ee: #eaf5ee;
+  --b-eef2ef: #eef2ef;
+  --b-eef3ef: #eef3ef;
+  --b-f18825: #f18825;
+  --b-f1f6f3: #f1f6f3;
+  --b-f3f7f4: #f3f7f4;
+  --b-f5f7f4: #f5f7f4;
+  --b-f6a54b: #f6a54b;
+  --b-f6faf8: #f6faf8;
+  --b-f7faf8: #f7faf8;
+  --b-fafbf9: #fafbf9;
+  --b-fafcf9: #fafcf9;
+  --b-fbfcfb: #fbfcfb;
+  --b-fbfdfc: #fbfdfc;
+  --b-fdebd8: #fdebd8;
+  --b-fff1e2: #fff1e2;
+  --b-fff1e3: #fff1e3;
+  --b-fff1e4: #fff1e4;
+  --b-fff1ef: #fff1ef;
+  --b-fff2e7: #fff2e7;
+  --b-ffffff: #ffffff;
+  --l-08784e: #08784e;
+  --l-2c493f: #2c493f;
+  --l-a9c9bb: #a9c9bb;
+  --l-c06a1a: #c06a1a;
+  --l-c9e6d4: #c9e6d4;
+  --toolbar-bg: rgba(255, 255, 255, 0.92);
+  /* Shared lines: --line for card and box borders, --line-soft for dividers inside them, --line-strong for inputs. */
+  --line: #e3eae5;
+  --line-soft: #e8efea;
+  --line-strong: #d3dfd6;
+  /* Status colours: one background / text pair each. */
+  --success-bg: #e3f3e9;
+  --success-fg: #15703f;
+  --danger-bg: #fde4e4;
+  --danger-fg: #a02f2f;
+  /* Inferred content: what the catalog suggests but the database does not confirm. */
+  --inferred-bg: #fff1e2;
+  --inferred-fg: #9a500c;
+  --info-bg: #dbe9fb;
+  --info-fg: #1d4f91;
+  /* Questions (yours, suggested or asked): a soft tint of the brand green. */
+  --q-bg: #e6f4ec;
+  --q-fg: #0b5c3c;
+  --q-border: #b9dfca;
+  --q-border-strong: #0f7a50;
+  --neutral-bg: #e9eeec;
+  --neutral-fg: #3f5449;
+  --shadow-card: 0 4px 20px rgba(18, 61, 40, 0.055);
+  --shadow-popover: 0 10px 28px rgba(16, 46, 40, 0.16);
+  --shadow-modal: 0 24px 60px rgba(8, 20, 16, 0.35);
+  --focus-field-border: #08784e;
+  --focus-field-glow: 0 0 0 3px rgba(8, 120, 78, 0.18);
+}
+:root[data-theme='dark'] {
+  --t-065c3b: #abe7d0;
+  --t-08784e: #97e1c5;
+  --t-09633f: #a4e5cb;
+  --t-15703f: #94e0b7;
+  --t-172a24: #e8eaed;
+  --t-1c7650: #8bddbb;
+  --t-245943: #a1d9c2;
+  --t-25744c: #89d9b1;
+  --t-258554: #7bd9a9;
+  --t-288653: #79d7a4;
+  --t-355544: #b8bec4;
+  --t-365a73: #8cb0c9;
+  --t-3f5449: #b3b9bf;
+  --t-40564b: #b1b7bd;
+  --t-45594e: #aeb4ba;
+  --t-5f7268: #9aa1a8;
+  --t-74847a: #959ca3;
+  --t-85a79b: #8f969d;
+  --t-8a3f06: #deb08c;
+  --t-a95c18: #d49d6c;
+  --t-acd1ba: #acd1ba;
+  --t-ad611d: #d39966;
+  --t-b76719: #d19962;
+  --t-bd4c42: #c86960;
+  --t-c0661a: #d0915c;
+  --t-d8e8df: #dde0e3;
+  --t-f6a54b: #f6a54b;
+  --b-08784e: #08784e;
+  --b-09613f: #09613f;
+  --b-0c2520: #0c2520;
+  --b-102e28: #102e28;
+  --b-15a668: #15a668;
+  --b-22473b: #22473b;
+  --b-265644: #265644;
+  --b-e0811f: #e0811f;
+  --b-e3ebe5: #2a3036;
+  --b-e3ebe6: #292f35;
+  --b-e3f3e9: #23392b;
+  --b-e6f4ec: #22372b;
+  --b-e74646: #e74646;
+  --b-e8ece9: #262b30;
+  --b-e8efea: #252a2f;
+  --b-e9f6eb: #1f3523;
+  --b-eaf5ee: #213327;
+  --b-eef2ef: #23282d;
+  --b-eef3ef: #22272c;
+  --b-f18825: #f18825;
+  --b-f1f6f3: #20252a;
+  --b-f3f7f4: #1f2327;
+  --b-f5f7f4: #222629;
+  --b-f6a54b: #f6a54b;
+  --b-f6faf8: #1c2024;
+  --b-f7faf8: #1e2227;
+  --b-fafbf9: #1d2125;
+  --b-fafcf9: #1b1f23;
+  --b-fbfcfb: #191c20;
+  --b-fbfdfc: #1a1d21;
+  --b-fdebd8: #482f15;
+  --b-fff1e2: #422a10;
+  --b-fff1e3: #412910;
+  --b-fff1e4: #402710;
+  --b-fff1ef: #38130e;
+  --b-fff2e7: #3e2510;
+  --b-ffffff: #181b1f;
+  --l-08784e: #08784e;
+  --l-2c493f: #30363c;
+  --l-a9c9bb: #4f5961;
+  --l-c06a1a: #c06a1a;
+  --l-c9e6d4: #375642;
+  --toolbar-bg: rgba(24, 27, 31, 0.92);
+  --line: #2e343a;
+  --line-soft: #2a2f35;
+  --line-strong: #383f46;
+  --success-bg: #1c3a2a;
+  --success-fg: #7fd8a6;
+  --danger-bg: #44232a;
+  --danger-fg: #f0a0a6;
+  --inferred-bg: #3e2510;
+  --inferred-fg: #f0a04b;
+  --info-bg: #1b2c47;
+  --info-fg: #9cc2f2;
+  --q-bg: #1b3328;
+  --q-fg: #a6e3c8;
+  --q-border: #2f5442;
+  --q-border-strong: #7fd8a6;
+  --neutral-bg: #2a2f34;
+  --neutral-fg: #b3b9bf;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.25);
+  --shadow-popover: 0 10px 28px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --focus-field-border: #6fcfa6;
+  --focus-field-glow: 0 0 0 3px rgba(111, 207, 166, 0.22);
+  --b-f5f7f4: #0f1114;
+  color-scheme: dark;
+}
+
+.file-diagram {
+  margin: 20px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--b-ffffff);
+}
+.file-diagram-svg {
+  overflow-x: auto;
+  text-align: center;
+}
+.file-diagram-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+.file-diagram details {
+  margin-top: 16px;
+  text-align: left;
+}
+.file-diagram summary {
+  cursor: pointer;
+  color: var(--t-365a73);
+}
+.file-diagram pre {
+  overflow-x: auto;
+}
+.file-document-selector {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.file-document-selector select {
+  padding: 10px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+}
+
+:root {
+  /* Type scale: one place to change sizes, weights, spacing and fonts. */
+  --font-sans:
+    'Inter Variable', Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, 'Cascadia Mono', Consolas, Menlo, monospace;
+  /* Every text size is multiplied by this; 0.9 is 10% smaller than the original design. */
+  --fs-scale: 0.9;
+  --fs-xs: calc(11px * var(--fs-scale)); /* labels, badges, counts, captions */
+  --fs-sm: calc(12px * var(--fs-scale)); /* secondary and helper text */
+  --fs-md: calc(13px * var(--fs-scale)); /* body and UI text */
+  --fs-lg: calc(16px * var(--fs-scale)); /* card, panel and dialog titles */
+  --fs-xl: calc(22px * var(--fs-scale)); /* section titles, large values */
+  /* page titles, entity names, key numbers */
+  --fs-2xl: calc(28px * var(--fs-scale));
+  /* hero headings and a single headline number */
+  --fs-3xl: calc(36px * var(--fs-scale));
+  --fw-regular: 400;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --lh-tight: 1.2; /* headings */
+  --lh-base: 1.5; /* UI and body */
+  --lh-long: 1.65; /* long-form documents */
+  --ls-caps: 0.8px; /* uppercase labels */
+  /* Corner radius: chart marks and small swatches, badges, controls, boxes inside cards, cards and
+     dialogs, and fully rounded pills. Circles use 50%. */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 999px;
+  /* Same in both themes: review status dots, the brand accent, text on the dark brand surfaces
+     (sidebar, sign-in, tips, filled buttons) and the lift under a segmented control's pressed button. */
+  --status-ok: #34c38a;
+  --status-alert: #f0666b;
+  --brand-accent: #ff9b36;
+  --on-brand: #ffffff;
+  --shadow-control: 0 1px 2px #102e2826;
+  /* SQL blocks: a dark panel in both themes, coloured like an editor. */
+  --code-bg: #1f2a26;
+  --code-head: #2a3732;
+  --code-text: #e3ebe7;
+  --code-muted: #9fb0a8;
+  --code-keyword: #ff8fb8;
+  --code-function: #7fd1f0;
+  --code-name: #c6aaff;
+  --code-string: #a5e0a0;
+  --code-number: #ffb57a;
+  /* Focus: one green style everywhere. Buttons, links and other controls get a ring; text fields and
+     field-like boxes get a green border and soft glow. Colours come from --focus-field-* per theme. */
+  --focus-ring: 2px solid var(--focus-field-border);
+}
+
+:root {
+  /* Text without its own size, and every rem, follows the scale too. */
+  font-size: calc(16px * var(--fs-scale));
+  font-family: var(--font-sans);
+  color: var(--t-172a24);
+  background: var(--b-f5f7f4);
+  font-synthesis: none;
+}

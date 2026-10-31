@@ -1,4 +1,4 @@
-import { Check, Link2, Share2 } from 'lucide-react';
+import { BookOpen, Check, Link2, Share2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { DownloadMenu } from '../../../../shared/components/DownloadMenu';
 import { MarkdownDocument } from '../../../../shared/components/MarkdownDocument';
@@ -33,7 +33,7 @@ export function DocumentationTab({
     return (
       <ResourceState
         kind="empty"
-        title="No documentation available for this table."
+        title="No table details available for this table."
       />
     );
 
@@ -48,7 +48,19 @@ export function DocumentationTab({
 
   return (
     <>
-      <div className="doc-share" role="group" aria-label="Share documentation">
+      <div className="doc-share" role="group" aria-label="Share table details">
+        <div className="doc-share-title">
+          <span className="doc-share-icon" aria-hidden="true">
+            <BookOpen size={18} />
+          </span>
+          <div>
+            <h3>Table details</h3>
+            <p>
+              {document.tableId}: what it holds, how it is used, and what to
+              watch for.
+            </p>
+          </div>
+        </div>
         <span className="doc-share-status" aria-live="polite">
           {copied === 'done'
             ? 'Link copied'
@@ -89,7 +101,7 @@ export function DocumentationTab({
           ]}
         />
       </div>
-      <article className="table-markdown" aria-label="Table documentation">
+      <article className="table-markdown" aria-label="Table details">
         <MarkdownDocument
           markdown={document.markdown}
           sourcePath={document.path}

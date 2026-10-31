@@ -52,7 +52,7 @@ export function ScheduledInsightsPage() {
     <div className="page-content">
       <PageHeading
         title="Scheduled Insights"
-        description="Your saved questions in one place. Soon they'll run on their own and keep you up to date."
+        description="Your saved questions in one place. They don't run on their own yet: until scheduled runs are switched on, ask one again to update it."
       />
       {schedules.isPending && (
         <div className="state-panel" role="status">
@@ -92,7 +92,7 @@ export function ScheduledInsightsPage() {
       {list.length > 0 && (
         <>
           <p className="si-count">
-            {active} active · {list.length - active} paused
+            {active} on · {list.length - active} paused
           </p>
           {failure && (
             <p className="ia-error" role="alert">
@@ -177,7 +177,7 @@ function ScheduleRow({
           <dd>{describeSchedule(schedule)}</dd>
         </div>
         <div>
-          <dt>Next run</dt>
+          <dt>Would next run</dt>
           <dd>{nextRunAt ? formatWhen(nextRunAt) : 'Paused'}</dd>
         </div>
       </dl>
@@ -192,7 +192,7 @@ function ScheduleRow({
           onClick={onToggle}
         />
         <span className="si-state">
-          {schedule.enabled ? 'Active' : 'Paused'}
+          {schedule.enabled ? 'On · not running yet' : 'Paused'}
         </span>
         <button type="button" className="td-action" onClick={onEdit}>
           <Pencil size={15} aria-hidden="true" />

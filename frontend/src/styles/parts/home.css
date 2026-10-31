@@ -1,0 +1,287 @@
+/* Platform overview: a question box for the Insights Assistant, then the capability cards. */
+.po-page {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+/* Hero: a soft green band so the ask box stands apart from the cards below. */
+.po-hero {
+  padding: 36px 40px 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, var(--b-08784e) 14%, transparent),
+      transparent 55%
+    ),
+    var(--b-eaf5ee);
+}
+/* Dark: the card colour with a soft green glow, instead of a flat dark green. */
+:root[data-theme='dark'] .po-hero {
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      color-mix(in srgb, var(--b-08784e) 24%, transparent),
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 0% 100%,
+      color-mix(in srgb, var(--b-08784e) 8%, transparent),
+      transparent 40%
+    ),
+    var(--b-ffffff);
+}
+.po-hero-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+.po-greeting {
+  margin: 0;
+  color: var(--t-08784e);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+}
+.po-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--b-ffffff);
+  color: var(--t-245943);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.po-date svg {
+  color: var(--t-08784e);
+}
+.po-hero h2 {
+  margin: 0 0 22px;
+  font-size: var(--fs-3xl);
+  line-height: var(--lh-tight);
+  letter-spacing: -1px;
+  font-weight: var(--fw-bold);
+  color: var(--t-172a24);
+}
+.po-ask {
+  display: flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--b-ffffff);
+  box-shadow: var(--shadow-card);
+}
+.po-ask:focus-within {
+  border-color: var(--focus-field-border);
+  box-shadow: var(--focus-field-glow);
+}
+.po-ask input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--t-172a24);
+  font-size: var(--fs-lg);
+}
+.po-ask input:focus-visible {
+  box-shadow: none;
+}
+.po-ask .td-action {
+  min-height: 44px;
+}
+.po-ask .td-action:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.po-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+/* Same pills as the questions in Insights Assistant. */
+.po-questions button {
+  padding: 7px 12px;
+  border: 1px solid var(--q-border);
+  border-radius: var(--radius-pill);
+  background: var(--q-bg);
+  color: var(--q-fg);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.po-questions button:hover {
+  border-color: var(--q-border-strong);
+}
+.po-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin-bottom: 14px;
+}
+.po-section-head h2 {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+}
+/* Capability cards: one per capability, each led by today's headline number. */
+.po-capabilities {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 17px;
+}
+.po-capability {
+  --po-accent: var(--t-08784e);
+  --po-accent-bg: var(--b-eaf5ee);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  border-top: 4px solid var(--po-accent);
+  color: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+.po-tone-risk {
+  --po-accent: var(--t-bd4c42);
+  --po-accent-bg: var(--b-fff1ef);
+}
+.po-tone-warn {
+  --po-accent: var(--t-c0661a);
+  --po-accent-bg: var(--b-fff1e4);
+}
+.po-capability:hover {
+  border-color: var(--po-accent);
+  transform: translateY(-2px);
+}
+.po-capability-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.po-capability-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  background: var(--po-accent-bg);
+  color: var(--po-accent);
+}
+.po-capability h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
+.po-metric {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+.po-metric strong {
+  color: var(--po-accent);
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-tight);
+  font-weight: var(--fw-bold);
+}
+.po-metric span {
+  color: var(--t-172a24);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.po-capability p {
+  flex: 1;
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+}
+.po-capability-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+}
+/* Coming soon: the sample preview stays visible but blurred, under a centred badge. */
+.po-capability-soon {
+  position: relative;
+  overflow: hidden;
+}
+.po-capability-soon .po-capability-body {
+  filter: blur(3px);
+  opacity: 0.6;
+  user-select: none;
+}
+.po-capability-soon .po-capability-open {
+  visibility: hidden;
+}
+.po-soon-overlay {
+  position: absolute;
+  inset: 72px 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--b-ffffff) 70%, transparent) 40%
+  );
+}
+.po-soon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid var(--po-accent);
+  border-radius: var(--radius-pill);
+  background: var(--b-ffffff);
+  box-shadow: var(--shadow-card);
+  color: var(--po-accent);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+}
+.po-soon-overlay small {
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+/* The question a card asks when clicked, in the question colour. */
+.po-capability-question {
+  align-self: flex-start;
+  padding: 6px 10px;
+  border: 1px solid var(--q-border);
+  border-radius: var(--radius-md);
+  background: var(--q-bg);
+  color: var(--q-fg);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.po-capability-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--t-08784e);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.po-capability:hover .po-capability-open {
+  text-decoration: underline;
+}

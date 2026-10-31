@@ -1,0 +1,79 @@
+/* Section label above a title: one style everywhere (sentence case, brand green). */
+.eyebrow {
+  margin: 0 0 8px;
+  color: var(--t-08784e);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+}
+.page-heading h1 {
+  margin: 0 0 3px;
+  font-size: var(--fs-2xl);
+  line-height: var(--lh-tight);
+  letter-spacing: -0.5px;
+  font-weight: var(--fw-bold);
+}
+.page-description {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+}
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--b-ffffff);
+  box-shadow: var(--shadow-card);
+}
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(285px, 1fr);
+  gap: 17px;
+  align-items: start;
+}
+.area-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding: 20px;
+}
+.area-card {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.area-icon {
+  width: 37px;
+  height: 37px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--b-e9f6eb);
+  color: var(--t-288653);
+}
+.area-card h3 {
+  margin: 1px 0 6px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.area-card p {
+  min-height: 34px;
+  margin: 0 0 9px;
+  color: var(--t-74847a);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+}
+.area-card span {
+  color: var(--t-1c7650);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+}
+.area-note {
+  margin: 0;
+  padding: 0 20px 20px;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+}

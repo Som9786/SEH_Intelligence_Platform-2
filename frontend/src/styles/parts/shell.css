@@ -1,0 +1,281 @@
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+/* The sidebar and login screen are dark in both themes, so focus always uses the light-on-dark colours. */
+.sidebar,
+.auth-page {
+  --focus-field-border: #6fcfa6;
+  --focus-field-glow: 0 0 0 3px rgba(111, 207, 166, 0.22);
+}
+.sidebar {
+  width: 300px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: var(--b-102e28);
+  color: var(--t-d8e8df);
+  transition: width 0.2s ease;
+}
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 24px 19px 14px;
+}
+.brand-logo {
+  flex: none;
+  display: block;
+  user-select: none;
+}
+/* The icon tile is the same dark green as the sidebar and sign-in header, so give it a faint rim there. */
+.sidebar-head .brand-logo,
+.auth-head .brand-logo {
+  border-radius: 23%;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.brand-copy {
+  min-width: 0;
+}
+.brand-copy strong {
+  display: block;
+  color: white;
+  font-size: calc(20px * var(--fs-scale));
+  line-height: var(--lh-tight);
+  letter-spacing: 0;
+}
+.brand-stripe {
+  height: 4px;
+  margin: 6px 20px 15px;
+  display: flex;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+.brand-stripe span:nth-child(1) {
+  flex: 4;
+  background: var(--b-15a668);
+}
+.brand-stripe span:nth-child(2) {
+  flex: 1;
+  background: var(--b-f18825);
+}
+.brand-stripe span:nth-child(3) {
+  flex: 1;
+  background: var(--b-e74646);
+}
+.nav-list {
+  display: grid;
+  align-content: start;
+  gap: 3px;
+  min-height: 0;
+  /* Short windows can still scroll the links, but without a visible scrollbar. */
+  overflow-y: auto;
+  scrollbar-width: none;
+  padding: 0 11px;
+}
+.nav-list::-webkit-scrollbar {
+  display: none;
+}
+.nav-link {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 13px;
+  border-radius: var(--radius-md);
+  font-size: calc(15px * var(--fs-scale));
+  font-weight: var(--fw-semibold);
+  color: var(--t-acd1ba);
+}
+.nav-link:hover {
+  background: var(--b-22473b);
+  color: white;
+}
+.nav-link.active {
+  background: var(--b-265644);
+  color: white;
+  box-shadow: inset 3px 0 0 var(--brand-accent);
+}
+.nav-link svg {
+  flex: none;
+}
+/* Sidebar sections: a small caps heading over each group of links. */
+.nav-section {
+  display: grid;
+  gap: 3px;
+}
+.nav-section + .nav-section {
+  margin-top: 12px;
+}
+.nav-section-label {
+  margin: 0;
+  padding: 4px 13px 2px;
+  color: var(--t-85a79b);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* Capabilities are numbered instead of using an icon. */
+.nav-number {
+  flex: none;
+  width: 20px;
+  color: var(--brand-accent);
+  font-size: calc(14px * var(--fs-scale));
+  font-weight: var(--fw-bold);
+  text-align: center;
+}
+.nav-text {
+  white-space: nowrap;
+}
+.nav-soon {
+  margin-left: auto;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--b-265644);
+  color: var(--t-acd1ba);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-bold);
+}
+.is-collapsed .nav-soon {
+  display: none;
+}
+/* Pages that are not built yet are dimmed so the working ones stand out. */
+.nav-link.is-soon:not(.active) {
+  color: var(--t-85a79b);
+}
+.nav-link.is-soon:not(.active) .nav-number {
+  opacity: 0.7;
+}
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 14px 17px 20px;
+  border-top: 1px solid var(--l-2c493f);
+}
+.collapse-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  color: var(--t-acd1ba);
+  background: none;
+  border: 0;
+  text-align: left;
+  font-size: var(--fs-sm);
+}
+.collapse-button:hover {
+  color: white;
+}
+.is-collapsed .sidebar {
+  width: 76px;
+}
+.is-collapsed .brand-copy,
+.is-collapsed .nav-text {
+  display: none;
+}
+/* Collapsed, a section heading becomes a thin divider. */
+.is-collapsed .nav-section-label {
+  height: 1px;
+  margin: 4px 10px;
+  padding: 0;
+  overflow: hidden;
+  color: transparent;
+  background: var(--l-2c493f);
+}
+.is-collapsed .brand-stripe {
+  margin-inline: 13px;
+}
+.is-collapsed .nav-link {
+  justify-content: center;
+}
+.is-collapsed .sidebar-bottom {
+  padding-inline: 19px;
+}
+.is-collapsed .collapse-button {
+  justify-content: center;
+}
+.main-column {
+  flex: 1;
+  min-width: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 28px;
+  background: var(--b-ffffff);
+  border-bottom: 1px solid var(--line);
+}
+.breadcrumb {
+  flex: 1;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+  font-size: var(--fs-md);
+  line-height: var(--lh-base);
+  color: var(--t-5f7268);
+}
+.breadcrumb strong {
+  color: var(--t-172a24);
+  font-weight: var(--fw-semibold);
+}
+.breadcrumb a:hover {
+  color: var(--t-08784e);
+  text-decoration: underline;
+}
+.theme-toggle {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+  color: var(--t-3f5449);
+}
+.theme-toggle:hover {
+  background: var(--b-eaf5ee);
+  color: var(--t-08784e);
+}
+.menu-button,
+.mobile-close {
+  display: none;
+}
+.icon-button {
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+  color: var(--t-355544);
+}
+#main-content {
+  flex: 1 0 auto;
+}
+.page-content {
+  /* Pages use the full width beside the sidebar. */
+  margin: 0 auto;
+  padding: 20px 28px;
+}
+.page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}

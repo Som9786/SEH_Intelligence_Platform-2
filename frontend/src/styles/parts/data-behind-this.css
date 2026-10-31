@@ -1,0 +1,164 @@
+/* Data behind this: what an answer is based on, in a panel on the right. */
+.dbt-scrim {
+  position: fixed;
+  z-index: 44;
+  inset: 0;
+  border: 0;
+  background: #071c1640;
+  cursor: default;
+}
+.dbt-flyout {
+  position: fixed;
+  z-index: 45;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(440px, 100vw);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--line);
+  background: var(--b-ffffff);
+  color: var(--t-172a24);
+  box-shadow: -15px 0 30px #102e2826;
+  animation: tf-slide-in 0.18s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dbt-flyout {
+    animation: none;
+  }
+}
+.dbt-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 24px 16px;
+}
+.dbt-subtitle {
+  margin: 6px 0 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.dbt-head h2 {
+  margin: 6px 0 0;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+}
+.dbt-body {
+  display: grid;
+  align-content: start;
+  gap: 20px;
+  padding: 0 24px 24px;
+  overflow-y: auto;
+}
+/* In the panel, tables grow with their rows and scroll with the panel: one scrollbar, not two. */
+.dbt-body .ia-table-scroll {
+  max-height: none;
+  overflow-y: visible;
+}
+.dbt-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0;
+  border-top: 2px solid var(--t-172a24);
+  border-bottom: 1px solid var(--line);
+}
+.dbt-stats > div {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 12px 12px 12px 0;
+}
+.dbt-stats > div + div {
+  padding-left: 12px;
+  border-left: 1px solid var(--line);
+}
+.dbt-stats dt {
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.dbt-stats dd {
+  margin: 0;
+  font-size: var(--fs-2xl);
+  font-weight: var(--fw-bold);
+  font-variant-numeric: tabular-nums;
+}
+.dbt-section {
+  display: grid;
+  gap: 8px;
+}
+.dbt-chips {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dbt-chips a {
+  color: inherit;
+}
+.dbt-text {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.dbt-strong {
+  margin: 0;
+  font-size: var(--fs-md);
+}
+.dbt-defs {
+  margin: 0;
+}
+.dbt-defs > div {
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.dbt-defs dt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  font-weight: var(--fw-semibold);
+  overflow-wrap: anywhere;
+}
+.dbt-defs code {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.dbt-defs dd {
+  margin: 2px 0 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.dbt-evidence {
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--success-bg);
+  color: var(--success-fg);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  text-transform: capitalize;
+}
+.dbt-evidence.is-inferred {
+  background: var(--b-fff1e2);
+  color: var(--t-8a3f06);
+}
+.dbt-rules {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding-left: 20px;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.dbt-rules .dbt-evidence {
+  margin-left: 6px;
+}
+.dbt-note {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--b-f6faf8);
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}

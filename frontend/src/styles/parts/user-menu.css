@@ -1,0 +1,40 @@
+/* Signed-in user in the top bar */
+.user-box {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px 0 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--b-ffffff);
+  color: var(--t-172a24);
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+}
+.user-avatar {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--b-102e28);
+  color: var(--on-brand);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0;
+}
+@media (max-width: 700px) {
+  .user-name {
+    display: none;
+  }
+  .user-chip {
+    padding: 0 5px;
+  }
+}

@@ -3,7 +3,12 @@ import {
   type RelationshipIndex,
 } from '../../../features/db-catalog/table-details/utils/relationshipGraph';
 import { isFileNotFound } from '../fileDataService';
-import { loadCatalog, loadRelationships, loadTableFile, type CatalogRelationship } from '../snapshot';
+import {
+  loadCatalog,
+  loadRelationships,
+  loadTableFile,
+  type CatalogRelationship,
+} from '../snapshot';
 
 export interface RelationshipGraphService {
   getRelationshipIndex(): Promise<RelationshipIndex>;
@@ -27,7 +32,11 @@ async function build(): Promise<RelationshipIndex> {
     }),
   ]);
   return buildRelationshipIndex(
-    tables.map((t) => ({ id: t.id, primaryKey: t.primaryKey, relationships: t.relationships })),
+    tables.map((t) => ({
+      id: t.id,
+      primaryKey: t.primaryKey,
+      relationships: t.relationships,
+    })),
     global,
   );
 }

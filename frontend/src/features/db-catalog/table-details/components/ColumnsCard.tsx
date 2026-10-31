@@ -76,7 +76,11 @@ export function ColumnsCard({
                     (row.descriptionInferred ? ' inferred' : '')
                   }
                 >
-                  {row.description ?? ''}
+                  {/* The text in its own box, so an inferred one's bar is only as tall as the
+                      text and doesn't join the next row's into one line. */}
+                  <span className="td-col-description-text">
+                    {row.description ?? ''}
+                  </span>
                 </td>
               </tr>
             ))}

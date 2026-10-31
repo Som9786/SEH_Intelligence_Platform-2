@@ -1,0 +1,114 @@
+/* Typography base rules */
+small {
+  /* The browser default shrinks "small" to 80% of its parent (8px in the sidebar); use the label step. */
+  font-size: var(--fs-xs);
+}
+.table-markdown h3 {
+  margin: 18px 0 6px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  color: var(--t-172a24);
+}
+.table-markdown h4 {
+  margin: 14px 0 4px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  color: var(--t-172a24);
+}
+/* Phones: fields under 16px make iPhones zoom the page on focus. */
+@media (max-width: 700px) {
+  /* :is() takes the specificity of its most specific part, so this beats rules like '.rv-field textarea'. */
+  :is(input:not([type='checkbox']):not([type='radio']), textarea, select) {
+    font-size: calc(16px * var(--fs-scale));
+  }
+  .page-heading h1,
+  .td-title-row h2 {
+    font-size: var(--fs-xl);
+  }
+}
+
+/* Key indicators: PK = green key, FK = blue link, Identity = grey. One badge style everywhere. */
+.key-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.key-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px 3px 7px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-base);
+  white-space: nowrap;
+  cursor: help;
+}
+.key-badge svg {
+  flex: none;
+}
+.key-badge-pk {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+.key-badge-fk {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+.key-badge-identity {
+  background: var(--neutral-bg);
+  color: var(--neutral-fg);
+}
+.key-badge-icon {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  justify-content: center;
+}
+/* Inferred keys are orange, like all inferred content. */
+.key-badge.key-badge-inferred {
+  background: var(--inferred-bg);
+  color: var(--inferred-fg);
+}
+/* Tooltip for the badges: fixed-positioned so a table's scroll area cannot clip it. */
+.key-tip {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 190px;
+  padding: 9px 12px;
+  border: 1px solid #2c493f;
+  border-radius: var(--radius-md);
+  background: var(--b-102e28);
+  color: #d8e8df;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-regular);
+  line-height: var(--lh-base);
+  text-align: left;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.key-tip strong {
+  color: var(--on-brand);
+  font-size: var(--fs-sm);
+}
+/* Column pairs in relationship views: FK icon on the referencing side, PK icon on the referenced side. */
+.rel-columns {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.rel-columns .key-badge {
+  padding: 1px 7px 1px 5px;
+}
+/* "Confirmed" evidence pill: green, independent of the FK colour. */
+.td-chip-confirmed {
+  background: var(--success-bg);
+  color: var(--success-fg);
+}

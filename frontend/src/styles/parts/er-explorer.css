@@ -1,0 +1,452 @@
+/* ER explorer */
+.er-explorer {
+  --er-confirmed: #08784e;
+  --er-inferred: #9a500c;
+  display: grid;
+  gap: 16px;
+}
+:root[data-theme='dark'] .er-explorer {
+  --er-confirmed: #34c38a;
+  --er-inferred: #f0a04b;
+}
+.er-workspace {
+  padding: 0;
+  overflow: hidden;
+}
+.er-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.er-toolbar-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.td-tool-button svg {
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+.er-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.er-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.er-track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: var(--line-strong);
+  transition: background 0.15s ease;
+}
+.er-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--on-brand);
+  transition: transform 0.15s ease;
+}
+.er-switch input:checked + .er-track {
+  background: var(--er-confirmed);
+}
+.er-switch input:checked + .er-track::after {
+  transform: translateX(14px);
+}
+.er-switch input:focus-visible + .er-track {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+.er-content {
+  min-height: 620px;
+}
+.er-stage {
+  min-width: 0;
+}
+.diagram-legend {
+  --er-confirmed: #08784e;
+  --er-inferred: #9a500c;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--b-f7faf8);
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+:root[data-theme='dark'] .diagram-legend {
+  --er-confirmed: #34c38a;
+  --er-inferred: #f0a04b;
+}
+.diagram-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.diagram-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-line {
+  width: 24px;
+  border-top: 2px solid var(--er-confirmed);
+}
+.legend-line-inferred {
+  border-top: 2px dashed var(--er-inferred);
+}
+.er-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+/* Same pill as the zoom controls on the Table Details diagram. */
+.er-zoom {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--toolbar-bg);
+}
+.er-zoom .icon-button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--t-3f5449);
+}
+.er-zoom .icon-button:hover:not(:disabled) {
+  background: var(--b-eef3ef);
+  color: var(--t-08784e);
+}
+.er-zoom .icon-button:disabled {
+  opacity: 0.4;
+}
+.er-zoom-value {
+  min-width: 42px;
+  text-align: center;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+}
+.er-plot {
+  position: relative;
+  height: 580px;
+  overflow: auto;
+  background-color: var(--b-fbfdfc);
+  background-image: radial-gradient(var(--line) 0.8px, transparent 0.8px);
+  background-size: 19px 19px;
+}
+.er-shell {
+  position: relative;
+  min-width: 100%;
+}
+.er-board {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+.er-edges {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+.er-edge {
+  fill: none;
+  stroke: var(--er-confirmed);
+  stroke-width: 2.2;
+  transition:
+    opacity 0.15s,
+    stroke-width 0.15s;
+}
+.er-edge-inferred {
+  stroke: var(--er-inferred);
+  stroke-dasharray: 7 6;
+}
+.er-edge.is-live {
+  stroke-width: 3.4;
+}
+.er-edge.is-dim {
+  opacity: 0.12;
+}
+.er-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.er-head {
+  fill: var(--er-confirmed);
+}
+.er-head-inferred {
+  fill: var(--er-inferred);
+}
+.er-card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--b-ffffff);
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition:
+    opacity 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+.er-card:hover {
+  box-shadow: var(--shadow-popover);
+}
+.er-card.is-selected {
+  border-color: var(--er-confirmed);
+  box-shadow:
+    0 0 0 3px rgba(8, 120, 78, 0.2),
+    0 10px 24px rgba(16, 46, 40, 0.12);
+}
+.er-card.is-dim {
+  opacity: 0.2;
+}
+.er-card.is-outside {
+  border-style: dashed;
+}
+.er-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  flex: none;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--b-f1f6f3);
+  color: var(--t-258554);
+}
+.er-card-head > span {
+  flex: 1;
+  min-width: 0;
+  color: var(--t-172a24);
+}
+.er-card-head strong,
+.er-card-head small {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.er-card-head strong {
+  font-size: var(--fs-md);
+}
+.er-card-head small,
+.er-card-head em {
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+  font-style: normal;
+  font-weight: var(--fw-semibold);
+}
+.er-card-head em {
+  flex: none;
+}
+.er-rows {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.er-rows li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: var(--fs-sm);
+}
+.er-row-key {
+  flex: none;
+  display: inline-flex;
+  gap: 3px;
+  min-width: 28px;
+}
+.er-row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.er-row-type {
+  flex: none;
+  color: var(--t-5f7268);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+.er-rows li:last-child {
+  border-bottom: 0;
+}
+.er-rows .er-row-more,
+.er-rows .er-row-empty {
+  height: 26px;
+  border-bottom: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+}
+.er-rows .er-row-empty {
+  height: 30px;
+}
+.key-badge.er-key {
+  padding: 1px 7px 1px 5px;
+  gap: 3px;
+  font-size: var(--fs-xs);
+  line-height: var(--lh-base);
+  cursor: default;
+}
+.er-edge-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 3px 8px;
+  border: 1px solid var(--l-c9e6d4);
+  border-radius: var(--radius-sm);
+  background: var(--b-ffffff);
+  color: var(--er-confirmed);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  white-space: nowrap;
+  box-shadow: var(--shadow-popover);
+  z-index: 2;
+  transition: opacity 0.15s ease;
+}
+.er-edge-label-inferred {
+  border-color: #f0c99c;
+  background: var(--b-fff1e2);
+  color: var(--er-inferred);
+}
+.er-edge-label.is-dim {
+  opacity: 0.15;
+}
+.er-edge-label.is-selected {
+  outline: 2px solid var(--er-confirmed);
+}
+@media (max-width: 900px) {
+  .er-plot {
+    height: 480px;
+  }
+}
+.er-toolbar .td-tool-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.er-toolbar .td-tool-button svg {
+  margin: 0;
+}
+
+/* Download menu in a diagram card header */
+.td-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.download-menu {
+  position: relative;
+}
+.download-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  min-width: 220px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+  box-shadow: var(--shadow-popover);
+}
+.download-menu-list button {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+.download-menu-list button:hover,
+.download-menu-list button:focus-visible {
+  background: var(--b-eaf5ee);
+}
+.download-menu-list strong {
+  font-size: var(--fs-md);
+}
+.download-menu-list small {
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+}
+
+.er-plot-wrap {
+  position: relative;
+}
+/* The small "Tip:" note at the bottom-left of a diagram. */
+.diagram-tip {
+  position: absolute;
+  left: 16px;
+  bottom: 14px;
+  max-width: calc(100% - 32px);
+  margin: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--toolbar-bg);
+  color: var(--t-5f7268);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-base);
+  box-shadow: var(--shadow-popover);
+  pointer-events: none;
+}
+.diagram-tip strong {
+  color: var(--t-172a24);
+}
+
+.rel-columns code {
+  white-space: nowrap;
+}

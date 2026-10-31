@@ -1,0 +1,90 @@
+/* An insight on its own page: the answer, chart and data on the left, its details on the right. */
+.ins-actions {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 760px) {
+  .ins-page .page-heading {
+    flex-wrap: wrap;
+  }
+  .ins-actions {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
+.ins-meta {
+  margin-bottom: 18px;
+}
+.ins-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  background: var(--success-bg);
+  color: var(--success-fg);
+  font-size: var(--fs-sm);
+}
+.ins-notice svg {
+  flex: none;
+}
+.ins-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+  align-items: start;
+  gap: 18px;
+}
+.ins-main,
+.ins-side {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+@media (max-width: 1000px) {
+  .ins-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ins-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px 20px;
+}
+.ins-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ins-panel-head h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
+/* The steps keep their own "How I reached this" label under the panel's heading. */
+.ins-panel .ia-steps {
+  margin-bottom: 0;
+}
+.ins-question {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.ins-note {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-base);
+}
+/* "Data behind this" at the foot of the page, the full width under the columns. */
+.ins-behind {
+  margin-top: 18px;
+}
+.ins-code .sql-code {
+  max-height: 420px;
+}

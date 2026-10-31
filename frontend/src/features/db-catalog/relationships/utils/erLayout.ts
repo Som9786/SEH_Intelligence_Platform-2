@@ -28,6 +28,8 @@ const MORE_HEIGHT = 26;
 const GAP_X = 180;
 const GAP_Y = 56;
 const PAD = 40;
+/** Room past the right edge for the label of a connector that loops back to the same column. */
+const LOOP_LABEL_ROOM = 170;
 /** Columns drawn on a card; key columns come first, the rest is "+N more". */
 export const MAX_ROWS = 6;
 
@@ -175,10 +177,36 @@ export function layoutEr(
     }
   });
 
-  // Tables without relationships go in a grid under the connected ones.
+  // Tables without relationships fill the shortest columns, under their connected cards, so they sit
+  // beside the rest instead of alone below the whole diagram. With nothing connected, they form a grid.
+  if (connected.length) {
+    const bottoms = groups.map(
+      (_, li) => PAD + (tallest - heights[li]) / 2 + heights[li],
+    );
+    for (const t of isolated) {
+      const li = bottoms.indexOf(Math.min(...bottoms));
+      const cols = columns.get(t.id)!;
+      const height = cardHeight(cols);
+      const y = bottoms[li] + GAP_Y * 1.5;
+      cards.push({
+        table: t,
+        columns: cols,
+        x: PAD + li * (CARD_WIDTH + GAP_X),
+        y,
+        width: CARD_WIDTH,
+        height,
+        layer: -1,
+      });
+      bottoms[li] = y + height;
+    }
+  }
   const gridColumns = Math.max(layerCount, 2);
-  let rowTop = PAD + (connected.length ? tallest + GAP_Y * 1.5 : 0);
-  for (let i = 0; i < isolated.length; i += gridColumns) {
+  let rowTop = PAD;
+  for (
+    let i = 0;
+    i < (connected.length ? 0 : isolated.length);
+    i += gridColumns
+  ) {
     const row = isolated.slice(i, i + gridColumns);
     const rowHeight = Math.max(
       ...row.map((t) => cardHeight(columns.get(t.id)!)),
@@ -270,11 +298,15 @@ export function layoutEr(
     const x1 = leftFirst ? a.x + a.width : a.x;
     const x2 = leftFirst ? b.x : b.x + b.width;
     const dx = Math.max(40, Math.abs(x2 - x1) / 2) * (leftFirst ? 1 : -1);
+    // A connector between neighbouring columns has its label in the gap between them. One that
+    // skips a column would put its midpoint on a card there, so its label goes in the gap beside
+    // the source card instead, where the curve still runs level.
+    const skips = Math.abs(x2 - x1) > GAP_X + 1;
     return {
       edge,
       path: `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`,
-      lx: (x1 + x2) / 2,
-      ly: (y1 + y2) / 2,
+      lx: skips ? x1 + (GAP_X / 2) * (leftFirst ? 1 : -1) : (x1 + x2) / 2,
+      ly: skips ? y1 : (y1 + y2) / 2,
     };
   });
 
@@ -288,7 +320,7 @@ export function layoutEr(
   return {
     cards,
     edges: placedEdges,
-    width: right + PAD + (loops ? 60 : 0),
+    width: right + PAD + (loops ? LOOP_LABEL_ROOM : 0),
     height: bottom + PAD,
   };
 }

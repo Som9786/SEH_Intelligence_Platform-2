@@ -14,6 +14,12 @@ export interface Headline {
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+/** "Net sales" → "net sales" inside a sentence, but "EBT share %" keeps its capitals. */
+const lowerFirst = (label: string) =>
+  /^[A-Z]{2,}(\s|$)/.test(label)
+    ? label
+    : label.charAt(0).toLowerCase() + label.slice(1);
+
 /** A category as people say it: weekday numbers (ISO, 1 = Monday) as names, hours as 07:00. */
 function dimensionLabel(value: unknown, column: string): string {
   const n = Number(value);
@@ -26,7 +32,7 @@ function dimensionLabel(value: unknown, column: string): string {
 
 const short = (value: unknown, column: string) =>
   typeof value === 'number' && Math.abs(value) >= 100_000
-    ? formatCompact(value)
+    ? formatCompact(value, column)
     : formatCell(value, column);
 
 /** The answer's first sentence, short enough for a card. */
@@ -53,7 +59,7 @@ export function headlineOf(widget: Widget): Headline {
       valueLabel: 'in the latest answer',
       detail,
     };
-  const label = humanize(measure).toLowerCase();
+  const label = lowerFirst(humanize(measure));
   if (visual.kind === 'kpi' || visual.kind === 'kpis')
     return {
       value: short(visual.rows[0][measure], measure),
@@ -69,16 +75,35 @@ export function headlineOf(widget: Widget): Headline {
       detail,
     };
   }
+  // A ranking: the figure is the top value of the measure the answer is ordered by (the one the
+  // question asked about, such as EBT share), and what it belongs to goes in the label. A store
+  // number is never the headline figure.
+  const ranked = rankedMeasure(visual.rows, visual.measures) ?? measure;
   const top = [...visual.rows].sort(
-    (a, b) => (Number(b[measure]) || 0) - (Number(a[measure]) || 0),
+    (a, b) => (Number(b[ranked]) || 0) - (Number(a[ranked]) || 0),
   )[0];
-  return {
+  const where = result.columns
     // In the answer's own column order (a heatmap reorders its dimensions for layout).
-    value: result.columns
-      .filter((c) => visual.dims.includes(c))
-      .map((d) => dimensionLabel(top[d], d))
-      .join(' · '),
-    valueLabel: `highest ${label} · ${short(top[measure], measure)}`,
+    .filter((c) => visual.dims.includes(c))
+    .map((d) => `${lowerFirst(humanize(d))} ${dimensionLabel(top[d], d)}`)
+    .join(' · ');
+  return {
+    value: short(top[ranked], ranked),
+    valueLabel: `highest ${lowerFirst(humanize(ranked))} · ${where}`,
     detail,
   };
+}
+
+/** The measure the rows are sorted by, high to low (the query's ORDER BY), or undefined when none is. */
+function rankedMeasure(
+  rows: Record<string, unknown>[],
+  measures: string[],
+): string | undefined {
+  if (rows.length < 2) return undefined;
+  return measures.find((m) =>
+    rows.every(
+      (row, i) =>
+        i === 0 || (Number(rows[i - 1][m]) || 0) >= (Number(row[m]) || 0),
+    ),
+  );
 }
