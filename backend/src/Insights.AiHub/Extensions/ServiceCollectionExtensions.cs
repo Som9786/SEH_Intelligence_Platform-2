@@ -30,6 +30,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<LlmClient>();
         services.AddSingleton<SqlGenerationService>();
         services.AddSingleton<AnswerService>();
+        // POST /recommendations: what to do about an answer, asked after it is shown.
+        services.AddSingleton<RecommendationService>();
         // Answers questions about a database's structure for DB Catalog, from the catalog context it sends.
         services.AddSingleton<GuideService>();
 

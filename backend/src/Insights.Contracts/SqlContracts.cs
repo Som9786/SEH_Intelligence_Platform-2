@@ -26,3 +26,26 @@ public sealed record AnswerRequest(string Question, string? Sql, JsonElement Res
 /// Response of POST /answer. Usage is the tokens and cost of the model call; null with Cached = true when the same
 /// question, query and results were answered before.
 public sealed record AnswerResponse(string Answer, LlmUsage? Usage, bool Cached = false);
+
+/// Body of POST /recommendations: the question, the answer shown, and the Analytics /query response it was drawn from.
+/// Baseline is a second query's rows that set the answer's rows against a benchmark (the chain average, the previous
+/// period), or null when there is none. From and To are the first and last business date in the data, and Rules the
+/// business rules for the question, so the model knows what the data covers. Analytics' POST /recommend adds them all.
+public sealed record RecommendationRequest(string Question, string? Answer, JsonElement Results, JsonElement? Baseline = null,
+    string? From = null, string? To = null, IReadOnlyList<string>? Rules = null);
+
+/// One thing to do about an answer: the action, the figures from the results that call for it, the team that would act
+/// on it (one of Owners.All) and how pressing it is ("high", "medium" or "low").
+public sealed record Recommendation(string Action, string Why, string Owner, string Priority);
+
+/// Response of POST /recommendations: up to three actions, most pressing first, or none when the results call for none.
+/// DataNote says what to bear in mind about the data itself (a partial last day, too few days for a trend), kept out of
+/// the actions; null when there is nothing to say. Usage and Cached are as for POST /answer.
+public sealed record RecommendationResponse(
+    IReadOnlyList<Recommendation> Recommendations, string? DataNote = null, LlmUsage? Usage = null, bool Cached = false);
+
+/// The teams a recommendation can be for.
+public static class Owners
+{
+    public static readonly string[] All = ["Merchandising", "Promotions", "Store Operations", "Loss Prevention", "Fuel", "Finance"];
+}

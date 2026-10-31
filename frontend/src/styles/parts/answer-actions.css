@@ -24,6 +24,149 @@
   color: var(--t-5f7268);
   font-size: var(--fs-sm);
 }
+/* Recommended actions: in the answer card, above its actions, one row per action. */
+.ia-recs {
+  display: grid;
+  gap: 8px;
+}
+.ia-recs-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ia-recs ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.ia-rec {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.ia-rec-priority {
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+}
+.ia-rec-priority.is-high {
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+.ia-rec-priority.is-medium {
+  background: var(--inferred-bg);
+  color: var(--inferred-fg);
+}
+.ia-rec-priority.is-low {
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+.ia-rec-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ia-rec-action {
+  margin: 0;
+  font-weight: var(--fw-semibold);
+}
+.ia-rec-why {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.ia-rec-owner {
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+}
+/* While the actions load: the steps, and two rows that stand in for them. */
+.ia-rec-working {
+  font-size: var(--fs-sm);
+}
+.ia-rec-working .spinner {
+  width: 14px;
+  height: 14px;
+}
+.ia-rec-skeleton {
+  display: grid;
+  gap: 8px;
+}
+.ia-rec-skeleton span {
+  height: 52px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--line) 60%, transparent) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: ia-rec-shimmer 1.6s ease-in-out infinite;
+}
+.ia-rec-skeleton span + span {
+  width: 72%;
+}
+@keyframes ia-rec-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ia-rec-skeleton span {
+    animation: none;
+  }
+}
+.ia-rec-none {
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.ia-rec-failed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.ia-rec-failed p {
+  margin: 0;
+  color: var(--danger-fg);
+  font-size: var(--fs-sm);
+}
+/* A note about the data itself, kept apart from the actions. */
+.ia-rec-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  color: var(--t-5f7268);
+  font-size: var(--fs-sm);
+}
+.ia-rec-note svg {
+  flex: none;
+  margin-top: 2px;
+}
+/* Phones: the owner goes under the action. */
+@media (max-width: 560px) {
+  .ia-rec {
+    grid-template-columns: auto 1fr;
+  }
+  .ia-rec-owner {
+    grid-column: 2;
+  }
+}
 /* Ask next: under the answer card, the questions as pill badges. */
 .ia-follow-ups {
   display: grid;

@@ -7,6 +7,7 @@ import { AnswerActions } from '../components/AnswerActions';
 import { AssistantAnswer } from '../components/AssistantAnswer';
 import { ExploreQuestions } from '../components/ExploreQuestions';
 import { FollowUps } from '../components/FollowUps';
+import { Recommendations } from '../components/Recommendations';
 import { useSuggestedQuestions } from '../hooks/useSuggestedQuestions';
 import { useAuth } from '../../auth/useAuth';
 import {
@@ -218,6 +219,9 @@ export function InsightsAssistantPage() {
                         )
                       }
                     />
+                  </ErrorBoundary>
+                  <ErrorBoundary compact>
+                    <Recommendations reply={exchange.reply} />
                   </ErrorBoundary>
                   <AnswerActions
                     reply={exchange.reply}

@@ -167,6 +167,58 @@ export async function loadFollowUps(reply: AssistantReply): Promise<string[]> {
   return questions.slice(0, 3);
 }
 
+/** One thing to do about an answer, suggested by AI Hub from its rows. */
+export interface Recommendation {
+  action: string;
+  /** The figures from the rows that call for it. */
+  why: string;
+  /** The team that would act on it, such as "Merchandising". */
+  owner: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+/** Analytics POST /recommend: what to do about an answer, and a note about the data itself. */
+export interface Recommendations {
+  recommendations: Recommendation[];
+  /** Something to bear in mind about the data, such as a partial last day; null when none. */
+  dataNote: string | null;
+}
+
+/** Fewer rows than this have nothing to compare (a single total), so none are asked for. */
+const MIN_RECOMMENDATION_ROWS = 2;
+
+/** Whether an answer has enough rows to recommend anything from. */
+export function canRecommend(reply: AssistantReply): boolean {
+  return (
+    reply.intent === 'analytics' &&
+    !!reply.result.sql &&
+    (reply.result.result?.rows.length ?? 0) >= MIN_RECOMMENDATION_ROWS
+  );
+}
+
+/**
+ * Up to three actions for an answer about the data, most pressing first. Analytics first sets the
+ * rows against a benchmark (the chain average, the previous period), then AI Hub suggests actions.
+ */
+export async function loadRecommendations(
+  reply: AssistantReply,
+): Promise<Recommendations> {
+  if (reply.intent !== 'analytics' || !canRecommend(reply))
+    return { recommendations: [], dataNote: null };
+  const { recommendations, dataNote } = await apiJson<Recommendations>(
+    'analytics/recommend',
+    {
+      body: {
+        question: reply.question,
+        sql: reply.result.sql,
+        answer: reply.result.answer ?? reply.result.explanation,
+        result: reply.result.result,
+      },
+    },
+  );
+  return { recommendations: recommendations.slice(0, 3), dataNote };
+}
+
 /** The questions each service suggests about itself: the sales data (Analytics) and the database (DB Catalog). */
 export interface SuggestedQuestions {
   data: string[];

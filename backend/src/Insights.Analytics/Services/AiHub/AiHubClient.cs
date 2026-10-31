@@ -22,6 +22,9 @@ public sealed class AiHubClient(AiHubConnection aiHub, KnowledgeModelReader know
     public Task<AnswerResponse> AnswerAsync(AnswerRequest request, CancellationToken ct) =>
         aiHub.SendAsync<AnswerResponse>(HttpMethod.Post, "answer", request, ct);
 
+    public Task<RecommendationResponse> RecommendAsync(RecommendationRequest request, CancellationToken ct) =>
+        aiHub.SendAsync<RecommendationResponse>(HttpMethod.Post, "recommendations", request, ct);
+
     /// Not logged when it succeeds, since the page checks it every 30 seconds.
     public Task<AiHealthResponse> HealthAsync(CancellationToken ct) =>
         aiHub.SendAsync<AiHealthResponse>(HttpMethod.Get, "health", null, ct, log: false);

@@ -48,6 +48,8 @@ public static class ServiceCollectionExtensions
         services.AddAiHubConnection(configuration);
         services.AddSingleton<AiHubClient>();
         services.AddSingleton<AskService>();
+        // POST /recommend: a baseline query, then actions from the AI Hub.
+        services.AddSingleton<RecommendService>();
 
         // Answer ratings, and the example queries saved from them.
         services.AddSingleton<FeedbackStore>();

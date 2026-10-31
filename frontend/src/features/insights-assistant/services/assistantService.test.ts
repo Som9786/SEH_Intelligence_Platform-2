@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   askAssistant,
+  canRecommend,
   interleave,
+  loadRecommendations,
   loadSuggestedQuestions,
   turnOf,
   type AssistantReply,
@@ -73,6 +75,59 @@ describe('assistantService', () => {
       intent: 'db-catalog',
       answer: 'Use `sales.Orders`.',
     });
+  });
+
+  it('asks for recommendations with the rows, only for answers with rows', async () => {
+    const rows = {
+      columns: ['store'],
+      rows: [{ store: 12 }, { store: 31 }],
+      truncated: false,
+    };
+    const reply = (result: typeof rows) =>
+      ({
+        question: 'q',
+        reason: 'r',
+        message: null,
+        board: 'none',
+        intent: 'analytics',
+        service: 'analytics',
+        result: {
+          sql: 'SELECT 1',
+          answer: 'Store 12 leads.',
+          explanation: 'e',
+          result,
+        },
+      }) as unknown as AssistantReply;
+    fetchMock.mockResolvedValue(
+      json(200, {
+        recommendations: [
+          { action: 'a', why: 'w', owner: 'Merchandising', priority: 'high' },
+        ],
+        dataNote: 'Aug 22 is a partial day.',
+      }),
+    );
+    expect(await loadRecommendations(reply(rows))).toEqual({
+      recommendations: [
+        { action: 'a', why: 'w', owner: 'Merchandising', priority: 'high' },
+      ],
+      dataNote: 'Aug 22 is a partial day.',
+    });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/analytics/recommend');
+    expect(JSON.parse(init.body as string)).toEqual({
+      question: 'q',
+      sql: 'SELECT 1',
+      answer: 'Store 12 leads.',
+      result: rows,
+    });
+    // A single row (a total) has nothing to compare, so nothing is asked.
+    const single = reply({ ...rows, rows: [{ store: 12 }] });
+    expect(canRecommend(single)).toBe(false);
+    expect(await loadRecommendations(single)).toEqual({
+      recommendations: [],
+      dataNote: null,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('reads both services’ suggestions, and copes with one being down', async () => {

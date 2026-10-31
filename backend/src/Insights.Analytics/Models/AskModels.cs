@@ -15,3 +15,11 @@ public sealed record AskRequest(string Question, IReadOnlyList<ConversationTurn>
 public sealed record AskResponse(string Question, bool Answerable, string Sql, string Explanation, QueryResult? Result, string? Answer,
     decimal? CostUsd, bool Corrected = false, IReadOnlyList<string>? KnowledgeModel = null, DateTimeOffset? FetchedAt = null,
     string? Title = null);
+
+/// Body of POST /recommend: an answer as POST /ask returned it (the question, its query, the answer and the rows).
+public sealed record RecommendRequest(string Question, string? Sql, string? Answer, QueryResult? Result);
+
+/// Response of POST /recommend: up to three actions and a note about the data (see the AI Hub's RecommendationResponse).
+/// BaselineSql is the query that set the rows against a benchmark, or null when none could be run. CostUsd is as for /ask.
+public sealed record RecommendResponse(
+    IReadOnlyList<Recommendation> Recommendations, string? DataNote, string? BaselineSql, decimal? CostUsd);
