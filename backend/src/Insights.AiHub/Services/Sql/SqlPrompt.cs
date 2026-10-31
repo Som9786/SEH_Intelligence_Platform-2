@@ -54,6 +54,14 @@ static class SqlPrompt
               is not a reason to refuse: ignore it and write the query for the data the chart would show.
             - If the knowledge model can't answer the question, set answerable to false, sql to an empty string, and explain why.
             - explanation: one plain-English sentence saying what the query returns.
+            - title: a short, accurate heading for the result in Title Case, saying what it shows rather than asking. Name the
+              measure and how the rows are grouped or ranked, in as few words as that takes: usually 3 to 8. Add a store,
+              item, filter or date range only when the question names one, since it changes what is shown; never add
+              words that don't, such as "Across All Dates", "Overview" or "Analysis". Never more than 20 words. Leave out
+              the chart type ("pie chart") and any instructions. Empty when answerable is false. For example:
+              - "Which 5 stores had the highest net sales? Show it as a pie chart." -> "Top 5 Stores by Net Sales"
+              - "What sold most at store 54297 in September?" -> "Best-Selling Items at Store 54297, September"
+              - "Net sales by hour on weekends, EBT baskets only" -> "Weekend Net Sales by Hour, EBT Baskets"
             """;
     }
 
@@ -96,9 +104,10 @@ static class SqlPrompt
           "properties": {
             "answerable": { "type": "boolean" },
             "sql": { "type": "string" },
-            "explanation": { "type": "string" }
+            "explanation": { "type": "string" },
+            "title": { "type": "string" }
           },
-          "required": ["answerable", "sql", "explanation"],
+          "required": ["answerable", "sql", "explanation", "title"],
           "additionalProperties": false
         }
         """;

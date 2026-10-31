@@ -55,8 +55,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 /**
  * A shared insight as a report to read or print: no sidebar or top bar, one column from the
- * answer to the data behind it. It leaves out the query and table names; the data it shows is the
- * copy made when it was shared.
+ * title and answer to the data behind it, with when the data was generated and when the link
+ * expires at the foot. It leaves out the question, the query and table names; the data it shows
+ * is the copy made when it was shared.
  */
 export function SharedReport({ share }: { share: SharedInsight }) {
   const { can } = useAuth();
@@ -117,9 +118,6 @@ export function SharedReport({ share }: { share: SharedInsight }) {
       <header className="rp-title">
         <p className="eyebrow">{BOARD_LABEL[share.board]} · Shared insight</p>
         <h1>{share.title}</h1>
-        {share.title !== share.question && (
-          <p className="rp-question">{share.question}</p>
-        )}
         <dl className="rp-meta">
           <div>
             <dt>Shared by</dt>
@@ -127,31 +125,18 @@ export function SharedReport({ share }: { share: SharedInsight }) {
               {share.sharedBy} on {formatWhen(share.sharedAt)}
             </dd>
           </div>
-          {share.fetchedAt && (
-            <div>
-              <dt>Data synced</dt>
-              <dd>{formatWhen(share.fetchedAt)}</dd>
-            </div>
-          )}
-          {share.expiresAt && (
-            <div>
-              <dt>Link expires</dt>
-              <dd>{formatWhen(share.expiresAt)}</dd>
-            </div>
-          )}
         </dl>
+        <div className="rp-summary">
+          {share.answer ? (
+            <Prose markdown={share.answer} />
+          ) : (
+            <p className="ins-note">No written answer was kept.</p>
+          )}
+          {details && share.details && (
+            <Confidence confidence={details.confidence} />
+          )}
+        </div>
       </header>
-
-      <Section title="Answer">
-        {share.answer ? (
-          <Prose markdown={share.answer} />
-        ) : (
-          <p className="ins-note">No written answer was kept.</p>
-        )}
-        {details && share.details && (
-          <Confidence confidence={details.confidence} />
-        )}
-      </Section>
 
       {share.result && charted && (
         <Section title="Chart">
@@ -205,8 +190,21 @@ export function SharedReport({ share }: { share: SharedInsight }) {
       )}
 
       <footer className="rp-footer">
-        A copy of this insight as it was when {share.sharedBy} shared it, from
-        the SEH Intelligence Platform. Later changes to the data aren't shown.
+        <p>
+          {share.fetchedAt && (
+            <>Data generated {formatWhen(share.fetchedAt)}. </>
+          )}
+          {share.expiresAt && (
+            <>
+              This link expires on {formatWhen(share.expiresAt)}; after that it
+              no longer opens.
+            </>
+          )}
+        </p>
+        <p>
+          A copy of this insight as it was when {share.sharedBy} shared it, from
+          the SEH Intelligence Platform. Later changes to the data aren't shown.
+        </p>
       </footer>
     </ReportFrame>
   );

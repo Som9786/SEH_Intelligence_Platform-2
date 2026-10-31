@@ -34,11 +34,15 @@ describe('AssistantAnswer', () => {
             answer: '**Store 12** sold the most.',
             costUsd: 0.0123,
             knowledgeModel: ['Store', 'Net sales'],
+            title: 'Top Stores by Net Sales',
           },
         }}
       />,
     );
     expect(screen.getByText('Routed to · Basket Analysis')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Top Stores by Net Sales' }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('Store 12', { selector: 'strong' }),
     ).toBeInTheDocument();

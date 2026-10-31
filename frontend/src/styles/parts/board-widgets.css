@@ -88,6 +88,24 @@
   font-size: var(--fs-lg);
   font-weight: var(--fw-bold);
 }
+.bw-rename {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 4px;
+}
+.bw-rename input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--b-f7faf8);
+  color: var(--t-172a24);
+  font: inherit;
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
 .bw-status {
   display: flex;
   flex-wrap: wrap;

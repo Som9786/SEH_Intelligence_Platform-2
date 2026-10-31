@@ -1,5 +1,6 @@
-import { Database, Download } from 'lucide-react';
+import { Database, Download, MessageSquare } from 'lucide-react';
 import { useMemo, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import {
   Confidence,
   Prose,
@@ -45,8 +46,9 @@ function Panel({
 
 /**
  * An insight on a page of its own: the answer and how far to trust it, the chart and every row,
- * on the side how it was reached, the data it used and the query that was run, and at the foot
- * the data behind it. Board widgets open here in a new tab; a shared link opens SharedReport.
+ * on the side the question as it was asked (to ask again in Insights Assistant), how it was
+ * reached, the data it used and the query that was run, and at the foot the data behind it.
+ * Board widgets open here in a new tab; a shared link opens SharedReport.
  */
 export function InsightView({
   insight,
@@ -77,7 +79,6 @@ export function InsightView({
       <PageHeading
         eyebrow={BOARD_LABEL[insight.board]}
         title={insight.title}
-        description="The answer, the data behind it and how it was reached."
         badge={<div className="ins-actions">{actions}</div>}
       />
       {insight.fetchedAt && (
@@ -99,10 +100,7 @@ export function InsightView({
 
       <div className="ins-layout">
         <div className="ins-main">
-          <Panel title="Answer">
-            {insight.title !== insight.question && (
-              <p className="ins-question">{insight.question}</p>
-            )}
+          <Panel title="Details">
             {insight.answer ? (
               <Prose markdown={insight.answer} />
             ) : (
@@ -144,6 +142,23 @@ export function InsightView({
         </div>
 
         <aside className="ins-side" aria-label="Answer details">
+          <Panel
+            title="Original question"
+            action={
+              can('insights-assistant') && (
+                <Link
+                  to={`/insights-assistant?${new URLSearchParams({ q: insight.question })}`}
+                  className="td-action"
+                  title="Ask this question again in Insights Assistant, on the latest data"
+                >
+                  <MessageSquare size={15} aria-hidden="true" />
+                  Ask again
+                </Link>
+              )
+            }
+          >
+            <p className="ins-question">{insight.question}</p>
+          </Panel>
           <Panel title="Answer details">
             {insight.details && details ? (
               <Steps steps={details.steps} />

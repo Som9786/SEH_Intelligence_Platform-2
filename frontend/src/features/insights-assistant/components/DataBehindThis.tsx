@@ -247,20 +247,23 @@ export function AnalyticsData({
           <SqlCode sql={result.sql} />
         </Section>
       )}
-      <p className="dbt-note">
-        Live data
-        {result.fetchedAt &&
-          `, synced from the database ${formatWhen(result.fetchedAt)}`}
-        . The numbers come from the query run on{' '}
-        {data?.dialect ?? 'the database'}; the wording is written by OpenAI from
-        those rows.
-        {result.corrected && ' The first query failed and was corrected.'}
-        {result.costUsd === 0
-          ? ' Reused an earlier answer, no OpenAI cost.'
-          : result.costUsd !== null
-            ? ` OpenAI cost about $${result.costUsd.toFixed(4)}.`
-            : ''}
-      </p>
+      {/* A shared report says when its data was generated at its own foot. */}
+      {view !== 'report' && (
+        <p className="dbt-note">
+          Live data
+          {result.fetchedAt &&
+            `, synced from the database ${formatWhen(result.fetchedAt)}`}
+          . The numbers come from the query run on{' '}
+          {data?.dialect ?? 'the database'}; the wording is written by the AI
+          model from those rows.
+          {result.corrected && ' The first query failed and was corrected.'}
+          {result.costUsd === 0
+            ? ' Reused an earlier answer, no AI cost.'
+            : result.costUsd !== null
+              ? ` AI cost about $${result.costUsd.toFixed(4)}.`
+              : ''}
+        </p>
+      )}
     </>
   );
 }

@@ -72,8 +72,8 @@
 }
 .ins-question {
   margin: 0;
-  color: var(--t-5f7268);
-  font-size: var(--fs-sm);
+  color: var(--t-172a24);
+  line-height: var(--lh-long);
 }
 .ins-note {
   margin: 0;

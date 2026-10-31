@@ -24,6 +24,8 @@ export interface AnalyticsResult {
   knowledgeModel?: string[] | null;
   /** When the rows were read from the database. */
   fetchedAt?: string | null;
+  /** A short heading for the result, such as "Top 5 Stores by Net Sales"; null when the AI gave none. */
+  title?: string | null;
 }
 
 /** One join between two tables, as the DB Catalog catalog describes it. */

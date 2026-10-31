@@ -37,6 +37,7 @@ const REPLY: AssistantReply = {
     },
     answer: 'Store 12 led.',
     costUsd: 0.001,
+    title: 'Top 5 Stores by Net Sales',
   },
 };
 
@@ -142,6 +143,7 @@ describe('AnswerActions', () => {
     expect(url).toBe('/api/workspace/widgets');
     expect(JSON.parse(init.body as string)).toMatchObject({
       board: 'basket-intelligence',
+      title: 'Top 5 Stores by Net Sales',
       question: REPLY.question,
       answer: 'Store 12 led.',
     });

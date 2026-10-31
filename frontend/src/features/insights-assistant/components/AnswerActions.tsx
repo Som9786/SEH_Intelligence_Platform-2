@@ -146,6 +146,7 @@ export function AnswerActions({
             onClick={() =>
               add.mutate({
                 board,
+                title: result.title ?? null,
                 question: reply.question,
                 answer: result.answer,
                 result: result.result,

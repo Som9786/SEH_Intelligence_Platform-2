@@ -11,5 +11,7 @@ public sealed record AskRequest(string Question, IReadOnlyList<ConversationTurn>
 /// CostUsd is the model cost of the question's model calls (0 when all were cached), or null when a call's cost is unknown.
 /// Corrected is true when the database rejected the first query and the AI wrote this one to fix it.
 /// FetchedAt is when the query's rows were read from the database (null when no query ran).
+/// Title is the AI's short heading for the result, such as "Top 5 Stores by Net Sales" (null when it gave none).
 public sealed record AskResponse(string Question, bool Answerable, string Sql, string Explanation, QueryResult? Result, string? Answer,
-    decimal? CostUsd, bool Corrected = false, IReadOnlyList<string>? KnowledgeModel = null, DateTimeOffset? FetchedAt = null);
+    decimal? CostUsd, bool Corrected = false, IReadOnlyList<string>? KnowledgeModel = null, DateTimeOffset? FetchedAt = null,
+    string? Title = null);

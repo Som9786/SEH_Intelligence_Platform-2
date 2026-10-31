@@ -8,6 +8,8 @@ namespace Insights.Gateway.Workspace;
 public static class WorkspaceEndpoints
 {
     const int MaxWidgetRows = 500;
+    /// The longest heading a widget keeps.
+    const int MaxTitle = 200;
 
     public static IServiceCollection AddWorkspace(this IServiceCollection services)
     {
@@ -108,7 +110,7 @@ public static class WorkspaceEndpoints
             if (ChartProblem(input.Chart) is { } badChart)
                 return Invalid(badChart);
             var title = string.IsNullOrWhiteSpace(input.Title) ? input.Question.Trim() : input.Title.Trim();
-            var widget = new Widget(Guid.NewGuid().ToString("n"), input.Board, title.Length > 160 ? title[..160] : title,
+            var widget = new Widget(Guid.NewGuid().ToString("n"), input.Board, title.Length > MaxTitle ? title[..MaxTitle] : title,
                 input.Question.Trim(), input.Answer, input.Result, DateTimeOffset.Now, input.FetchedAt, input.Details, input.Chart);
             await store.ChangeAsync(UserOf(context), w => { w.Widgets.Add(widget); return true; }, ct);
             return Results.Created($"/api/workspace/widgets/{widget.Id}", widget);
@@ -129,6 +131,22 @@ public static class WorkspaceEndpoints
                     Answer = input.Answer, Result = input.Result, FetchedAt = input.FetchedAt ?? DateTimeOffset.Now,
                     Details = input.Details ?? w.Widgets[index].Details,
                 };
+                return w.Widgets[index];
+            }, ct);
+            return updated is null ? NotFound("widget") : Results.Ok(updated);
+        });
+
+        // Rename: the heading shown on the card. The question it asks again on refresh stays the same.
+        group.MapPut("/widgets/{id}/title", async (string id, WidgetRename input, HttpContext context, WorkspaceStore store, CancellationToken ct) =>
+        {
+            if (string.IsNullOrWhiteSpace(input.Title) || input.Title.Trim().Length > MaxTitle)
+                return Invalid($"'title' is required, up to {MaxTitle} characters.");
+            var updated = await store.ChangeAsync(UserOf(context), w =>
+            {
+                var index = w.Widgets.FindIndex(x => x.Id == id);
+                if (index < 0)
+                    return null;
+                w.Widgets[index] = w.Widgets[index] with { Title = input.Title.Trim() };
                 return w.Widgets[index];
             }, ct);
             return updated is null ? NotFound("widget") : Results.Ok(updated);

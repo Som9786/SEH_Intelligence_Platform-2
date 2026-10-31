@@ -43,7 +43,7 @@ public sealed class SqlGenerationService(LlmClient llm, ResponseCache<SqlRespons
         messages.Add(LlmMessage.User(history.Count == 0 ? question : WithEarlier(history, question)));
         if (fixing)
         {
-            messages.Add(LlmMessage.Assistant(Reply(true, request.FailedSql!, "")));
+            messages.Add(LlmMessage.Assistant(Reply(true, request.FailedSql!, "", "")));
             messages.Add(LlmMessage.User($"""
                 {dialect} rejected that query with this error:
                 {request.Error}
@@ -94,6 +94,6 @@ public sealed class SqlGenerationService(LlmClient llm, ResponseCache<SqlRespons
     }
 
     /// A reply in the model's own JSON format, so a query to correct reads like its past answer.
-    static string Reply(bool answerable, string sql, string explanation) =>
-        JsonSerializer.Serialize(new { answerable, sql, explanation });
+    static string Reply(bool answerable, string sql, string explanation, string title) =>
+        JsonSerializer.Serialize(new { answerable, sql, explanation, title });
 }

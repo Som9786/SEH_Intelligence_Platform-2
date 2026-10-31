@@ -2,14 +2,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
 import {
   CalendarClock,
+  Check,
   Database,
   ExternalLink,
   GripVertical,
   LayoutDashboard,
   MessageSquare,
+  Pencil,
   RefreshCw,
   Share2,
   Trash2,
+  X,
 } from 'lucide-react';
 import { Link } from 'react-router';
 import { Prose } from '../../insights-assistant/components/AssistantAnswer';
@@ -29,6 +32,7 @@ import {
   listSchedules,
   listWidgets,
   refreshWidget,
+  renameWidget,
   reorderWidgets,
   widgetPagePath,
   type Board,
@@ -277,9 +281,12 @@ export function BoardWidgets({ board }: { board: Board }) {
   );
 }
 
+/** The longest heading a widget keeps (MaxTitle in the gateway's WorkspaceEndpoints). */
+const MAX_TITLE = 200;
+
 /**
- * One widget, with a grip to move it and buttons to schedule it, refresh its data from the
- * database and remove it.
+ * One widget, with a grip to move it and buttons to rename it, schedule it, refresh its data
+ * from the database and remove it.
  */
 function WidgetCard({
   widget,
@@ -297,14 +304,36 @@ function WidgetCard({
   onRemove: () => void;
 }) {
   const queryClient = useQueryClient();
+  const keep = (updated: Widget) =>
+    queryClient.setQueryData<Widget[]>(
+      ['workspace', 'widgets', widget.board],
+      (all) => all?.map((w) => (w.id === updated.id ? updated : w)),
+    );
   const refresh = useMutation({
     mutationFn: () => refreshWidget(widget),
-    onSuccess: (updated) =>
-      queryClient.setQueryData<Widget[]>(
-        ['workspace', 'widgets', widget.board],
-        (all) => all?.map((w) => (w.id === updated.id ? updated : w)),
-      ),
+    onSuccess: keep,
   });
+
+  // Renaming: the heading becomes a text field until it is saved or cancelled.
+  const [draft, setDraft] = useState<string | null>(null);
+  const rename = useMutation({
+    mutationFn: (title: string) => renameWidget(widget, title),
+    onSuccess: (updated) => {
+      keep(updated);
+      setDraft(null);
+    },
+  });
+  const saveTitle = () => {
+    const title = draft?.trim();
+    if (!title || title === widget.title) {
+      setDraft(null);
+      rename.reset();
+    } else rename.mutate(title);
+  };
+  const cancelRename = () => {
+    setDraft(null);
+    rename.reset();
+  };
 
   const chart = asChart(widget.chart);
 
@@ -372,10 +401,68 @@ function WidgetCard({
           <GripVertical size={16} aria-hidden="true" />
         </button>
         <div className="bw-title">
-          <h3>{widget.title}</h3>
+          {draft === null ? (
+            <h3 title={`Question: ${widget.question}`}>{widget.title}</h3>
+          ) : (
+            <form
+              className="bw-rename"
+              onSubmit={(e) => {
+                e.preventDefault();
+                saveTitle();
+              }}
+            >
+              <input
+                type="text"
+                aria-label="Widget title"
+                value={draft}
+                maxLength={MAX_TITLE}
+                autoFocus
+                disabled={rename.isPending}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') cancelRename();
+                }}
+              />
+              <button
+                type="submit"
+                className="td-action"
+                aria-label="Save title"
+                title="Save"
+                disabled={rename.isPending || !draft.trim()}
+              >
+                <Check size={15} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="td-action"
+                aria-label="Cancel renaming"
+                title="Cancel"
+                disabled={rename.isPending}
+                onClick={cancelRename}
+              >
+                <X size={15} aria-hidden="true" />
+              </button>
+            </form>
+          )}
+          {rename.error && (
+            <p className="ia-error" role="alert">
+              Couldn't rename: {rename.error.message}
+            </p>
+          )}
           <DataStatus widget={widget} />
         </div>
         <div className="bw-buttons">
+          {draft === null && (
+            <button
+              type="button"
+              className="td-action"
+              aria-label={`Rename ${widget.title}`}
+              title="Rename: change the heading on this widget"
+              onClick={() => setDraft(widget.title)}
+            >
+              <Pencil size={15} aria-hidden="true" />
+            </button>
+          )}
           <a
             className="td-action"
             href={widgetPagePath(widget)}

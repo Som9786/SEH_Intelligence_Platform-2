@@ -45,9 +45,11 @@
   line-height: var(--lh-tight);
   letter-spacing: -0.5px;
 }
-.rp-question {
-  margin: 0 0 6px;
-  color: var(--t-5f7268);
+/* The answer under the title, as the report's description, with how far to trust it. */
+.rp-summary {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
 }
 .rp-meta {
   display: flex;
@@ -94,6 +96,9 @@
   color: var(--t-5f7268);
   font-size: var(--fs-sm);
   text-align: center;
+}
+.rp-footer p {
+  margin: 0 0 4px;
 }
 .rp-page .state-panel {
   margin-top: 40px;

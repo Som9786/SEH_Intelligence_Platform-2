@@ -538,6 +538,12 @@
 .ia-route {
   color: var(--t-08784e);
 }
+.ia-answer-title {
+  margin: 0;
+  color: var(--t-172a24);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+}
 .ia-summary {
   margin: 0;
   color: var(--t-172a24);

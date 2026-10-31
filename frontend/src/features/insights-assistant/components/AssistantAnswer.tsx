@@ -91,6 +91,10 @@ export function AssistantAnswer({
   return (
     <div className="ia-answer">
       <p className="ia-route">Routed to · {SERVICE_LABEL[reply.service]}</p>
+      {details && reply.intent === 'analytics' && reply.result.title && (
+        // The heading the answer gets as a widget on a board.
+        <h2 className="ia-answer-title">{reply.result.title}</h2>
+      )}
       {!details ? (
         // Analytics can't answer from the data: say why.
         <p className="ia-summary">

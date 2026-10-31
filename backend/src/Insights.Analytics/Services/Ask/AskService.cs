@@ -48,7 +48,8 @@ public sealed class AskService(AiHubClient ai, SqlQueryService queryService, ILo
         if (!request.Explain)
         {
             logger.LogInformation("Ask finished in {Ms} ms with {Rows} rows, not explained (explain = false)", timer.ElapsedMilliseconds, result.Rows.Count);
-            return new(question, true, generated.Sql, generated.Explanation, result, null, Cost(usages, generated.Cached), corrected, generated.KnowledgeModel, fetchedAt);
+            return new(question, true, generated.Sql, generated.Explanation, result, null, Cost(usages, generated.Cached), corrected, generated.KnowledgeModel, fetchedAt,
+                TitleOf(generated));
         }
 
         logger.LogInformation("Ask step 3/3: asking the AI Hub to explain {Rows} rows", result.Rows.Count);
@@ -57,8 +58,12 @@ public sealed class AskService(AiHubClient ai, SqlQueryService queryService, ILo
         usages.Add(answer.Usage);
         logger.LogInformation("Ask finished in {Ms} ms", timer.ElapsedMilliseconds);
         return new(question, true, generated.Sql, generated.Explanation, result, answer.Answer,
-            Cost(usages, generated.Cached && answer.Cached), corrected, generated.KnowledgeModel, fetchedAt);
+            Cost(usages, generated.Cached && answer.Cached), corrected, generated.KnowledgeModel, fetchedAt, TitleOf(generated));
     }
+
+    /// The AI's heading for the result, or null when it gave none (a reply cached before headings were asked for).
+    static string? TitleOf(SqlResponse generated) =>
+        string.IsNullOrWhiteSpace(generated.Title) ? null : generated.Title.Trim();
 
     /// The history comes from the client, so an earlier query the guard would refuse to run isn't shown to the AI as an
     /// example to build on: that turn is left out.

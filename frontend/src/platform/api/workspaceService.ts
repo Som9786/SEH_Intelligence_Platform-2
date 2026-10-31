@@ -139,6 +139,8 @@ export const getWidget = (id: string) =>
 
 export const addWidget = (widget: {
   board: Board;
+  /** The heading on the card; the question when null. */
+  title: string | null;
   question: string;
   answer: string | null;
   result: AnalyticsResult['result'];
@@ -146,6 +148,13 @@ export const addWidget = (widget: {
   details: WidgetDetails;
   chart: ChartKind | null;
 }) => apiJson<Widget>('workspace/widgets', { body: widget });
+
+/** Renames a widget: the heading on its card. The question it asks again stays the same. */
+export const renameWidget = (widget: Pick<Widget, 'id'>, title: string) =>
+  apiJson<Widget>(`workspace/widgets/${encodeURIComponent(widget.id)}/title`, {
+    method: 'PUT',
+    body: { title },
+  });
 
 /** Shares a copy of the widget as it is now; the link opens it for anyone signed in. */
 export const shareWidget = (widget: Pick<Widget, 'id'>) =>

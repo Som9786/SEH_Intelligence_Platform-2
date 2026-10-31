@@ -12,12 +12,13 @@ public sealed record SqlRequest(string Question, JsonElement? Context = null, IR
 /// One earlier question and the query that answered it.
 public sealed record ConversationTurn(string Question, string Sql);
 
-/// Response of POST /sql. When Answerable is false, Sql is empty and Explanation says why.
+/// Response of POST /sql. When Answerable is false, Sql is empty and Explanation says why. Title is a short heading for
+/// the result, such as "Top 5 Stores by Net Sales" (null in replies cached before it was asked for).
 /// Usage is the tokens and cost of the model call, and Cached is true when the query was reused without calling the model
 /// (Usage is then null). KnowledgeModel names the concepts and metrics the model was given. None of these three is part of
 /// the model's own reply.
 public sealed record SqlResponse(bool Answerable, string Sql, string Explanation, LlmUsage? Usage = null, bool Cached = false,
-    IReadOnlyList<string>? KnowledgeModel = null);
+    IReadOnlyList<string>? KnowledgeModel = null, string? Title = null);
 
 /// Body of POST /answer. Results is Analytics' /query response, passed through as raw JSON.
 public sealed record AnswerRequest(string Question, string? Sql, JsonElement Results);

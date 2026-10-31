@@ -61,6 +61,9 @@ public sealed record WidgetInput(
 /// Body of PUT /widgets/{id}: the question answered again.
 public sealed record WidgetRefresh(string? Answer, JsonElement? Result, DateTimeOffset? FetchedAt, AnswerDetails? Details = null);
 
+/// Body of PUT /widgets/{id}/title: the heading the user gave the widget.
+public sealed record WidgetRename(string? Title);
+
 /// An insight shared by link: a copy of a widget as it was when shared, which anyone signed in can open until ExpiresAt.
 /// Later refreshes or removing the widget don't change it. The query isn't copied (Details.Sql is null): a shared
 /// report shows the answer and data, not how the database is built.
