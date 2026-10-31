@@ -105,10 +105,13 @@ export const routes = [
     element: DataCatalogPage,
   },
   {
+    // Not in the sidebar: opened from Basket Intelligence's "Scheduled insights" button, so the
+    // sidebar keeps Basket Intelligence selected and the breadcrumb shows it as the parent.
     path: '/scheduled-insights',
     label: 'Scheduled Insights',
     feature: 'scheduled-insights',
-    section: 'platform',
+    section: null,
+    parent: '/basket-intelligence',
     icon: Clock,
     element: ScheduledInsightsPage,
   },

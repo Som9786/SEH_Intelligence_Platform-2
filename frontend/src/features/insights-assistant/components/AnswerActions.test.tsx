@@ -61,15 +61,12 @@ const show = (reply: AssistantReply) =>
   );
 
 describe('AnswerActions', () => {
-  it('offers the data behind the answer, to schedule the question and to add the answer to its board', () => {
+  // "Schedule this" is off on answers for now (SCHEDULE_FROM_ANSWERS): questions are scheduled from their widget.
+  it('offers the data behind the answer and to add the answer to its board', () => {
     show(REPLY);
     expect(
       screen.getAllByRole('button').map((button) => button.textContent?.trim()),
-    ).toEqual([
-      'Data behind this',
-      'Schedule this',
-      'Add to Basket Intelligence',
-    ]);
+    ).toEqual(['Data behind this', 'Add to Basket Intelligence']);
   });
 
   it('opens Data behind this with the reason, the rows (no chart) and query', () => {
@@ -150,7 +147,8 @@ describe('AnswerActions', () => {
     });
   });
 
-  it('opens the schedule dialog and saves the schedule', async () => {
+  // Back on when "Schedule this" returns to answers (SCHEDULE_FROM_ANSWERS in AnswerActions.tsx).
+  it.skip('opens the schedule dialog and saves the schedule', async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ schedule: {}, nextRunAt: null }), {
         status: 201,

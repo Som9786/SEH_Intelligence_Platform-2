@@ -60,7 +60,6 @@ describe('AppShell sidebar', () => {
       'Overview',
       'Insights Assistant',
       'DB Catalog',
-      'Scheduled Insights',
     ]);
     expect(links('Capabilities')).toEqual([
       'Basket Intelligence',

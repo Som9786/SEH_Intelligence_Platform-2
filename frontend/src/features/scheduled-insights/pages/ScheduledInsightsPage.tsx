@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CalendarClock, MessageSquare, Pencil, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  CalendarClock,
+  LayoutDashboard,
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { ConfirmDialog } from '../../../shared/components/ConfirmDialog';
@@ -53,6 +59,18 @@ export function ScheduledInsightsPage() {
       <PageHeading
         title="Scheduled Insights"
         description="Your saved questions in one place. They don't run on their own yet: until scheduled runs are switched on, ask one again to update it."
+        badge={
+          <div className="td-actions">
+            <Link
+              to="/basket-intelligence"
+              className="td-action"
+              title="Back to Basket Intelligence"
+            >
+              <ArrowLeft size={16} aria-hidden="true" />
+              Back
+            </Link>
+          </div>
+        }
       />
       {schedules.isPending && (
         <div className="state-panel" role="status">
@@ -77,15 +95,15 @@ export function ScheduledInsightsPage() {
           <CalendarClock size={28} aria-hidden="true" />
           <h2>No schedules yet</h2>
           <p>
-            Ask Insights Assistant a question about the sales data, then use
-            “Schedule this” on the answer.
+            Add an answer to Basket Intelligence, then use the schedule button
+            on its widget.
           </p>
           <Link
-            to="/insights-assistant"
+            to="/basket-intelligence"
             className="td-action td-action-primary"
           >
-            <MessageSquare size={16} aria-hidden="true" />
-            Ask Insights Assistant
+            <LayoutDashboard size={16} aria-hidden="true" />
+            Open Basket Intelligence
           </Link>
         </div>
       )}
@@ -112,8 +130,8 @@ export function ScheduledInsightsPage() {
             ))}
           </ul>
           <p className="si-foot">
-            Schedule more from any Insights Assistant answer about the sales
-            data with “Schedule this”.
+            Schedule more with the schedule button on a widget on Basket
+            Intelligence.
           </p>
         </>
       )}

@@ -18,6 +18,12 @@ import { askedOf, chooseChart, type ChartKind } from '../utils/chartChoice';
 import { DataBehindThis } from './DataBehindThis';
 
 /**
+ * "Schedule this" on an answer. Off for now: questions are scheduled from their widget on a board
+ * (the schedule button on each card). Set to true to bring the button back on answers.
+ */
+const SCHEDULE_FROM_ANSWERS = false;
+
+/**
  * What can be done with an answer: open the data behind it, and for an answer about the data,
  * schedule the question to run again and keep the answer as a widget on the board AI Hub picked.
  * What was done is reported with onKept and comes back as kept, so a saved thread doesn't offer
@@ -96,7 +102,7 @@ export function AnswerActions({
     can(reply.board)
       ? (reply.board as Board)
       : null;
-  const canSchedule = can('scheduled-insights');
+  const canSchedule = SCHEDULE_FROM_ANSWERS && can('scheduled-insights');
   const keptChart = () => {
     if (!result.result) return null;
     const choice = chooseChart(result.result, {
