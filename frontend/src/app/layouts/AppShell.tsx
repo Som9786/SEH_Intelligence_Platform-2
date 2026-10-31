@@ -23,6 +23,8 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useCatalog } from '../../shared/hooks/useCatalog';
 import { CatalogMissingState } from '../../features/db-catalog/components/CatalogMissingState';
+import { DatabasePicker } from '../../features/db-catalog/components/DatabasePicker';
+import { useCatalogDatabases } from '../../shared/hooks/useCatalogDatabases';
 
 const isTyping = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
@@ -35,6 +37,8 @@ export function AppShell() {
   const queryClient = useQueryClient();
   // The table search ("/" and the flyout) belongs to DB Catalog.
   const hasCatalog = can('db-catalog');
+  // Which of DB Catalog's databases the catalog pages and the table flyout show.
+  useCatalogDatabases({ enabled: hasCatalog });
   // With no catalog published, every page would fail on its own; show one message instead.
   const { missing: catalogMissing } = useCatalog({ enabled: hasCatalog });
   const [collapsed, setCollapsed] = useState(false);
@@ -206,6 +210,9 @@ export function AppShell() {
             )}
             <strong>{current}</strong>
           </div>
+          {hasCatalog && location.pathname.startsWith('/db-catalog') && (
+            <DatabasePicker />
+          )}
 
           <button
             className="theme-toggle"

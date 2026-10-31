@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCatalogDatabase } from '../../../../platform/files/catalogDatabase';
 import { reviewService } from '../services/reviewService';
 import type { ReviewDraft, TableReview } from '../types/review';
 
 /**
- * Every table's review comes from one call (GET /workspace/reviews), shared by all the hooks below,
+ * Every table's review in the selected database comes from one call (GET /workspace/reviews), shared by all the hooks below,
  * instead of one call per table: a table without a review is simply not in the list, so nothing
  * answers 404. After a save the result is written straight into that list, so every component
  * showing it updates at once, with no refetch.
  */
-const allReviewsKey = ['reviews'] as const;
+const allReviewsKey = (database: string | null) => ['reviews', database];
 
 const sameTable = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
@@ -16,8 +17,9 @@ function useAllReviews<T>(
   select: (reviews: TableReview[]) => T,
   enabled = true,
 ) {
+  const database = useCatalogDatabase();
   return useQuery({
-    queryKey: allReviewsKey,
+    queryKey: allReviewsKey(database),
     queryFn: () => reviewService.listReviews(),
     select,
     enabled,
@@ -46,13 +48,17 @@ export function useReviews(tableIds: string[]) {
 
 export function useSaveReview() {
   const client = useQueryClient();
+  const database = useCatalogDatabase();
   return useMutation({
     mutationFn: (draft: ReviewDraft) => reviewService.saveReview(draft),
     onSuccess: (saved: TableReview) => {
-      client.setQueryData<TableReview[]>(allReviewsKey, (list = []) => [
-        ...list.filter((r) => !sameTable(r.tableId, saved.tableId)),
-        saved,
-      ]);
+      client.setQueryData<TableReview[]>(
+        allReviewsKey(database),
+        (list = []) => [
+          ...list.filter((r) => !sameTable(r.tableId, saved.tableId)),
+          saved,
+        ],
+      );
     },
   });
 }

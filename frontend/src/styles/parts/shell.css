@@ -279,3 +279,35 @@
   gap: 12px;
   margin-bottom: 12px;
 }
+
+/* DB Catalog's database picker, in the top bar on its pages. */
+.database-picker {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--t-3f5449);
+}
+.database-picker select {
+  max-width: 240px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--b-ffffff);
+  color: var(--t-172a24);
+  font-size: var(--fs-md);
+  text-overflow: ellipsis;
+}
+.database-picker select:hover {
+  border-color: var(--line-strong);
+}
+@media (max-width: 640px) {
+  .database-picker svg {
+    display: none;
+  }
+  .database-picker select {
+    max-width: 140px;
+  }
+}

@@ -191,7 +191,11 @@ Content-Type: application/json
   "history": [{ "question": "Which table should I use for product data?", "answer": "Use inventory.Products." }]
 }
 
-### The last catalog load (it loads at startup and whenever a file in catalog/ or db-catalog.json changes)
+### The databases the catalog describes (one folder each under catalog/)
+GET {{dbcatalog}}/databases
+
+### The last catalog load of the default database (it loads at startup and whenever a file in its folder under catalog/ changes;
+### GET {{dbcatalog}}/databases/SEH_Validation_Retail/catalog/status for a named one)
 GET {{dbcatalog}}/catalog/status
 
 ### Load the catalog export into Neo4j again

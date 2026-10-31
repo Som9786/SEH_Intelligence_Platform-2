@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { fileOverviewService } from '../../../../platform/files/adapters/FileOverviewService';
-
-export const overviewQueryKey = ['overview', 'summary'] as const;
+import { useCatalogDatabase } from '../../../../platform/files/catalogDatabase';
 
 export function useOverviewSummary() {
+  const database = useCatalogDatabase();
   return useQuery({
-    queryKey: overviewQueryKey,
+    queryKey: ['overview', 'summary', database],
     queryFn: () => fileOverviewService.getSummary(),
     retry: false,
   });

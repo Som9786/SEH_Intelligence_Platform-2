@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query';
 import { fileTableDetailsService } from '../../../../platform/files/adapters/FileTableDetailsService';
+import { useCatalogDatabase } from '../../../../platform/files/catalogDatabase';
 
 const PAGE_SIZE = 100;
 
 export function useTableList(query: string) {
+  const database = useCatalogDatabase();
   const [debounced, setDebounced] = useState(query);
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(query), 250);
     return () => clearTimeout(timer);
   }, [query]);
   const result = useInfiniteQuery({
-    queryKey: ['table-list', debounced.trim()],
+    queryKey: ['table-list', database, debounced.trim()],
     queryFn: ({ pageParam }) =>
       fileTableDetailsService.listTables({
         q: debounced.trim(),

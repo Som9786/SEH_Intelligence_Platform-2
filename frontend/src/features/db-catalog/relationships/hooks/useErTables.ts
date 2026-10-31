@@ -1,6 +1,7 @@
 import { useQueries } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { fileTableDetailsService } from '../../../../platform/files/adapters/FileTableDetailsService';
+import { useCatalogDatabase } from '../../../../platform/files/catalogDatabase';
 import type { TableRecord } from '../../table-details/types/tableDetails';
 import type { ErTable } from '../utils/erLayout';
 
@@ -44,9 +45,10 @@ function placeholder(id: string): ErTable {
  * It shares the query cache with Table Details, so a table opened there is not read twice.
  */
 export function useErTables(ids: string[]) {
+  const database = useCatalogDatabase();
   const results = useQueries({
     queries: ids.map((id) => ({
-      queryKey: ['table', id],
+      queryKey: ['table', database, id],
       queryFn: () => fileTableDetailsService.getTable(id),
       staleTime: 5 * 60_000,
       retry: false,

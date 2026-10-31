@@ -193,23 +193,35 @@ public static class WorkspaceEndpoints
         });
 
         // ---------- Table reviews (shared by everyone; the reviewer is the signed-in user) ----------
+        // ?database= names the catalog database (DB Catalog's folder name); without it, Workspace:ReviewsDatabase.
 
-        group.MapGet("/reviews", async (ReviewStore reviews, CancellationToken ct) => Results.Ok((await reviews.AllAsync(ct)).Values));
+        group.MapGet("/reviews", async (string? database, ReviewStore reviews, CancellationToken ct) =>
+            ReviewDatabase(database, reviews) is { } db ? Results.Ok((await reviews.AllAsync(db, ct)).Values) : NoDatabase());
 
-        group.MapGet("/reviews/{tableId}", async (string tableId, ReviewStore reviews, CancellationToken ct) =>
-            (await reviews.AllAsync(ct)).TryGetValue(tableId, out var review) ? Results.Ok(review) : NotFound("review for that table"));
+        group.MapGet("/reviews/{tableId}", async (string tableId, string? database, ReviewStore reviews, CancellationToken ct) =>
+            ReviewDatabase(database, reviews) is not { } db ? NoDatabase()
+            : (await reviews.AllAsync(db, ct)).TryGetValue(tableId, out var review) ? Results.Ok(review) : NotFound("review for that table"));
 
-        group.MapPut("/reviews/{tableId}", async (string tableId, ReviewInput input, HttpContext context, ReviewStore reviews, CancellationToken ct) =>
+        group.MapPut("/reviews/{tableId}", async (string tableId, string? database, ReviewInput input, HttpContext context, ReviewStore reviews,
+            CancellationToken ct) =>
         {
+            if (ReviewDatabase(database, reviews) is not { } db)
+                return NoDatabase();
             if (input.Status is null || !ReviewStatuses.All.Contains(input.Status))
                 return Invalid($"'status' must be one of {string.Join(", ", ReviewStatuses.All)}.");
             if (tableId.Length > 256)
                 return Invalid("The table id is too long.");
             if (input.Comment is { Length: > 2000 })
                 return Invalid("'comment' can be up to 2000 characters.");
-            var review = new TableReview(tableId, input.Status, input.Comment?.Trim() ?? "", UserOf(context), DateTimeOffset.Now);
+            var review = new TableReview(tableId, input.Status, input.Comment?.Trim() ?? "", UserOf(context), DateTimeOffset.Now, db);
             return Results.Ok(await reviews.SaveAsync(review, ct));
         });
+
+        // A database name as DB Catalog spells its folders: no path separators.
+        static string? ReviewDatabase(string? database, ReviewStore reviews) =>
+            string.IsNullOrWhiteSpace(database) ? reviews.DefaultDatabase
+            : database.Length <= 128 && database.IndexOfAny(['/', '\\']) < 0 ? database.Trim() : null;
+        static IResult NoDatabase() => Invalid("'database' must name the catalog database the table belongs to.");
 
         app.Logger.LogInformation("Workspace files are kept in {Folder}", app.Services.GetRequiredService<WorkspaceStore>().Folder);
     }

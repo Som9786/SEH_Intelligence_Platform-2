@@ -1,10 +1,12 @@
 import { ApiError, apiJson } from '../../../../platform/api/apiClient';
+import { getCatalogDatabase } from '../../../../platform/files/catalogDatabase';
 import type { ReviewDraft, ReviewStatus, TableReview } from '../types/review';
 
 /**
  * The only thing the UI knows about reviews. Reviews are kept by the workspace in Insights.Gateway (at
  * /api/workspace/reviews) in one file shared by everyone, so they survive a refresh and
- * every user sees the same review. The reviewer is the signed-in user, set by the server.
+ * every user sees the same review. The reviewer is the signed-in user, set by the server. Each
+ * catalog database has its own reviews.
  */
 export interface ReviewService {
   /** The latest review for a table, or null when it has not been reviewed. */
@@ -17,8 +19,14 @@ export interface ReviewService {
 
 const STATUSES: ReviewStatus[] = ['verified', 'needs-attention'];
 
+/** Reviews belong to the selected catalog database; without one, the gateway's default database. */
+const withDatabase = (path: string) => {
+  const database = getCatalogDatabase();
+  return database ? `${path}?database=${encodeURIComponent(database)}` : path;
+};
+
 const pathOf = (tableId: string) =>
-  `workspace/reviews/${encodeURIComponent(tableId)}`;
+  withDatabase(`workspace/reviews/${encodeURIComponent(tableId)}`);
 
 export function parseReview(value: unknown, tableId: string): TableReview {
   const review = value as Partial<TableReview> | null;
@@ -52,7 +60,7 @@ export const reviewService: ReviewService = {
   },
 
   async listReviews() {
-    const all = await apiJson<unknown>('workspace/reviews');
+    const all = await apiJson<unknown>(withDatabase('workspace/reviews'));
     return (Array.isArray(all) ? all : []).flatMap((value) => {
       const tableId = (value as { tableId?: unknown } | null)?.tableId;
       if (typeof tableId !== 'string') return [];

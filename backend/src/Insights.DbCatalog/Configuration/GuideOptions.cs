@@ -1,7 +1,7 @@
 namespace Insights.DbCatalog.Configuration;
 
-/// The page's name and suggested questions, and extra words for tables and columns (db-catalog.json). The synonyms are
-/// loaded into Neo4j with the catalog; read through IOptionsMonitor so edits apply without a restart.
+/// A database's page name and suggested questions, and extra words for its tables and columns: the "Guide" section of the
+/// db-catalog.json in its catalog folder. The synonyms are loaded into Neo4j with the catalog; saving the file reloads it.
 public sealed class GuideOptions
 {
     public const string SectionName = "Guide";

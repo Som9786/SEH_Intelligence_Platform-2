@@ -16,13 +16,15 @@ public sealed class CatalogFilesController(CatalogFiles files) : ControllerBase
         [".md"] = "text/markdown; charset=utf-8",
     };
 
-    /// One catalog file, by its path inside the export folder, such as tables/sales.orders.json.
+    /// One catalog file, by its path inside a database's export folder, such as tables/sales.orders.json. Without a
+    /// database, the default one's.
     [HttpGet("catalog/files/{**path}")]
+    [HttpGet("databases/{database}/catalog/files/{**path}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public IActionResult File(string path)
+    public IActionResult CatalogFile(string? database, string path)
     {
-        var folder = files.Folder;
+        var folder = files.Folder(files.Resolve(database));
         var relative = path.Replace('\\', '/');
         var published = Published(folder);
         if (published is null || !published.Contains(relative) || relative.EndsWith(".data.json", StringComparison.OrdinalIgnoreCase))

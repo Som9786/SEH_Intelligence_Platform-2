@@ -53,8 +53,9 @@ public sealed record MatchInfo(string Table, string Why);
 public sealed record JoinPath(string From, string To, IReadOnlyList<JoinInfo> Steps);
 
 /// Body of POST /context and POST /ask. History holds earlier questions in the conversation and their answers, oldest
-/// first, so a follow-up such as "and its supplier?" keeps the tables the conversation is about.
-public sealed record AskRequest(string Question, IReadOnlyList<GuideTurn>? History = null);
+/// first, so a follow-up such as "and its supplier?" keeps the tables the conversation is about. Database names one of the
+/// catalog's databases (GET /databases); without it the question is about the default one.
+public sealed record AskRequest(string Question, IReadOnlyList<GuideTurn>? History = null, string? Database = null);
 
 
 /// Response of POST /ask. Answer is Markdown; Sql is an example query (never run), or empty. Tables are the ones the
@@ -73,3 +74,7 @@ public sealed record ComponentHealth(bool Ok, string Detail);
 
 /// GET /guide: the page's name and suggested questions.
 public sealed record GuideInfo(string Name, IReadOnlyList<string> Suggestions);
+
+/// GET /databases: one database the catalog describes. Name is its folder under Catalog:Path, used in the other routes;
+/// Title is the name its db-catalog.json gives the page. LastLoad is null before its first load.
+public sealed record CatalogDatabase(string Name, string Title, bool Default, CatalogLoadStatus? LastLoad);

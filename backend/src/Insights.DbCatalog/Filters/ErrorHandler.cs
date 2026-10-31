@@ -21,8 +21,9 @@ public sealed class ErrorHandler(IProblemDetailsService problemDetails, IOptions
             ServiceUnavailableException => (StatusCodes.Status503ServiceUnavailable, "Neo4j is not reachable",
                 $"Could not reach Neo4j at {neo4j.Value.Uri} (database {neo4j.Value.Database}), which holds the catalog. " +
                 $"Check that it's running, then try again. Cause: {RootCause(exception).Message}"),
+            UnknownDatabaseException => (StatusCodes.Status404NotFound, "Unknown database", exception.Message),
             CatalogException => (StatusCodes.Status500InternalServerError, "Catalog error",
-                $"The database catalog couldn't be loaded into Neo4j. Fix the export folder (Catalog:Path) or {GuideOptions.FileName}; " +
+                $"The database catalog couldn't be loaded into Neo4j. Fix its folder under Catalog:Path, or its {GuideOptions.FileName}; " +
                 $"it reloads when a file is saved. {exception.Message}"),
             // The AI Hub's own status, title and detail, e.g. 502 "OpenAI error (429)".
             AiHubException e => (e.StatusCode, e.Title, e.Message),

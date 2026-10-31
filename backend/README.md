@@ -162,7 +162,8 @@ A load replaces only nodes labelled `KnowledgeModel`, so anything else in the da
 [src/Insights.DbCatalog](src/Insights.DbCatalog) answers questions about a **database's structure**, not its data: "Which table should I use for product data?", "How do I join order items to products?", "Which columns are sensitive?". It works the same way as the knowledge model, with a different source: the graph is built from the database's **metadata export** (catalog), and answers come from the graph alone. The database itself is never connected to. When a query helps, the answer includes an example query for you to run.
 
 ```
-Startup, or a file in catalog/ or db-catalog.json changed ──► DB Catalog ──► replaces the catalog in Neo4j db-guide (one transaction)
+Startup ──► DB Catalog ──► loads every database folder in catalog/ into Neo4j db-guide
+A file in catalog/<database>/ changed ──► DB Catalog ──► replaces that database's catalog (one transaction)
 
 POST /ask ──► DB Catalog ──► Neo4j: the tables the question is about, and the joins between them
                   └─► AI Hub POST /guide (question + that catalog context) ──► OpenAI: answer + example query
@@ -172,10 +173,12 @@ POST /ask ──► DB Catalog ──► Neo4j: the tables the question is about
 
 | File | Holds |
 |---|---|
-| `catalog/` | The metadata export, as the export tool writes it: `database.json`, `business-areas.json`, `relationships.json`, `tables/*.json` (columns, keys, indexes, constraints, triggers, business rules) and `documentation/*.md`. To document another database, replace this folder (or point `Catalog:Path` at another export); it reloads by itself. |
-| `db-catalog.json` | The page's name and suggested questions, and **synonyms**: extra words for a table (`"inventory.Products": ["item", "sku"]`), column (`inventory.Products.UnitPrice`) or business area. Add one when a question uses a word the export doesn't. |
+| `catalog/<database>/` | One folder per database, named after it (`catalog/SEH_Validation_Retail/`). The name is how the API and the UI's database picker refer to it. Each holds the metadata export, as the export tool writes it: `database.json`, `business-areas.json`, `relationships.json`, `tables/*.json` (columns, keys, indexes, constraints, triggers, business rules) and `documentation/*.md`. To add a database, copy its export into a new folder; to remove one, delete its folder. Either is picked up without a restart. |
+| `catalog/<database>/db-catalog.json` | That database's page name and suggested questions, and **synonyms**: extra words for a table (`"inventory.Products": ["item", "sku"]`), column (`inventory.Products.UnitPrice`) or business area. Add one when a question uses a word the export doesn't. Optional; without it the page is named after the folder. |
 
-**In Neo4j** (database `db-guide`, created on the first load when it doesn't exist) every node has the label `Catalog`:
+`Catalog:DefaultDatabase` (appsettings.json) is the database used when a request names none: the routes without `/databases/{database}`, and the Insights Assistant's questions. Empty means the first folder by name.
+
+**In Neo4j** (database `db-guide`, created on the first load when it doesn't exist; on Neo4j Community, which has only the database `neo4j`, set `Neo4j:Database` to `neo4j`) every node has the label `Catalog` and a `db` property naming its database folder. Several databases share the graph; ids are unique within a database:
 
 ```
 (Database)-[:HAS_AREA]->(BusinessArea)-[:HAS_TABLE]->(Table)-[:HAS_COLUMN]->(Column)
@@ -192,12 +195,17 @@ Plus a full-text index, `catalog_text`, over what each table and column means. T
 
 | Endpoint | Body | Returns |
 |---|---|---|
-| `POST /ask` | `{ "question": "...", "history": [{ "question", "answer" }] }` | `{ question, answer, tables, sql, matched, given, joinPaths, usage, cached }`. `answer` is Markdown; `sql` is an example query (not run) or empty; `matched` says which tables the question pointed at and why; `given` lists the tables the AI got. `history` (optional) makes it a follow-up. |
-| `POST /context` | `{ "question": "...", "history": [...] }` | The catalog context for the question, as sent to AI Hub |
-| `GET /catalog` | – | The database, counts, business areas, every table in brief, and every join with its SQL condition |
-| `GET /catalog/tables/{id}` | – | One table in full, with its documentation page. `id` is schema-qualified: `sales.Orders`. **404** if there's no such table. |
-| `GET /catalog/status` / `POST /catalog/reload` | – | The last load `{ at, succeeded, error, counts }` / load again. **500** "Catalog error" names every problem with the export or `db-catalog.json`. |
-| `GET /health` | – | `{ catalog: { ok, detail }, ai: { ok, detail }, model }` |
+| `GET /databases` | – | `[{ name, title, default, lastLoad }]`: every database folder, its page name, whether it's the default, and its last load |
+| `POST /ask` | `{ "question": "...", "history": [{ "question", "answer" }], "database": "..." }` | `{ question, answer, tables, sql, matched, given, joinPaths, usage, cached }`. `answer` is Markdown; `sql` is an example query (not run) or empty; `matched` says which tables the question pointed at and why; `given` lists the tables the AI got. `history` (optional) makes it a follow-up; `database` (optional) picks the database, else the default. |
+| `POST /context` | `{ "question": "...", "history": [...], "database": "..." }` | The catalog context for the question, as sent to AI Hub |
+| `GET /databases/{database}/catalog` | – | The database, counts, business areas, every table in brief, and every join with its SQL condition |
+| `GET /databases/{database}/catalog/tables/{id}` | – | One table in full, with its documentation page. `id` is schema-qualified: `sales.Orders`. **404** if there's no such table. |
+| `GET /databases/{database}/catalog/files/{path}` | – | One file the database's `database.json` publishes, as the UI reads it |
+| `GET /databases/{database}/catalog/status` / `POST …/catalog/reload` | – | The last load `{ at, succeeded, error, counts }` / load again. **500** "Catalog error" names every problem with the export or `db-catalog.json`. |
+| `GET /databases/{database}/guide` | – | `{ name, suggestions }` from the database's `db-catalog.json` |
+| `GET /health` | – | `{ catalog: { ok, detail }, ai: { ok, detail }, model }`: the catalog is ok when every database loaded |
+
+Each `/databases/{database}/…` route also answers without that prefix (`GET /catalog`, `GET /guide`, …) for the default database. An unknown database is a **404** that lists the ones there are.
 | `GET /guide` | – | The page's name and suggested questions |
 | `GET /ai/usage` | – | AI Hub's model cost totals, passed through |
 
@@ -411,12 +419,12 @@ The services follow the same layout: thin controllers, logic in `Services/`, one
 
 | Folder | Contents |
 |---|---|
-| `Controllers/` | `AskController` (`/ask`), `CatalogController` (`/catalog`, `/catalog/tables/{id}`, `/context`, `/catalog/status`, `/catalog/reload`, `/guide`), `HealthController` (`/health`, `/ai/usage`) |
-| `Services/Catalog/` | `CatalogFiles` (reads and checks the export folder), `CatalogLoader` (writes the catalog to Neo4j), `CatalogReader` (overview, one table, or a question's part of it), `CatalogWatcher` (loads at startup and when a file changes) |
+| `Controllers/` | `AskController` (`/ask`), `CatalogController` (`/databases`, `/catalog`, `/catalog/tables/{id}`, `/context`, `/catalog/status`, `/catalog/reload`, `/guide`, each also under `/databases/{database}`), `CatalogFilesController` (`/catalog/files/{path}`), `HealthController` (`/health`, `/ai/usage`) |
+| `Services/Catalog/` | `CatalogFiles` (lists the database folders, reads and checks one's export), `CatalogLoader` (writes a database's catalog to Neo4j), `CatalogReader` (overview, one table, or a question's part of it, for one database), `CatalogWatcher` (loads every database at startup, and one again when a file in its folder changes) |
 | `Services/Ask/`, `Services/AiHub/` | `AskService` (question → catalog context → AI Hub `/guide`), `AiHubClient` |
-| `Filters/` | `ErrorHandler`: "Neo4j is not reachable" (503), "Catalog error" (500) and AI Hub errors as problem responses |
+| `Filters/` | `ErrorHandler`: "Neo4j is not reachable" (503), "Unknown database" (404), "Catalog error" (500) and AI Hub errors as problem responses |
 | `Models/`, `Configuration/`, `Extensions/` | The export's file formats (`CatalogExport`), request and response records, options classes, `AddDbCatalog()` |
-| `catalog/`, `db-catalog.json` | The metadata export and the page's questions and synonyms (see [DB Catalog](#db-catalog)) |
+| `catalog/<database>/` | One folder per database: its metadata export and its `db-catalog.json` (questions and synonyms; see [DB Catalog](#db-catalog)) |
 
 **src/Insights.Gateway**
 

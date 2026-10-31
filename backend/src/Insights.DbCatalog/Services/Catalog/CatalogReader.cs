@@ -28,10 +28,10 @@ public sealed partial class CatalogReader(
     /// Earlier questions in the conversation count this much against the current one.
     const double HistoryWeight = 0.5;
 
-    const string SelectDatabase = "MATCH (d:Database) RETURN d.name AS name, d.provider AS provider, d.version AS version, d.summary AS summary";
+    const string SelectDatabase = "MATCH (d:Database {db: $db}) RETURN d.name AS name, d.provider AS provider, d.version AS version, d.summary AS summary";
 
     const string MatchTerms = """
-        MATCH (t:Term)-[:MEANS]->(n) WHERE t.text IN $phrases
+        MATCH (t:Term {db: $db})-[:MEANS]->(n) WHERE t.text IN $phrases
         RETURN t.text AS term,
                CASE WHEN n:Table THEN 'table' WHEN n:Column THEN 'column' ELSE 'area' END AS kind,
                coalesce(n.id, n.name) AS key,
@@ -39,7 +39,7 @@ public sealed partial class CatalogReader(
         """;
 
     const string Search = """
-        CALL db.index.fulltext.queryNodes($index, $query) YIELD node, score
+        CALL db.index.fulltext.queryNodes($index, $query) YIELD node, score WHERE node.db = $db
         RETURN CASE WHEN node:Table THEN node.id ELSE node.table END AS table,
                CASE WHEN node:Column THEN node.name END AS column, score
         ORDER BY score DESC
@@ -48,14 +48,14 @@ public sealed partial class CatalogReader(
 
     static readonly string JoinPaths = $$"""
         UNWIND $pairs AS pair
-        MATCH (a:Table {id: pair[0]})
-        MATCH (b:Table {id: pair[1]})
+        MATCH (a:Table {db: $db, id: pair[0]})
+        MATCH (b:Table {db: $db, id: pair[1]})
         MATCH p = shortestPath((a)-[:JOINS*..{{MaxJoinHops}}]-(b))
         RETURN pair[0] AS from, pair[1] AS to, [r IN relationships(p) | r {.*, from: startNode(r).id, to: endNode(r).id}] AS steps
         """;
 
     const string SelectTables = """
-        MATCH (t:Table) WHERE $all OR t.id IN $ids
+        MATCH (t:Table {db: $db}) WHERE $all OR t.id IN $ids
         RETURN t {.id, .area, .purpose, .purposeEvidence, .recordMeaning, .rowCount, .primaryKey} AS table,
                CASE WHEN $withDocumentation THEN t.documentation END AS documentation,
                [(t)-[:HAS_COLUMN]->(c) | c {.*, references: head([(c)-[:REFERENCES]->(x) | x.id])}] AS columns,
@@ -68,19 +68,19 @@ public sealed partial class CatalogReader(
         """;
 
     const string SelectSummaries = """
-        MATCH (t:Table) WHERE $all OR NOT t.id IN $ids
+        MATCH (t:Table {db: $db}) WHERE $all OR NOT t.id IN $ids
         RETURN t.id AS id, t.area AS area, t.purpose AS purpose, t.rowCount AS rowCount, t.columnCount AS columnCount
         ORDER BY t.id
         """;
 
     const string SelectAreas = """
-        MATCH (a:BusinessArea)
+        MATCH (a:BusinessArea {db: $db})
         RETURN a.name AS name, a.purpose AS purpose, [(a)-[:HAS_TABLE]->(t) | t.id] AS tables
         ORDER BY a.position
         """;
 
     const string SelectJoins = """
-        MATCH (a:Table)-[j:JOINS]->(b:Table)
+        MATCH (a:Table {db: $db})-[j:JOINS]->(b:Table)
         RETURN j {.*, from: a.id, to: b.id} AS join
         ORDER BY j.position
         """;
@@ -95,36 +95,36 @@ public sealed partial class CatalogReader(
         "about", "from", "have", "has", "between", "together", "also", "and", "the", "for", "with", "its", "their", "you",
     };
 
-    public async Task<CatalogOverview> GetOverviewAsync(CancellationToken ct)
+    public async Task<CatalogOverview> GetOverviewAsync(string db, CancellationToken ct)
     {
-        await loader.EnsureLoadedAsync(ct);
+        await loader.EnsureLoadedAsync(db, ct);
         return await ReadAsync(async tx =>
         {
-            var database = await DatabaseAsync(tx);
-            var areas = (await QueryAsync(tx, SelectAreas, new { })).Select(r => new AreaInfo(
+            var database = await DatabaseAsync(tx, db);
+            var areas = (await QueryAsync(tx, SelectAreas, new { db })).Select(r => new AreaInfo(
                 r["name"].As<string>(), r["purpose"].As<string?>(), Strings(r["tables"]))).ToList();
-            var tables = await SummariesAsync(tx, all: true, []);
-            var joins = (await QueryAsync(tx, SelectJoins, new { })).Select(r => Join(r["join"].As<Map>())).ToList();
-            return new CatalogOverview(database, loader.LastLoad?.Counts ?? new Dictionary<string, int>(), areas, tables, joins);
+            var tables = await SummariesAsync(tx, db, all: true, []);
+            var joins = (await QueryAsync(tx, SelectJoins, new { db })).Select(r => Join(r["join"].As<Map>())).ToList();
+            return new CatalogOverview(database, loader.LastLoad(db)?.Counts ?? new Dictionary<string, int>(), areas, tables, joins);
         }, ct);
     }
 
     /// One table in full, with its documentation page; null when the catalog has no such table.
-    public async Task<TableDetail?> GetTableAsync(string id, CancellationToken ct)
+    public async Task<TableDetail?> GetTableAsync(string db, string id, CancellationToken ct)
     {
-        await loader.EnsureLoadedAsync(ct);
-        return await ReadAsync(async tx => (await TablesAsync(tx, all: false, [id], withDocumentation: true, brief: false))
+        await loader.EnsureLoadedAsync(db, ct);
+        return await ReadAsync(async tx => (await TablesAsync(tx, db, all: false, [id], withDocumentation: true, brief: false))
             .FirstOrDefault(t => string.Equals(t.Id, id, StringComparison.OrdinalIgnoreCase)), ct);
     }
 
     /// The part of the catalog the question (and the conversation's earlier questions) is about.
-    public async Task<GuideContext> GetContextAsync(string question, IReadOnlyList<string> history, CancellationToken ct)
+    public async Task<GuideContext> GetContextAsync(string db, string question, IReadOnlyList<string> history, CancellationToken ct)
     {
-        await loader.EnsureLoadedAsync(ct);
+        await loader.EnsureLoadedAsync(db, ct);
         var timer = Stopwatch.StartNew();
         var context = await ReadAsync(async tx =>
         {
-            var database = await DatabaseAsync(tx);
+            var database = await DatabaseAsync(tx, db);
             var scores = new Dictionary<string, (double Score, List<string> Why)>(StringComparer.OrdinalIgnoreCase);
             void Add(string table, double score, string why)
             {
@@ -135,25 +135,25 @@ public sealed partial class CatalogReader(
             }
 
             foreach (var (text, weight) in history.Select(h => (h, HistoryWeight)).Prepend((question, 1.0)))
-                await ScoreAsync(tx, text, weight, Add);
+                await ScoreAsync(tx, db, text, weight, Add);
 
             var best = scores.Count > 0 ? scores.Values.Max(s => s.Score) : 0;
             var picked = scores.Where(s => s.Value.Score >= best * KeepShare)
                 .OrderByDescending(s => s.Value.Score).ThenBy(s => s.Key).Take(MaxTables).ToList();
             if (picked.Count == 0)
                 return new GuideContext(database, true, [],
-                    await TablesAsync(tx, all: true, [], withDocumentation: false, brief: true), [], []);
+                    await TablesAsync(tx, db, all: true, [], withDocumentation: false, brief: true), [], []);
 
             var matched = picked.Select(p => new MatchInfo(p.Key, string.Join("; ", p.Value.Why.Take(3)))).ToList();
             var ids = picked.Select(p => p.Key).ToList();
-            var paths = await JoinPathsAsync(tx, ids);
+            var paths = await JoinPathsAsync(tx, db, ids);
             // The tables a join path passes through, so every step of it is described.
             foreach (var id in paths.SelectMany(p => p.Steps).SelectMany(s => new[] { s.From, s.To }))
                 if (!ids.Contains(id, StringComparer.OrdinalIgnoreCase) && ids.Count < MaxContextTables)
                     ids.Add(id);
 
-            var tables = await TablesAsync(tx, all: false, ids, withDocumentation: false, brief: false);
-            var others = await SummariesAsync(tx, all: false, ids);
+            var tables = await TablesAsync(tx, db, all: false, ids, withDocumentation: false, brief: false);
+            var others = await SummariesAsync(tx, db, all: false, ids);
             return new GuideContext(database, false, matched, tables, paths, others);
         }, ct);
 
@@ -164,9 +164,9 @@ public sealed partial class CatalogReader(
     }
 
     /// Scores tables by the text's words: names and synonyms of tables, columns and areas, then the full-text search.
-    async Task ScoreAsync(IAsyncQueryRunner tx, string text, double weight, Action<string, double, string> add)
+    async Task ScoreAsync(IAsyncQueryRunner tx, string db, string text, double weight, Action<string, double, string> add)
     {
-        var hits = await QueryAsync(tx, MatchTerms, new { phrases = Terms.Phrases(text).ToList() });
+        var hits = await QueryAsync(tx, MatchTerms, new { db, phrases = Terms.Phrases(text).ToList() });
         // A column name shared by many tables (Name, Email, ModifiedAt) says less about which table is meant.
         var tablesPerTerm = hits.Where(h => h["kind"].As<string>() == "column")
             .GroupBy(h => h["term"].As<string>()).ToDictionary(g => g.Key, g => g.SelectMany(h => Strings(h["tables"])).Distinct().Count());
@@ -192,7 +192,7 @@ public sealed partial class CatalogReader(
         var words = Word().Matches(text).Select(m => m.Value).Where(w => w.Length > 2 && !QuestionWords.Contains(w)).Distinct().ToList();
         if (words.Count == 0)
             return;
-        var found = await QueryAsync(tx, Search, new { index = CatalogLoader.SearchIndex, query = string.Join(' ', words) });
+        var found = await QueryAsync(tx, Search, new { db, index = CatalogLoader.SearchIndex, query = string.Join(' ', words) });
         if (found.Count == 0)
             return;
         var top = found.Max(f => f["score"].As<double>());
@@ -207,17 +207,17 @@ public sealed partial class CatalogReader(
         }
     }
 
-    async Task<List<JoinPath>> JoinPathsAsync(IAsyncQueryRunner tx, List<string> ids)
+    async Task<List<JoinPath>> JoinPathsAsync(IAsyncQueryRunner tx, string db, List<string> ids)
     {
         var pairs = ids.SelectMany((a, i) => ids.Skip(i + 1).Select(b => new List<string> { a, b })).ToList();
         if (pairs.Count == 0)
             return [];
-        return (await QueryAsync(tx, JoinPaths, new { pairs })).Select(r => new JoinPath(
+        return (await QueryAsync(tx, JoinPaths, new { db, pairs })).Select(r => new JoinPath(
             r["from"].As<string>(), r["to"].As<string>(), r["steps"].As<List<object>>().Cast<Map>().Select(Join).ToList())).ToList();
     }
 
-    async Task<List<TableDetail>> TablesAsync(IAsyncQueryRunner tx, bool all, List<string> ids, bool withDocumentation, bool brief) =>
-        (await QueryAsync(tx, SelectTables, new { all, ids, withDocumentation })).Select(r =>
+    async Task<List<TableDetail>> TablesAsync(IAsyncQueryRunner tx, string db, bool all, List<string> ids, bool withDocumentation, bool brief) =>
+        (await QueryAsync(tx, SelectTables, new { db, all, ids, withDocumentation })).Select(r =>
         {
             var t = r["table"].As<Map>();
             var columns = Maps(r["columns"]).OrderBy(c => Long(c, "ordinal")).Select(c => new ColumnInfo(
@@ -241,14 +241,14 @@ public sealed partial class CatalogReader(
                 indexes, constraints, triggers, rules, r["documentation"].As<string?>());
         }).ToList();
 
-    async Task<List<TableSummary>> SummariesAsync(IAsyncQueryRunner tx, bool all, List<string> ids) =>
-        (await QueryAsync(tx, SelectSummaries, new { all, ids })).Select(r => new TableSummary(
+    async Task<List<TableSummary>> SummariesAsync(IAsyncQueryRunner tx, string db, bool all, List<string> ids) =>
+        (await QueryAsync(tx, SelectSummaries, new { db, all, ids })).Select(r => new TableSummary(
             r["id"].As<string>(), r["area"].As<string?>(), r["purpose"].As<string?>(), r["rowCount"].As<long?>(),
             (int)r["columnCount"].As<long>())).ToList();
 
-    static async Task<DatabaseInfo> DatabaseAsync(IAsyncQueryRunner tx)
+    static async Task<DatabaseInfo> DatabaseAsync(IAsyncQueryRunner tx, string db)
     {
-        var r = (await QueryAsync(tx, SelectDatabase, new { })).FirstOrDefault()
+        var r = (await QueryAsync(tx, SelectDatabase, new { db })).FirstOrDefault()
             ?? throw new CatalogException("Neo4j holds no catalog. Check the catalog folder and the last load (GET /catalog/status).");
         return new(r["name"].As<string>(), r["provider"].As<string>(), r["version"].As<string?>(), r["summary"].As<string?>());
     }

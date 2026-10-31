@@ -16,7 +16,6 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<Neo4jOptions>(configuration.GetSection(Neo4jOptions.SectionName));
         services.Configure<CatalogOptions>(configuration.GetSection(CatalogOptions.SectionName));
-        services.Configure<GuideOptions>(configuration.GetSection(GuideOptions.SectionName));
 
         services.AddSingleton<IDriver>(sp =>
         {

@@ -1,8 +1,10 @@
 import { API_ROOT, apiFetch } from '../api/apiClient';
+import { getCatalogDatabase } from './catalogDatabase';
 
 /**
- * Reads the metadata catalog files from DB Catalog's API (GET /catalog/files/{path}) through the gateway, at
- * /api/db-catalog on the app's own address. The app publishes no catalog files itself.
+ * Reads the metadata catalog files of the selected database from DB Catalog's API
+ * (GET /databases/{database}/catalog/files/{path}) through the gateway, at /api/db-catalog on the
+ * app's own address. The app publishes no catalog files itself.
  */
 export type FileDataErrorCode =
   'NOT_FOUND' | 'INVALID_JSON' | 'INVALID_DATA' | 'LOAD_FAILED';
@@ -23,7 +25,13 @@ export function isFileNotFound(error: unknown): boolean {
   return error instanceof FileDataError && error.code === 'NOT_FOUND';
 }
 
-const FILES_PATH = 'db-catalog/catalog/files/';
+/** The selected database's files; before one is selected, DB Catalog's default database's. */
+function filesPath(): string {
+  const database = getCatalogDatabase();
+  return database
+    ? `db-catalog/databases/${encodeURIComponent(database)}/catalog/files/`
+    : 'db-catalog/catalog/files/';
+}
 
 /** Rejects absolute URLs, traversal and sample data, which is never part of the published snapshot. */
 function assertSafePath(path: string) {
@@ -39,7 +47,7 @@ function assertSafePath(path: string) {
 
 function filePath(path: string): string {
   assertSafePath(path);
-  return FILES_PATH + path.split('/').map(encodeURIComponent).join('/');
+  return filesPath() + path.split('/').map(encodeURIComponent).join('/');
 }
 
 /** The address of a catalog file, for links and images in documents. */
@@ -79,7 +87,9 @@ export function clearDataCache() {
   cache.clear();
 }
 
-function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+function cached<T>(path: string, load: () => Promise<T>): Promise<T> {
+  // Each database's files are kept apart, so switching back to one doesn't read it again.
+  const key = `${getCatalogDatabase() ?? ''}|${path}`;
   let entry = cache.get(key) as Promise<T> | undefined;
   if (!entry) {
     entry = load();
